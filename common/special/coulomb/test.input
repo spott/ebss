@@ -1,0 +1,19 @@
+true
+(1,0.1)
+(50,50)
+100.156
+10
+3
+
+# Description of the input parameters
+#
+# Boolean: true if ones uses standard normalization, false if one uses alternative normalization.
+# Complex: angular momentum l.
+# Complex: Sommerfeld parameter eta.
+# Double:  radius R of the path in the complex plane : z = R exp(i theta), theta in [0:2 pi[.
+# Integer: number of points Nz to be considered on the path.
+# Integer: number of points Nl for the recurrence relation : l[rec] = l+k, k in [0:Nl-1].
+#
+# Compilation: g++ -O3 examples.cpp -o run
+# Input instruction: ./run < test.input
+# The output is in test.output .
