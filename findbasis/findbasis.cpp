@@ -1,6 +1,7 @@
 #include<common/parameters.hpp>
+//#include<boost/
 
-#include<boost/bind.hpp>
+//#include<boost/bind.hpp>
 
 #include<findbasis/numerov.hpp>
 //#include<common/special/bspline.hpp>

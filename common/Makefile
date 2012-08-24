@@ -1,6 +1,6 @@
 include ../makefile.include
 
-SOURCES=test_parameters.cpp ${TDSEBASE}/common/parameters.cpp
+SOURCES=parameters2_test.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=test
 DEFAULT=all
