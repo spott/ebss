@@ -1,6 +1,6 @@
 include ../makefile.include
 
-SOURCES=parameters2_test.cpp
+SOURCES=parameters_test.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=test
 DEFAULT=all

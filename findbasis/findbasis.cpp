@@ -1,38 +1,36 @@
-#include<common/parameters.hpp>
-//#include<boost/
-
-//#include<boost/bind.hpp>
-
+#include<common/BasisParameters.hpp>
 #include<findbasis/numerov.hpp>
 //#include<common/special/bspline.hpp>
 
 #include<slepc.h>
 
-PetscReal pot(PetscReal r, int l);
-
-int main(int argc, char *argv[])
+template <typename T>
+T pot(T r)
 {
+   return -1./r;
+}
 
-   //PetscInitialize(&argc, &argv);
-   SlepcInitialize(&argc, &argv, (char*)0, "");
+typedef long double scalar;
+
+int main(int argc, char **argv)
+{
+   SlepcInitialize(&argc, &argv, PETSC_NULL, PETSC_NULL);
    MPI_Comm world = MPI_COMM_WORLD;
 
-   parameters params(world, BASIS);
-   params.print_parameters();
+   BasisParameters<scalar> *params = new BasisParameters<scalar>(world);
 
-   //call specific function here:
-   numerov::find_basis<PetscReal>(
-      params,
-      boost::bind<PetscReal>(pot, _1, (int)0));
+   // print out the parameters
+   params->print_parameters();
 
+   //call function to find all the energy states here:
+   numerov::find_basis_set<scalar>(&pot, params);
+
+   //delete the params... this is important! it writes out everything.
+   delete params;
    PetscFinalize();
    return 0;
 }
 
-PetscReal pot(PetscReal r, int l)
-{
-   return -1/r - l*(l+1)/(r*r);
-}
 
 /**************************************
  *
@@ -43,7 +41,7 @@ PetscReal pot(PetscReal r, int l)
  * (without major modification) on non-spherically
  * symmetric code.
  *
- * find_basis< ScalarType >( potential function, l_value , parameters)
+ * find_basis_set< ScalarType >( potential function, l_value , BasisParameters)
  *
  * This should be all that is needed.  So using different
  * find_basis functions, SHOULD make this fairly uniform.
