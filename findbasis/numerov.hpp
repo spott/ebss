@@ -22,7 +22,6 @@ namespace numerov
             std::cerr << "wf and f don't have the same size or are zero. wf: " 
                 << (*wf).size() << ", f: " << (*f).size() << std::endl;
 
-        //bool inf = false;
         for(size_t i = 2; i < wf->size(); i++)
         {
             (*wf)[i] = ((12. - (*f)[i-1] * 10.) * (*wf)[i-1] - (*f)[i-2] * (*wf)[i-2]) / (*f)[i];
@@ -32,20 +31,7 @@ namespace numerov
             if ((*wf)[i] > 0 && (*wf)[i-1] <= 0)
                 nodes++;
 
-            //check for inf:
-            //if (std::abs((*wf)[i]) == std::numeric_limits<scalar>::infinity())
-            //{
-                //std::cerr << "infinity detected at " << i << std::endl;
-                //inf = true;
-                //break;
-            //}
         }
-        //if (inf)
-        //{
-            //wf->at(0) /= 1e100;
-            //wf->at(1) /= 1e100;
-            //return numerov(f, wf);
-        //}
 
         return nodes;
     };
@@ -58,16 +44,6 @@ namespace numerov
     template <typename scalar>
     basis<scalar> find_basis(const int n, const int l, const scalar dx, const std::vector<scalar> &rgrid, scalar (*pot)(scalar r))
     {
-        //check rgrid for problems... this should probably be removed at some point
-        if (rgrid.size() == 0)
-            std::cerr << "rgrid has no size" << std::endl;
-        int nan=-1;
-        for(size_t i; i < rgrid.size(); i++)
-            if (rgrid[i] != rgrid[i] || std::abs(rgrid[i]) == std::numeric_limits<scalar>::infinity())
-                nan=i;
-        if (nan != -1)
-            std::cerr << "rgrid is nan/inf at: " << nan << std::endl;
-
         scalar energy_upper = 10;
         scalar energy_lower = -1;
         scalar energy = (energy_upper - energy_lower) / 2;
@@ -183,7 +159,6 @@ namespace numerov
             //std::cerr << " de " << de << std::endl; 
 
             //check for convergence
-            //if ((last <= 0 && wf[wf.size()-1] > 0) || (last >= 0 && wf[wf.size()-1] < 0))
             if (std::abs(de) < std::abs(err))
                 converged = true;
 
@@ -213,7 +188,6 @@ namespace numerov
             if (wf[i] != wf[i] || std::abs(wf[i]) == std::numeric_limits<scalar>::infinity())
                 nan=i;
         }
-        //std::cerr << "norm: " << norm << std::endl;
 
         //check for nan's
         if (nan != -1 )
@@ -256,16 +230,9 @@ namespace numerov
 
         //get rgrid vector pointer from parameters and screw with it.
         std::vector<scalar> *rgrid = params->grid();
-        if (rgrid->size() != xgrid.size())
-        {
-            if (rank == 0) 
-                std::cerr << "rgrid and xgrid aren't the same size... \
-                there is an error in initializing rgrid" << std::endl;
-        }
         for (size_t i = 0; i < rgrid->size(); i++)
         {
             rgrid->at(i) = std::exp(xgrid[i]);
-            //std::cerr << rgrid->at(i) << ", ";
         }
 
 
