@@ -125,7 +125,7 @@ namespace common
         char* buffer;
         std::vector<T> vec();
         std::ifstream file;
-        file.open(filename.c_str(), std::ios::in | std::ios::scientific);
+        file.open(filename.c_str());
         if (file.is_open())
         {
             T temp;
