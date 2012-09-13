@@ -21,25 +21,17 @@ struct BasisID{
         else
             return false;
     }
-    //std::ostream& BasisID::operator<<(std::ostream &out, const BasisID &b);
-    //std::istream& BasisID::operator>>(std::istream &in, BasisID &b);
 };
 std::ostream& operator<<(std::ostream &out, const BasisID &b)     //output
 {
     out << b.n << ", " << b.l << ", " << b.m << ", " << b.e;
     return out;
 }
-//std::istream& operator>>(std::istream &in, BasisID &b)     //output
-//{
-    //in >> b.n >> ", " >> b.l >> ", " >> b.m >> ", " >> b.e;
-    //return in;
-//}
 
 class Parameters
 {
 public:
     Parameters(MPI_Comm comm): comm_(comm) {};
-    //Parameters(MPI_Comm comm, void** s): comm_(comm), p(s)  {};
 
     virtual PetscErrorCode init_from_file(std::string filename);
     virtual PetscErrorCode save_parameters(std::string filename);

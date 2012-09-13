@@ -2,7 +2,7 @@
 
 //ebss:
 #include<common/common.hpp>
-#include<common/parameters.hpp>
+#include<common/parameters/Parameters.hpp>
 
 //Boost:
 #include<boost/filesystem.hpp>
@@ -31,20 +31,30 @@ public:
 
     BasisParameters(MPI_Comm comm): Parameters(comm)
     {
+        PetscBool flg = PETSC_FALSE;
+        char bagname[PETSC_MAX_PATH_LEN];
+        PetscOptionsGetString(PETSC_NULL, "-basis_bag_filename", bagname, PETSC_MAX_PATH_LEN, &flg);
+
         this->params = new basis;
         p = (void**) params;
-        PetscBagCreate(this->comm_, sizeof(basis), &this->bag);
-        PetscBagGetData(this->bag, this->p);
-        this->register_params();
-        PetscBagSetFromOptions(this->bag);
+        if (flg)
+        {
+            this->bag_filename = std::string(bagname);
+            this->init_from_file();
+        }
+        else
+        {
+            PetscBagCreate(this->comm_, sizeof(basis), &this->bag);
+            PetscBagGetData(this->bag, this->p);
+            this->register_params();
+            PetscBagSetFromOptions(this->bag);
+            //see if the folder exists:
+            boost::filesystem::create_directories(this->basis_folder());
 
-        //see if the folder exists:
-        boost::filesystem::create_directories(this->basis_folder());
-
-        this->bag_filename = this->basis_folder().append("/BasisParameters.bag");
-
-        grid_ = new std::vector<compute_type>(this->params->points);
-        basis_prototype_ = new std::vector<BasisID>();
+            this->bag_filename = this->basis_folder().append("/BasisParameters.bag");
+            grid_ = new std::vector<compute_type>(this->params->points);
+            basis_prototype_ = new std::vector<BasisID>();
+        }
     };
 
     BasisParameters(MPI_Comm comm, std::string filename): Parameters(comm)
@@ -101,6 +111,7 @@ template<typename compute_type_, typename write_type_ >
 PetscErrorCode BasisParameters<compute_type_, write_type_>::init_from_file(std::string filename)
 {
     PetscErrorCode e = Parameters::init_from_file(filename);
+    //this->grid_ = & (common::vector_type_change<write_type_, compute_type_>(* common::import_vector_binary<write_type_>(this->grid_filename())));
     std::vector<write_type_> * grid = common::import_vector_binary<write_type_>(this->grid_filename());
     std::vector<compute_type_> g = common::vector_type_change<write_type_, compute_type_>((*grid));
     this->grid_ = &g;
@@ -121,8 +132,9 @@ template<typename compute_type_, typename write_type_ >
 PetscErrorCode BasisParameters<compute_type_, write_type_>::init_from_file()
 {
     PetscErrorCode e = Parameters::init_from_file(this->bag_filename);
-    std::vector<write_type_> grid = common::import_vector_binary<write_type_>(this->grid_filename());
-    grid_ = common::vector_type_change<write_type_, compute_type_>(grid);
+    std::vector<write_type_> *grid = common::import_vector_binary<write_type_>(this->grid_filename());
+    std::vector<compute_type_> g = common::vector_type_change<write_type_, compute_type_>(*grid);
+    this->grid_ = &g;
     basis_prototype_ = common::import_vector_binary<BasisID>(this->basis_prototype_filename());
     return e;
 }
@@ -201,7 +213,7 @@ PetscErrorCode BasisParameters<compute_type_, write_type_>::register_params()
     PetscErrorCode ierr;
     ierr = PetscBagSetName(this->bag,
             "BasisParams",
-            "Parameters for finding the basis state");
+            "Parameters for finding, and reading the basis state");
     ierr = PetscBagRegisterInt(this->bag, &params->nmax,
             500, "nmax", "Max n value");
     ierr = PetscBagRegisterInt(this->bag, &params->lmax,

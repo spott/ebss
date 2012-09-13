@@ -4,7 +4,8 @@
 #include<iterator>
 #include<cmath>
 #include<iostream>
-#include<common/parameters.hpp>
+//#include<common/parameters/Parameters.hpp>
+#include<common/parameters/BasisParameters.hpp>
 #include<common/common.hpp>
 #include<limits>
 

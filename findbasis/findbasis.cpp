@@ -1,4 +1,4 @@
-#include<common/BasisParameters.hpp>
+#include<common/parameters/BasisParameters.hpp>
 #include<findbasis/numerov.hpp>
 //#include<common/special/bspline.hpp>
 
@@ -14,7 +14,7 @@ typedef long double scalar;
 
 int main(int argc, char **argv)
 {
-   SlepcInitialize(&argc, &argv, PETSC_NULL, PETSC_NULL);
+   SlepcInitialize(&argc, &argv, PETSC_NULL, "FindBasis - Find a numerical basis");
    MPI_Comm world = MPI_COMM_WORLD;
 
    BasisParameters<scalar> *params = new BasisParameters<scalar>(world);
@@ -27,7 +27,7 @@ int main(int argc, char **argv)
 
    //delete the params... this is important! it writes out everything.
    delete params;
-   PetscFinalize();
+   SlepcFinalize();
    return 0;
 }
 

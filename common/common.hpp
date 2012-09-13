@@ -13,12 +13,24 @@
 #include<petsc.h>
 
 //mine
-#include<common/parameters.hpp>
+#include<common/parameters/Parameters.hpp>
 
 namespace common
 {
     template <typename T1, typename T2>
-    std::vector<T2> vector_type_change(std::vector<T1> &in)
+    std::vector<T2> vector_type_change(std::vector<T1> *in)
+    {
+        std::vector<T2> out(in->size());
+
+        for (size_t i = 0; i < in->size(); i++)
+        {
+            out[i] = static_cast<T2>((*in)[i]);
+        }
+
+        return out;
+    }
+    template <typename T1, typename T2>
+    std::vector<T2> vector_type_change(std::vector<T1> in)
     {
         std::vector<T2> out(in.size());
 
