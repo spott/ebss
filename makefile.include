@@ -1,13 +1,13 @@
-PETSC_DIR=/usr/local/Cellar/petsc/3.2p7-debug/
-SLEPC_DIR=/usr/local/Cellar/slepc/3.2p5-debug/
+PETSC_DIR=/opt/local/petsc-3.3-gcc-debug/
+SLEPC_DIR=/opt/local/slepc-3.3-gcc-debug/
 TDSEBASE=/Users/spott/Documents/Code/ebss
 
 #include ${PETSC_DIR}/conf/variables
 #include ${PETSC_DIR}/conf/rules
 include ${SLEPC_DIR}/conf/slepc_common
 
-CPP_FLAGS=-I${TDSEBASE}/ -g 
-LDFLAGS=-lgsl -lboost_filesystem-mt -lboost_system-mt
+CPP_FLAGS=-I${TDSEBASE}/ -I/opt/local/include/
+LDFLAGS=-L/opt/local/lib/ -lgsl -lboost_program_options
 
 BINDIR=${TDSEBASE}/bin/
 

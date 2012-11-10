@@ -5,7 +5,7 @@
 #include<cmath>
 #include<iostream>
 //#include<common/parameters/Parameters.hpp>
-#include<common/parameters/BasisParameters.hpp>
+//#include<common/parameters/BasisParameters.hpp>
 #include<common/common.hpp>
 #include<limits>
 
@@ -80,11 +80,11 @@ namespace numerov
         type_node w;
 
         scalar norm;
-        std::cerr.precision(22);
+        //std::cerr.precision(22);
         while ( !converged )
         {
             iterations++;
-            std::cerr << std::scientific <<  "excited: energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << energy << std::endl ;
+            //std::cerr << std::scientific <<  "excited: energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << energy << std::endl ;
 
             //initialize f for the energy we are using
             for (size_t i = 0; i < f.size(); i++)
@@ -257,11 +257,11 @@ namespace numerov
         converged = false;
         int deriverror;
 
-        std::cerr.precision(22);
+        //std::cerr.precision(22);
         while ( !converged )
         {
             iterations++;
-            std::cerr << std::scientific <<  "energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << energy << " de: " << de << " de2: " << de2 << std::endl ;
+            //std::cerr << std::scientific <<  "energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << energy << " de: " << de << " de2: " << de2 << std::endl ;
 
             //initialize f for the energy we are using
             f[0] = 1 + dx * dx / 12 * ( - std::pow((static_cast<scalar>(l) + .5), 2)
@@ -281,7 +281,7 @@ namespace numerov
             {
                 energy -= de2 + de;
                 de2 /= 2;
-                std::cerr << "oops (" << iterations << ")" << std::endl;
+                //std::cerr << "oops (" << iterations << ")" << std::endl;
                 if (iterations >= 1000)
                 {
                     break;
@@ -488,7 +488,7 @@ namespace numerov
         basis<scalar> res;
         BasisID tmp;
 
-
+        energies->resize(0);
         //MPI stuff to split up workload:
 
         if (rank==0) std::cout << "n\tl\te\t∆\t∆/exact" << std::endl;
@@ -504,11 +504,14 @@ namespace numerov
                 energies->push_back(tmp);
                 std::cout << n << "\t" << l << "\t" << res.energy << "\t" << res.energy + 1./(2.*n*n) << "\t" << (res.energy + 1./(2.*n*n))/(1./(2.*n*n)) << std::endl;
                 //we need to convert the wf to PetscReal, or PetscScalar...
-                std::vector<write_type> wf2 = common::vector_type_change<scalar, write_type>(res.wf);
-                common::export_vector_binary(params->basis_function_filename(n,l), &wf2); 
+                common::export_vector_binary(
+                        params->basis_function_filename(tmp), 
+                        common::vector_type_change<scalar, write_type>(res.wf)); 
             }
 
         //Need to combine the energy vectors... and ideally sort them...
+        for (auto a: *energies)
+            std::cout << a << std::endl;
 
     };
 

@@ -1,0 +1,146 @@
+#pragma once
+
+#include<common/parameters/AbsorberParameters.hpp>
+
+typedef struct {
+    Mat *D;
+    Vec *H;
+    HamiltonianParameters<PetscReal> *hparams;
+    LaserParameters *laser;
+    AbsorberParameters *absorber;
+} context;
+
+namespace cranknicholson
+{
+
+Vec
+absorb(Vec *wf, context *cntx)
+{
+    Vec abs;
+    PetscReal val;
+    PetscInt start, end;
+    VecDuplicate(*wf, &abs);
+    VecGetOwnershipRange(abs,&start,&end);
+    VecSet(abs, 1.);
+    VecAssemblyBegin(abs);
+    VecAssemblyEnd(abs);
+
+    auto prototype = cntx->hparams->prototype();
+
+
+    if (cntx->absorber->n_size() == 0 && cntx->absorber->l_size() == 0 && cntx->absorber->m_size() == 0)
+        return abs;
+    for (size_t i = start; i < end; i++)
+    {
+        val = 1.;
+        if ((cntx->hparams->nmax() - prototype[i].n) < cntx->absorber->n_size())
+            val *= std::pow(std::sin(
+                        ((cntx->hparams->nmax() - prototype[i].n) * math::PI)/(2*cntx->absorber->n_size())),
+                        cntx->absorber->cos_factor());
+        if ((cntx->hparams->lmax() - prototype[i].l) < cntx->absorber->l_size())
+            val *= std::pow(std::sin(
+                        ((cntx->hparams->lmax() - prototype[i].l) * math::PI)/(2*cntx->absorber->l_size())),
+                        cntx->absorber->cos_factor());
+        if ((cntx->hparams->mmax() - std::abs(prototype[i].m)) < cntx->absorber->m_size())
+            val *= std::pow(std::sin(
+                        ((cntx->hparams->mmax() - prototype[i].m) * math::PI)/(2*cntx->absorber->m_size())),
+                        cntx->absorber->cos_factor());
+        VecSetValue(abs, i, val, INSERT_VALUES);
+    }
+    VecAssemblyBegin(abs);
+    VecAssemblyEnd(abs);
+
+    return abs;
+}
+
+PetscErrorCode
+solve(Vec *wf, context* cntx, Mat *A)
+{
+    PetscViewer view;
+    KSP     ksp;
+    PC      pc;
+    KSPCreate(cntx->hparams->comm(), &ksp);
+    KSPSetType(ksp, KSPGMRES);
+    KSPGetPC(ksp, &pc);
+    PCSetType(pc, PCJACOBI);
+    KSPSetTolerances(ksp,1e-10, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT);
+
+    PetscScalar     cn_factor = std::complex<double>(0.5 * cntx->laser->dt(), 0);
+    PetscReal       t = 0;
+    PetscScalar     ef = cntx->laser->efield(t);
+    PetscReal       maxtime = math::PI * cntx->laser->cycles() / cntx->laser->frequency();
+    PetscInt        step = 0;
+    Vec             tmp;
+    Vec             prob;
+    PetscReal       norm;
+    PetscInt        zero = 0;
+
+    if (cntx->hparams->rank() == 0)
+        std::cout << "maxtime: " << maxtime << " steps: " << maxtime/cntx->laser->dt() << std::endl;
+
+    VecDuplicate(*wf, &tmp);
+    VecAssemblyBegin(tmp);
+    VecAssemblyEnd(tmp);
+
+    Vec abs = absorb(wf, cntx);
+    VecView(abs,PETSC_VIEWER_DRAW_WORLD);
+
+    VecDuplicate(*wf, &prob);
+    VecAssemblyBegin(prob);
+    VecAssemblyEnd(prob);
+
+    while (t < maxtime)
+    {
+        MatCopy(*( cntx->D ), *A , SAME_NONZERO_PATTERN);
+        MatAssemblyBegin(*A, MAT_FINAL_ASSEMBLY);
+        MatAssemblyEnd(*A, MAT_FINAL_ASSEMBLY);
+
+        MatScale(*A, ef);
+        MatDiagonalSet(*A, *(cntx->H), INSERT_VALUES);
+        MatScale(*A, cn_factor);
+        MatShift(*A, std::complex<double>(1,0));
+        MatMult(*A, *wf, tmp);
+        MatScale(*A, std::complex<double>(-1,0));
+        MatShift(*A, std::complex<double>(2,0));
+
+        KSPSetOperators(ksp, *A, *A, SAME_NONZERO_PATTERN);
+        KSPSetFromOptions(ksp);
+
+        KSPSolve(ksp, tmp, *wf);
+
+        VecPointwiseMult(*wf, *wf, abs);
+
+        t += cntx->laser->dt();
+        ef = cntx->laser->efield(t);
+        step++;
+        //at the zero of the field: write out the vector:
+        if (( ef.real() <= 0. && cntx->laser->efield(t - cntx->laser->dt()).real() > 0 ) || ( ef.real() >= 0 && cntx->laser->efield(t - cntx->laser->dt()).real() < 0 ))
+        {
+            std::ostringstream wf_name;
+            wf_name << "./wf_" << zero << ".dat";
+            PetscViewerASCIIOpen(cntx->hparams->comm(),wf_name.str().c_str(),&view);
+            PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
+            VecView(*wf, view);
+            zero++;
+        }
+
+        if (!(step%10))
+        {
+            VecCopy(*wf, prob);
+            VecAbs(prob);
+            VecNorm(prob,NORM_2,&norm);
+            VecPointwiseMult(prob, prob, prob);
+            VecShift(prob, 1e-20);
+            VecLog(prob);
+            VecView(prob, PETSC_VIEWER_DRAW_WORLD);
+            if (cntx->hparams->rank() == 0)
+                std::cout << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << std::endl;
+            if (norm-1 > 10e-5)
+                std::cerr << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << std::endl;
+        }
+    }
+    KSPDestroy(&ksp);
+    return 0;
+}
+
+}

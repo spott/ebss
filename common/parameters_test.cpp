@@ -1,19 +1,24 @@
-#include<common/parameters.hpp>
-#include<common/common.hpp>
+#include<common/new_parameters/BasisParameters.hpp>
+#include<common/new_parameters/HamiltonianParameters.hpp>
+//#include<common/common.hpp>
 #include<vector>
 #include<petsc.h>
 
 int
-main (int argc, char** argv)
+main (int argc, const char* argv[])
 {
-    PetscInitialize(&argc,&argv,PETSC_NULL,PETSC_NULL);
-    BasisParameters p(PETSC_COMM_WORLD);
+    int ac = argc;
+    char** av = new char*[argc];
+    for (size_t i = 0; i < argc; i++)
+    {
+        av[i] = new char[strlen(argv[i])];
+        std::copy(argv[i], argv[i] + strlen(argv[i]), av[i]);
+    }
 
-    //std::vector<double> grid = common::import_vector_binary<double>(p.grid_file());
+    PetscInitialize(&ac,&av,PETSC_NULL,PETSC_NULL);
 
-    std::vector<PetscScalar> *grid = p.grid();
-    for (size_t i = 0; i < grid->size(); i++)
-        std::cout << grid->at(i) << ", ";
-    std::cout << std::endl;
-    p.print_parameters();
+    BasisParameters<double, double> p(argc, argv, PETSC_COMM_WORLD);
+    HamiltonianParameters h(argc, argv , PETSC_COMM_WORLD);
+
+    std::cout << p.print();
 }

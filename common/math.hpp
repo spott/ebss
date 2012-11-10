@@ -1,6 +1,52 @@
-#include<common/parameters.hpp>
+#pragma once
+//ebss
+#include<common/parameters/Parameters.hpp>
+
+//stl:
+#include<complex>
+#include<vector>
+#include<cmath>
+
+//gsl:
+#include<gsl/gsl_sf_coupling.h>
 
 namespace math{
+//Constants:
+
+PetscReal PI = std::atan(1.0)*4.0;
+PetscReal C = 137.035999;
+
+template <typename scalar>
+scalar CGCoefficient(BasisID init, BasisID fin)
+{
+    scalar out = 0;
+    out = gsl_sf_coupling_3j(init.l*2, 2, fin.l*2, 0, 0, 0);
+    out *= out;
+	out *= std::sqrt(( 2 * init.l +1 ) * ( 2 * fin.l +1 ));
+    return out;
+}
+
+
+template <typename scalar>
+scalar integrateGrid(std::vector<scalar> psi1, std::vector<scalar> psi2, std::vector<scalar> grid)
+{
+    //check for correct size!
+    if (psi1.size() != psi2.size() || psi1.size() != grid.size() )
+        throw (std::exception());
+
+    scalar result = psi1[0] * psi2[0] * grid[0] * grid[0];
+
+    for (size_t i = 1; i < grid.size(); i++)
+        result += psi1[i] * psi2[i] * grid[i] * (grid[i] - grid[i-1]);
+
+    if (result != result || result == std::numeric_limits<scalar>::infinity() )
+        throw(std::exception());
+
+    return result;
+}
+
+
+
 inline std::complex<double> Gamma_Lanczos ( std::complex<double> z)
 {
 

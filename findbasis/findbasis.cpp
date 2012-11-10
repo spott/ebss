@@ -12,23 +12,33 @@ T pot(T r)
 
 typedef long double scalar;
 
-int main(int argc, char **argv)
+int main(int argc, const char **argv)
 {
-   SlepcInitialize(&argc, &argv, PETSC_NULL, "FindBasis - Find a numerical basis");
-   MPI_Comm world = MPI_COMM_WORLD;
+    int ac = argc;
+    char** av = new char*[argc];
+    for (size_t i = 0; i < argc; i++)
+    {
+        av[i] = new char[strlen(argv[i])];
+        std::copy(argv[i], argv[i] + strlen(argv[i]), av[i]);
+    }
 
-   BasisParameters<scalar> *params = new BasisParameters<scalar>(world);
+    SlepcInitialize(&ac, &av, PETSC_NULL, "FindBasis - Find a numerical basis");
 
-   // print out the parameters
-   params->print_parameters();
+    BasisParameters<scalar> *params = new BasisParameters<scalar>(argc, argv, PETSC_COMM_WORLD);
 
-   //call function to find all the energy states here:
-   numerov::find_basis_set<scalar>(&pot, params);
+    // print out the parameters
+    std::cout << params->print();
 
-   //delete the params... this is important! it writes out everything.
-   delete params;
-   SlepcFinalize();
-   return 0;
+    //call function to find all the energy states here:
+    numerov::find_basis_set<scalar>(&pot, params);
+
+    //write out parameters:
+    params->save_parameters();
+
+    //delete the params...
+    delete params;
+    SlepcFinalize();
+    return 0;
 }
 
 

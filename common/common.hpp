@@ -1,13 +1,15 @@
 #pragma once
 
+//c stdlib
+#include <unistd.h>
+
 //stl
 #include<iostream>
 #include<fstream>
 #include<vector>
 #include<cstdarg>
-
-//boost
-#include<boost/function.hpp>
+#include<memory>
+#include<algorithm>
 
 //petsc
 #include<petsc.h>
@@ -15,12 +17,128 @@
 //mine
 #include<common/parameters/Parameters.hpp>
 
+struct BasisID {
+    PetscInt n,l,m;
+    PetscScalar e;
+    bool operator<(const BasisID b)
+    {
+        if (this->l < b.l)
+            return true;
+        else if (this->l == b.l && this->n < b.n)
+            return true;
+        else if (this->l == b.l && this->n == b.n && this->m < b.m)
+            return true;
+        else
+            return false;
+    }
+};
+bool operator!=(const BasisID &a, const BasisID &b)
+{
+    if (a.l != b.l || a.n != b.n || a.m != b.m || a.e != b.e)
+        return true;
+    else
+        return false;
+}
+std::ostream& operator<<(std::ostream &out, const BasisID &b)     //output
+{
+    out << b.n << ", " << b.l << ", " << b.m << ", " << b.e;
+    return out;
+}
+
+
 namespace common
 {
+
+    Vec eigen_balls(Mat mat)
+    {
+        Vec v;
+        MatGetVecs(mat, &v, PETSC_NULL);
+        VecSet(v,0.0);
+        PetscInt       start = 0, end = 0, row;
+        PetscScalar   *array;
+
+        //if (!mat->assembled) SETERRQ(((PetscObject)mat)->comm,PETSC_ERR_ARG_WRONGSTATE,"Not for unassembled matrix");
+        //MatCheckPreallocated(mat,1);
+        MatGetOwnershipRange(mat, &start, &end);
+        VecGetArray(v, &array);
+        for(row = start; row < end; ++row) {
+            PetscInt           ncols, col;
+            const PetscInt    *cols;
+            const PetscScalar *vals;
+
+            array[row - start] = 0.0;
+            MatGetRow(mat, row, &ncols, &cols, &vals);
+            for(col = 0; col < ncols; col++) {
+                if (col != row)
+                    array[row - start] += std::abs(vals[col]);
+            }
+            MatRestoreRow(mat, row, &ncols, &cols, &vals);
+        }
+        VecRestoreArray(v, &array);
+        //PetscObjectStateIncrease((PetscObject) v);
+        return v;
+    }
+
+    std::string absolute_path(std::string rel_path)
+    {
+        char* a = new char[1025];
+        getcwd(a, 1025);
+        std::string cwd = std::string(a);
+        delete a;
+        return cwd.append("/").append(rel_path);
+    }
+
+    template<typename T>
+    T petsc_binary_read(std::string filename, MPI_Comm comm);
+
+    template<>
+    Vec petsc_binary_read<Vec>(std::string filename, MPI_Comm comm)
+    {
+        Vec v;
+        VecCreate(comm,&v);
+        VecSetType(v, VECSTANDARD);
+        VecSetFromOptions(v);
+        PetscViewer view;
+        PetscViewerBinaryOpen(comm, filename.c_str(), FILE_MODE_READ, &view);
+        VecLoad(v,view);
+        PetscViewerDestroy(&view);
+        return v;
+    }
+
+    template<>
+    Mat petsc_binary_read<Mat>(std::string filename, MPI_Comm comm)
+    {
+        Mat v;
+        MatCreate(comm,&v);
+        MatSetType(v, MATAIJ);
+        MatSetFromOptions(v);
+        PetscViewer view;
+        PetscViewerBinaryOpen(comm, filename.c_str(), FILE_MODE_READ, &view);
+        MatLoad(v,view);
+        PetscViewerDestroy(&view);
+        return v;
+    }
+
+    void petsc_binary_write(std::string filename, Mat v, MPI_Comm comm)
+    {
+        PetscViewer view;
+        PetscViewerBinaryOpen(comm, filename.c_str(), FILE_MODE_WRITE, &view);
+        MatView(v,view);
+        PetscViewerDestroy(&view);
+    }
+
+    void petsc_binary_write(std::string filename, Vec v, MPI_Comm comm)
+    {
+        PetscViewer view;
+        PetscViewerBinaryOpen(comm, filename.c_str(), FILE_MODE_WRITE, &view);
+        VecView(v,view);
+        PetscViewerDestroy(&view);
+    }
+
     template <typename T1, typename T2>
     std::vector<T2> vector_type_change(std::vector<T1> *in)
     {
-        std::vector<T2> out(in->size());
+        std::vector<T2> out = new std::vector<T2>(in->size());
 
         for (size_t i = 0; i < in->size(); i++)
         {
@@ -49,16 +167,9 @@ namespace common
     {
         std::vector<T> out( v1.size() + v2.size() );
 
-        for (size_t i = 0; i < out.size(); i++)
-        {
-            if (i < v1.size())
-                out[i] = v1[i];
-            else if (i >= v1.size())
-                out[i] = v2[i-v1.size()];
-        }
         //C++11 version... would be nice if I could get it to work...
-        //auto a = std::move(v1.begin(), v1.end(), out.begin());
-        //std::move(v2.begin(), v2.end(), a);
+        auto a = std::move(v1.begin(), v1.end(), out.begin());
+        std::move(v2.begin(), v2.end(), a);
 
         //delete v1 and v2?
         delete v1;
@@ -70,14 +181,14 @@ namespace common
     }
 
     template <typename T>
-    void export_vector_binary(const std::string filename, const std::vector<T> *out)
+    void export_vector_binary(const std::string filename, const std::vector<T>& out)
     {
         std::ios::pos_type size;
         std::ofstream file;
         file.open(filename.c_str(), std::ios::binary | std::ios::out);
         if (file.is_open())
         {
-            file.write(reinterpret_cast<const char*>(&(*out)[0]), static_cast<size_t>(sizeof(T)*out->size()));
+            file.write(reinterpret_cast<const char*>(&out[0]), static_cast<size_t>(sizeof(T)* out.size()));
             file.close();
         }
         else
@@ -85,26 +196,24 @@ namespace common
             std::cerr << "error opening file... does the folder exist?: " << filename << std::endl;
             throw new std::exception();
         }
-   };
+    };
 
     template <typename T>
-    std::vector<T>* import_vector_binary(const std::string filename)
+    std::vector<T> import_vector_binary(const std::string filename)
     {
-        //char* buffer;
         std::ios::pos_type size;
         std::ifstream file;
         file.open(filename.c_str(), std::ios::binary | std::ios::in | std::ios::ate);
-        std::vector<T> *vec = new std::vector<T>();
+        std::vector<T> vec;
         if (file.is_open())
         {
             size = file.tellg();
             if (size != 0)
             {
-                std::cerr << size << std::endl;
-                vec->resize(size / sizeof(T));
+                vec.resize(size / sizeof(T));
                 file.seekg(0, std::ios::beg);
 
-                file.read((char*) vec , size);
+                file.read((char*) &vec[0] , size);
                 file.close();
             }
             else
@@ -158,43 +267,95 @@ namespace common
         return vec;
    };
 
-   //template <typename T>
-   //Mat populate_matrix(const Parameters params,
-                       //boost::function< bool (int,int) > test,
-                       //boost::function< T (int,int) > find_value,
-                       //const unsigned int mat_size,
-                       //const bool symmetric=true)
-   //{
-      //// petsc objects:
-      //Mat H;
+   template <typename T>
+   Mat populate_matrix(const Parameters params,
+                       std::function<bool (int,int)> test,
+                       std::function<T (int,int)> find_value,
+                       const unsigned int mat_size_m,
+                       const unsigned int mat_size_n,
+                       //const unsigned int diagonal_storage,
+                       //const unsigned int offdiag_storage,
+                       const bool symmetric=true)
+   {
+      // petsc objects:
+      Mat H;
 
-      ////Local objects:
-      //PetscInt start, end;
+      //Local objects:
+      PetscInt rowstart, rowend;
+      PetscInt colstart, colend;
 
-      //MatCreate(params.comm(),&H);
-      //MatSetType(H, MATMPIAIJ);
-      //MatSetSizes(H,PETSC_DECIDE,PETSC_DECIDE,
-                  //mat_size,
-                  //mat_size);
-      //MatSetFromOptions(H);
+      MatCreate(params.comm(),&H);
+      MatSetType(H, MATMPIAIJ);
+      MatSetSizes(H,PETSC_DECIDE,PETSC_DECIDE,
+                  mat_size_m,
+                  mat_size_n);
 
-      //MatGetOwnershipRange(H, &start, &end);
+      MatSetUp(H);
 
-      //T value;
+      MatGetOwnershipRange(H, &rowstart, &rowend);
+      MatGetOwnershipRangeColumn(H, &colstart, &colend);
+      PetscInt dnnz[rowend-rowstart];
+      PetscInt onnz[rowend-rowstart];
+      //find the preallocation functions:
+      for (size_t i = rowstart; i < rowend; i++)
+      {
+          dnnz[i-rowstart] = 0;
+          onnz[i-rowstart] = 0;
+          for (size_t j = 0; j < mat_size_n; j++)
+          {
+              if (test(i,j))
+              {
+                  if (j >= colstart && j < colend)
+                      dnnz[i-rowstart]++;
+                  else
+                      onnz[i-rowstart]++;
+              }
+          }
+      }
 
-      //for (PetscInt i = start; i < end; i++)
-         //for (PetscInt j = (symmetric ? i : 0u); j < mat_size; j++)
-            //if (test(i,j))
-            //{
-               //value = find_value(i,j);
-               //MatSetValue(H, i, j, value, INSERT_VALUES);
-               //if (symmetric)
-                  //MatSetValue(H, j, i, value, INSERT_VALUES);
-            //}
+      MatMPIAIJSetPreallocation(H, PETSC_NULL, dnnz, PETSC_NULL, onnz);
 
-      //MatAssemblyBegin(H,MAT_FINAL_ASSEMBLY);
-      //MatAssemblyEnd(H,MAT_FINAL_ASSEMBLY);
+      MatSetFromOptions(H);
 
-      //return H;
-   //}
+      T value;
+
+      for (PetscInt i = rowstart; i < rowend; i++)
+      {
+         for (PetscInt j = (symmetric ? i : 0u); j < mat_size_n; j++)
+         {
+            if (test(i,j))
+            {
+               value = find_value(i,j);
+               MatSetValue(H, i, j, value, INSERT_VALUES);
+               if (symmetric)
+                  MatSetValue(H, j, i, value, INSERT_VALUES);
+            }
+         }
+         //printProgBar( (i - rowstart)/(rowend-rowstart) );
+      }
+
+      MatAssemblyBegin(H,MAT_FINAL_ASSEMBLY);
+      MatAssemblyEnd(H,MAT_FINAL_ASSEMBLY);
+
+      return H;
+   }
+
+   void printProgBar( double percent )
+   {
+       std::string bar;
+
+       for(int i = 0; i < 50; i++){
+           if( i < (percent/2)){
+               bar.replace(i,1,"=");
+           }else if( i == (int(percent)/2)){
+               bar.replace(i,1,">");
+           }else{
+               bar.replace(i,1," ");
+           }
+       }
+
+       std::cout<< "\r" "[" << bar << "] ";
+       std::cout.width( 3 );
+       std::cout<< percent << "%     " << std::flush;
+   }
 }

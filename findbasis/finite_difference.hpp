@@ -2,20 +2,16 @@
 
 #include<cassert>
 #include<vector>
-#include<boost/bind.hpp>
-#include<boost/function.hpp>
-#include<boost/ref.hpp>
 
 #include<slepc.h>
-#include<common/parameters.hpp>
+#include<common/parameters/Parameters.hpp>
 #include<common/common.hpp>
-//#include<common/special/bspline.hpp>
 
 
 namespace finite_difference
 {
    PetscReal find_value(
-      const parameters params,
+      const Parameters params,
       const boost::function<PetscReal (PetscReal)> potential,
       //const std::vector<PetscReal> grid,
       const int i, const int j, const PetscReal dr
