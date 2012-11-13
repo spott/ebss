@@ -50,7 +50,7 @@ public:
     PetscInt m_size() const { return m_size_; };
 
     //PetscErrorCode init_from_file();
-    //PetscErrorCode save_parameters();
+    void save_parameters();
 
     std::string print() const;
 private:
@@ -72,6 +72,16 @@ std::string AbsorberParameters::print() const
     return out.str();
 }
 
+void AbsorberParameters::save_parameters()
+{
+    std::ofstream file;
+    file.open(std::string("./Absorber.config"));
+    file << "-absorber_n_size " << n_size_ << std::endl;
+    file << "-absorber_l_size " << l_size_ << std::endl;
+    file << "-absorber_m_size " << m_size_ << std::endl;
+    file << "-absorber_cos_factor " << cos_factor_ << std::endl;
+    file.close();
+}
 void AbsorberParameters::register_parameters()
 {
     std::string prefix = "-absorber_";

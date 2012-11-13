@@ -116,8 +116,6 @@ void BasisParameters<compute_type_, write_type_>::init_from_file(std::string fil
     opt.get("-basis_points")->getInt(points_);
     opt.get("-basis_folder")->getString(folder_);
 
-    std::cout << filename << std::endl;
-    std::cout << folder_ << std::endl;
 
     this->grid_ = common::vector_type_change<write_type_, compute_type_>(
             common::import_vector_binary<write_type_>(this->grid_filename())

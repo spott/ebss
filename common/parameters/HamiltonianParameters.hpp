@@ -165,7 +165,6 @@ void HamiltonianParameters<write_type_>::save_parameters()
 template< typename write_type_ >
 void HamiltonianParameters<write_type_>::init_from_file(std::string filename)
 {
-    std::cout << filename << std::endl;
     register_parameters();
     opt.importFile(filename.c_str(), '#');
 

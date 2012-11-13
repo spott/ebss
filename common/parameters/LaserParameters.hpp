@@ -65,6 +65,8 @@ public:
 
     std::string print() const;
 
+    void save_parameters() const;
+
 private:
     ez::ezOptionParser opt;
     void register_parameters();
@@ -91,6 +93,20 @@ std::string LaserParameters::print() const
     out << "laser_t_after" << t_after_ << std::endl;
     out << "laser_filename" << laser_filename_ << std::endl;
     return out.str();
+}
+void LaserParameters::save_parameters() const
+{
+    std::ofstream file;
+    file.open(std::string("./Laser.config"));
+    file << "-laser_lambda " << lambda_ << std::endl;
+    file << "-laser_intensity " << intensity_ << std::endl;
+    file << "-laser_cep " << cep_ << std::endl;
+    file << "-laser_cycles " << cycles_ << std::endl;
+    file << "-laser_dt " << dt_ << std::endl;
+    file << "-laser_dt_after " << dt_after_ << std::endl;
+    file << "-laser_t_after " << t_after_ << std::endl;
+    file << "-laser_laser_filename " << laser_filename_ << std::endl;
+    file.close();
 }
 
 PetscReal LaserParameters::lambda() const { return (lambda_ / 5.29177206e-2); }

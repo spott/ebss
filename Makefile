@@ -2,9 +2,12 @@ include ./makefile.include
 
 SUBPROGRAMS=findbasis,findhamiltonian,propagate
 
-$(subprograms):
-	$(MAKE) -C $(subprograms)
+$(SUBPROGRAMS):
+	$(MAKE) -C $(SUBPROGRAMS)
 
-#.PHONEY: clean
-#clean:
-	#$(MAKE) -C $(subprograms) clean
+all:
+	$(MAKE) -C $(SUBPROGRAMS) all
+
+.PHONEY: clean
+clean::
+	$(MAKE) -C $(SUBPROGRAMS) clean

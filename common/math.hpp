@@ -22,11 +22,11 @@ scalar CGCoefficient(BasisID init, BasisID fin)
     scalar out = 0;
     out = gsl_sf_coupling_3j(init.l*2, 2, fin.l*2, 0, 0, 0);
     out *= out;
-	out *= std::sqrt(( 2 * init.l +1 ) * ( 2 * fin.l +1 ));
+	out *= std::sqrt(( 2 * init.l +1 ) * ( 2 * fin.l +1 ) );
     return out;
 }
 
-
+//I should split this into different methods, 
 template <typename scalar>
 scalar integrateGrid(std::vector<scalar> psi1, std::vector<scalar> psi2, std::vector<scalar> grid)
 {
@@ -34,10 +34,10 @@ scalar integrateGrid(std::vector<scalar> psi1, std::vector<scalar> psi2, std::ve
     if (psi1.size() != psi2.size() || psi1.size() != grid.size() )
         throw (std::exception());
 
-    scalar result = psi1[0] * psi2[0] * grid[0] * grid[0];
+    scalar result = psi1[0] * psi2[0] * grid[0] * grid[0] / 2;
 
     for (size_t i = 1; i < grid.size(); i++)
-        result += psi1[i] * psi2[i] * grid[i] * (grid[i] - grid[i-1]);
+        result += (psi1[i] * grid[i] * psi2[i] + psi1[i-1] * grid[i-1] * psi2[i-1]) * (grid[i] - grid[i-1]) / 2;
 
     if (result != result || result == std::numeric_limits<scalar>::infinity() )
         throw(std::exception());

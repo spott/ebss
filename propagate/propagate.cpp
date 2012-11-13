@@ -32,6 +32,7 @@ main(int argc, const char ** argv)
     }
     PetscInitialize(&ac, &av, PETSC_NULL, PETSC_NULL);
 
+    PetscViewer view;
     PetscBool flg = PETSC_FALSE;
     char bagname[PETSC_MAX_PATH_LEN];
     PetscOptionsGetString(PETSC_NULL, "-hamiltonian_config", bagname, PETSC_MAX_PATH_LEN, &flg);
@@ -47,9 +48,17 @@ main(int argc, const char ** argv)
     LaserParameters *lparams = new LaserParameters(argc, argv, MPI_COMM_WORLD);
     AbsorberParameters *aparams = new AbsorberParameters(argc, argv, MPI_COMM_WORLD);
 
-    std::cout << params->print();
-    std::cout << lparams->print();
-    std::cout << aparams->print();
+    if (params->rank() == 0)
+    {
+        std::cout << params->print();
+        std::cout << lparams->print();
+        std::cout << aparams->print();
+
+        common::export_vector_ascii(std::string("./prototype.csv"), params->prototype() );
+        lparams->save_parameters();
+        aparams->save_parameters();
+    }
+
 
     Mat D; //The Dipole Matrix
     Vec H; //The eigenvalues of the field free hamiltonian
@@ -75,7 +84,7 @@ main(int argc, const char ** argv)
     MatAssemblyEnd(D,MAT_FINAL_ASSEMBLY);
     VecAssemblyEnd(H);
 
-    VecScale(H, std::complex<double> (0, -1));
+    //VecScale(H, std::complex<double> (0, -1));
 
     //Setup the wavefunction:
     MatGetVecs(D, &wf, PETSC_NULL);
@@ -91,16 +100,18 @@ main(int argc, const char ** argv)
 
     //list where the eigenvalues are:
     Vec gg = common::eigen_balls(D);
-    VecView(gg, PETSC_VIEWER_STDOUT_WORLD);
+    std::string file_name = std::string("./balls.dat");
+    PetscViewerASCIIOpen(MPI_COMM_WORLD,file_name.c_str(),&view);
+    PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
+    VecView(gg,view);
 
     //Propagate:
 
     cranknicholson::solve(&wf, cntx, &A);
 
     //create a viewer in the current directory:
-    PetscViewer view;
-    std::string wf_final_name = std::string("./final_wf.dat");
-    PetscViewerASCIIOpen(MPI_COMM_WORLD,wf_final_name.c_str(),&view);
+    file_name = std::string("./final_wf.dat");
+    PetscViewerASCIIOpen(MPI_COMM_WORLD,file_name.c_str(),&view);
     PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
     VecView(wf,view);
 

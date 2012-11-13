@@ -228,17 +228,27 @@ namespace common
             throw new std::exception();
         }
 
-        //size_t tsize = sizeof(T);
-        //size_t csize = sizeof(char);
-        //size_t frac = tsize / csize;
-
-        //for (int i = 0; i < size; i += frac)
-            //vec->push_back( static_cast<T>(*(buffer+i)) );
-
-        //delete[] buffer;
         return vec;
    };
 
+    template <typename T>
+    void export_vector_ascii(const std::string filename, const std::vector<T>& out)
+    {
+        std::ios::pos_type size;
+        std::ofstream file;
+        file.open(filename.c_str());
+        if (file.is_open())
+        {
+            for (auto a: out)
+                file << a << std::endl;
+            file.close();
+        }
+        else
+        {
+            std::cerr << "file couldn't be opened! " << filename << std::endl;
+            throw new std::exception();
+        }
+    }
 
     template <typename T>
     std::vector<T>* import_vector_ascii(const std::string filename)
@@ -267,79 +277,6 @@ namespace common
         return vec;
    };
 
-   template <typename T>
-   Mat populate_matrix(const Parameters params,
-                       std::function<bool (int,int)> test,
-                       std::function<T (int,int)> find_value,
-                       const unsigned int mat_size_m,
-                       const unsigned int mat_size_n,
-                       //const unsigned int diagonal_storage,
-                       //const unsigned int offdiag_storage,
-                       const bool symmetric=true)
-   {
-      // petsc objects:
-      Mat H;
-
-      //Local objects:
-      PetscInt rowstart, rowend;
-      PetscInt colstart, colend;
-
-      MatCreate(params.comm(),&H);
-      MatSetType(H, MATMPIAIJ);
-      MatSetSizes(H,PETSC_DECIDE,PETSC_DECIDE,
-                  mat_size_m,
-                  mat_size_n);
-
-      MatSetUp(H);
-
-      MatGetOwnershipRange(H, &rowstart, &rowend);
-      MatGetOwnershipRangeColumn(H, &colstart, &colend);
-      PetscInt dnnz[rowend-rowstart];
-      PetscInt onnz[rowend-rowstart];
-      //find the preallocation functions:
-      for (size_t i = rowstart; i < rowend; i++)
-      {
-          dnnz[i-rowstart] = 0;
-          onnz[i-rowstart] = 0;
-          for (size_t j = 0; j < mat_size_n; j++)
-          {
-              if (test(i,j))
-              {
-                  if (j >= colstart && j < colend)
-                      dnnz[i-rowstart]++;
-                  else
-                      onnz[i-rowstart]++;
-              }
-          }
-      }
-
-      MatMPIAIJSetPreallocation(H, PETSC_NULL, dnnz, PETSC_NULL, onnz);
-
-      MatSetFromOptions(H);
-
-      T value;
-
-      for (PetscInt i = rowstart; i < rowend; i++)
-      {
-         for (PetscInt j = (symmetric ? i : 0u); j < mat_size_n; j++)
-         {
-            if (test(i,j))
-            {
-               value = find_value(i,j);
-               MatSetValue(H, i, j, value, INSERT_VALUES);
-               if (symmetric)
-                  MatSetValue(H, j, i, value, INSERT_VALUES);
-            }
-         }
-         //printProgBar( (i - rowstart)/(rowend-rowstart) );
-      }
-
-      MatAssemblyBegin(H,MAT_FINAL_ASSEMBLY);
-      MatAssemblyEnd(H,MAT_FINAL_ASSEMBLY);
-
-      return H;
-   }
-
    void printProgBar( double percent )
    {
        std::string bar;
@@ -357,5 +294,85 @@ namespace common
        std::cout<< "\r" "[" << bar << "] ";
        std::cout.width( 3 );
        std::cout<< percent << "%     " << std::flush;
+   };
+
+   template <typename T>
+   Mat populate_matrix(const Parameters params,
+                       std::function<bool (int,int)> test,
+                       std::function<T (int,int)> find_value,
+                       const unsigned int mat_size_m,
+                       const unsigned int mat_size_n,
+                       //const unsigned int diagonal_storage,
+                       //const unsigned int offdiag_storage,
+                       const bool symmetric=true)
+   {
+       if (!symmetric && params.rank() == 0)
+           std::cout << "Calculating for non-symmetric matrix" << std::endl;
+       if (symmetric && params.rank() == 0)
+           std::cout << "Calculating for symmetric matrix" << std::endl;
+
+       // petsc objects:
+       Mat H;
+
+       //Local objects:
+       PetscInt rowstart, rowend;
+       PetscInt colstart, colend;
+
+       MatCreate(params.comm(),&H);
+       MatSetType(H, MATMPIAIJ);
+       MatSetSizes(H,PETSC_DECIDE,PETSC_DECIDE,
+               mat_size_m,
+               mat_size_n);
+
+       MatSetUp(H);
+
+       MatGetOwnershipRange(H, &rowstart, &rowend);
+       MatGetOwnershipRangeColumn(H, &colstart, &colend);
+       PetscInt dnnz[rowend-rowstart];
+       PetscInt onnz[rowend-rowstart];
+       //find the preallocation functions:
+       for (size_t i = rowstart; i < rowend; i++)
+       {
+           dnnz[i-rowstart] = 0;
+           onnz[i-rowstart] = 0;
+           for (size_t j = 0; j < mat_size_n; j++)
+           {
+               if (test(i,j))
+               {
+                   if (j >= colstart && j < colend)
+                       dnnz[i-rowstart]++;
+                   else
+                       onnz[i-rowstart]++;
+               }
+           }
+       }
+
+       MatMPIAIJSetPreallocation(H, PETSC_NULL, dnnz, PETSC_NULL, onnz);
+
+       MatSetFromOptions(H);
+
+       T value;
+
+       for (PetscInt i = rowstart; i < rowend; i++)
+       {
+           for (PetscInt j = (symmetric ? i : 0u); j < mat_size_n; j++)
+           {
+               if (test(i,j))
+               {
+                   value = find_value(i,j);
+                   MatSetValue(H, i, j, value, INSERT_VALUES);
+                   if (symmetric)
+                       MatSetValue(H, j, i, value, INSERT_VALUES);
+               }
+           }
+           if (params.rank() == 0) 
+               printProgBar( (i - rowstart)/(rowend-rowstart) );
+       }
+
+       MatAssemblyBegin(H,MAT_FINAL_ASSEMBLY);
+       MatAssemblyEnd(H,MAT_FINAL_ASSEMBLY);
+
+       return H;
    }
+
 }

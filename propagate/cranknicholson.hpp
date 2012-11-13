@@ -65,7 +65,7 @@ solve(Vec *wf, context* cntx, Mat *A)
     PCSetType(pc, PCJACOBI);
     KSPSetTolerances(ksp,1e-10, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT);
 
-    PetscScalar     cn_factor = std::complex<double>(0.5 * cntx->laser->dt(), 0);
+    PetscScalar     cn_factor = -std::complex<double>(0, 0.5 * cntx->laser->dt());
     PetscReal       t = 0;
     PetscScalar     ef = cntx->laser->efield(t);
     PetscReal       maxtime = math::PI * cntx->laser->cycles() / cntx->laser->frequency();
@@ -89,21 +89,24 @@ solve(Vec *wf, context* cntx, Mat *A)
     VecAssemblyBegin(prob);
     VecAssemblyEnd(prob);
 
+    std::vector<PetscReal> efvec;
+
     while (t < maxtime)
     {
-        MatCopy(*( cntx->D ), *A , SAME_NONZERO_PATTERN);
-        MatAssemblyBegin(*A, MAT_FINAL_ASSEMBLY);
-        MatAssemblyEnd(*A, MAT_FINAL_ASSEMBLY);
+        efvec.push_back(ef.real());
+        MatCopy(*( cntx->D ), *A , SAME_NONZERO_PATTERN);   // A = D
 
-        MatScale(*A, ef);
-        MatDiagonalSet(*A, *(cntx->H), INSERT_VALUES);
-        MatScale(*A, cn_factor);
-        MatShift(*A, std::complex<double>(1,0));
-        MatMult(*A, *wf, tmp);
-        MatScale(*A, std::complex<double>(-1,0));
-        MatShift(*A, std::complex<double>(2,0));
+        //This has the same "t" at both sides of the equation... should be different...
+        MatScale(*A, ef);                                   // A = ef(t) * D
+        MatDiagonalSet(*A, *(cntx->H), INSERT_VALUES);      // A = ef(t) * D + H_0
+        MatScale(*A, cn_factor);                            // A = .5 * dt [ ef(t) * D + H_0 ]
+        MatShift(*A, std::complex<double>(1,0));            // A = .5 * dt [ ef(t) * D + H_0 ] + 1
+        MatMult(*A, *wf, tmp);                              // A u_n = tmp
+        MatAXPY(*A, cn_factor * (cntx->laser->efield(t+cntx->laser->dt()) - ef), *( cntx->D ), SAME_NONZERO_PATTERN);
+        MatScale(*A, std::complex<double>(-1,0));           // A = - .5 dt [ef(t+dt) * D + H_0 ] - 1
+        MatShift(*A, std::complex<double>(2,0));            // A = - .5 dt [ef(t+dt) * D + H_0 ] + 1
 
-        KSPSetOperators(ksp, *A, *A, SAME_NONZERO_PATTERN);
+        KSPSetOperators(ksp, *A, *A, SAME_NONZERO_PATTERN); // Solve[ A x = tmp ] for x
         KSPSetFromOptions(ksp);
 
         KSPSolve(ksp, tmp, *wf);
@@ -135,10 +138,11 @@ solve(Vec *wf, context* cntx, Mat *A)
             VecView(prob, PETSC_VIEWER_DRAW_WORLD);
             if (cntx->hparams->rank() == 0)
                 std::cout << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << std::endl;
-            if (norm-1 > 10e-5)
-                std::cerr << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << std::endl;
+            //if (norm-1 > 10e-5 && cntx->hparams->rank() == 0)
+                //std::cerr << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << std::endl;
         }
     }
+    common::export_vector_ascii(std::string("./efield.dat"), efvec);
     KSPDestroy(&ksp);
     return 0;
 }

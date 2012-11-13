@@ -26,13 +26,11 @@ int main(int argc, const char ** argv)
     PetscInitialize(&ac, &av, PETSC_NULL, PETSC_NULL);
 
     HamiltonianParameters<PetscReal> *params = new HamiltonianParameters<PetscReal>(argc, argv, MPI_COMM_WORLD);
-    std::cout << params->print();
+    if (params->rank() == 0)
+        std::cout << params->print();
 
     std::vector<PetscReal> *grid = params->basis_parameters()->grid();
     auto prototype = params->prototype();
-
-    //for (auto a: *grid)
-        //std::cout << a << std::endl;
 
     std::function<bool (int, int)> dipole_selection_rules = [prototype](int i, int j) {
         return (

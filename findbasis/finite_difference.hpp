@@ -10,15 +10,17 @@
 
 namespace finite_difference
 {
-   PetscReal find_value(
-      const Parameters params,
-      const boost::function<PetscReal (PetscReal)> potential,
-      //const std::vector<PetscReal> grid,
-      const int i, const int j, const PetscReal dr
-      )
-   {
-      //argh....
-   }
+    template<typename scalar>
+    scalar find_value(
+            const BasisParameters params,
+            const std::function<scalar (scalar)> potential,
+            const std::vector<PetscReal> grid,
+            const int i, const int j, const PetscReal dr
+            )
+    {
+        if (i == j)
+            return 
+    }
 
    template<int order>
    bool test(int i, int j)
@@ -29,7 +31,7 @@ namespace finite_difference
 
    template<int order, typename scalar, template <int , typename> class element>
    void find_basis(const parameters params,
-                        const boost::function<scalar (scalar)> potential)
+                   const boost::function<scalar (scalar)> potential)
    {
       //check to make sure the right params is being passed
       assert(params.type() == BASIS);
