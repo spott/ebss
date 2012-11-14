@@ -39,9 +39,10 @@ namespace finite_difference
       // Knot structure, we will start with a constant spacing:
       std::vector<PetscReal> grid(params.points());
       std::vector<PetscReal>::iterator it;
+
       // dr is the number of points - the number of grid at the beginning.
       PetscReal dr = (params.rmax() - params.rmin())
-         /(params.points() - order * 2);
+          /(params.points() - order * 2);
 
       for (it = grid.begin(); it < grid.end(); it++ )
       {
@@ -51,12 +52,14 @@ namespace finite_difference
             *it = params.rmax();
          *it = params.rmin() + (it - grid.begin()) * dr;
       }
-      boost::function< bool (int, int) > t = boost::cref(test<order>);
-      boost::function< scalar (int, int) > fv =
-         boost::bind<PetscReal>(find_value<order,scalar,element>,
-                                boost::ref(params),
-                                boost::cref(potential),
-                                boost::cref(grid),
+
+
+      std::function< bool (int, int) > t = boost::cref(test<order>);
+      std::function< scalar (int, int) > fv =
+         std::bind<PetscReal>(find_value<order,scalar,element>,
+                                params,
+                                potential,
+                                grid,
                                 _1, _2, dr);
       Mat H = common::populate_matrix(params,
                                       t,

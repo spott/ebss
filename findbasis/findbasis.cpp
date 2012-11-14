@@ -4,11 +4,30 @@
 
 #include<slepc.h>
 
+struct sae_param {
+    int p;
+    double c;
+    double beta;
+};
+
 template <typename T>
-T pot(T r)
+T hydrogen_pot(T r)
 {
    return -1./r;
 }
+
+template <typename T>
+T neon_pot(T r, T Z, T N, std::vector<sae_param> atom)
+{
+    T a = 0;
+    for( auto p: atom )
+        a += p.c * std::pow(r, p.p) * std::exp(- p.beta * r);
+    a *= (N-1);
+    a += 1 - N + Z;
+    a *= -1/r;
+   return a;
+}
+
 
 typedef long double scalar;
 
@@ -29,8 +48,21 @@ int main(int argc, const char **argv)
     // print out the parameters
     std::cout << params->print();
 
+
+    std::vector< sae_param > neon{
+        {0, .46087879, 4.68014471},
+        {0, 0.53912121, 2.41322960},
+        {1, 0.42068967, 5.80903874},
+        {1, 0.47271993, 2.90207510},
+        {2, -1.12569309, 4.51696279},
+        {2, 1.29942636, 3.06518063}};
+
+
+    //for (size_t i = 0; i < 10000; i++)
+
+
     //call function to find all the energy states here:
-    numerov::find_basis_set<scalar>(&pot, params);
+    numerov::find_basis_set<scalar>( [neon](scalar r) {return neon_pot<scalar>(r, 10, 10, neon);}, params);
 
     //write out parameters:
     params->save_parameters();

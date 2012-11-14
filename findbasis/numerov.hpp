@@ -52,7 +52,7 @@ namespace numerov
     };
 
     template <typename scalar>
-    basis<scalar> find_continuum(const int n, const int l, const scalar dx, const std::vector<scalar> &rgrid, scalar (*pot)(scalar r), bool &converged)
+    basis<scalar> find_continuum(const int n, const int l, const scalar dx, const std::vector<scalar> &rgrid, std::function< scalar (scalar) > pot, bool &converged)
     {
         scalar energy_upper = 10;
         scalar energy_lower = -1;
@@ -221,7 +221,7 @@ namespace numerov
     };
 
     template <typename scalar>
-    basis<scalar> find_bound(const int n, const int l, const scalar dx, const std::vector<scalar> &rgrid, scalar (*pot)(scalar r), bool &converged)
+    basis<scalar> find_bound(const int n, const int l, const scalar dx, const std::vector<scalar> &rgrid, std::function< scalar (scalar) > pot, bool &converged)
     {
         scalar de = 10e-10;
         scalar de2 = 10e-3;
@@ -261,7 +261,7 @@ namespace numerov
         while ( !converged )
         {
             iterations++;
-            //std::cerr << std::scientific <<  "energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << energy << " de: " << de << " de2: " << de2 << std::endl ;
+            std::cerr << std::scientific <<  "energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << energy << " de: " << de << " de2: " << de2 << std::endl ;
 
             //initialize f for the energy we are using
             f[0] = 1 + dx * dx / 12 * ( - std::pow((static_cast<scalar>(l) + .5), 2)
@@ -428,7 +428,7 @@ namespace numerov
     int this_l = 1000;
 
     template <typename scalar>
-    basis<scalar> find_basis(const int n, const int l, const scalar dx, const std::vector<scalar> &rgrid, scalar (*pot)(scalar r))
+    basis<scalar> find_basis(const int n, const int l, const scalar dx, const std::vector<scalar> &rgrid, std::function< scalar (scalar) > pot)
     {
         bool converged = false;
         basis<scalar> result;
@@ -457,7 +457,7 @@ namespace numerov
     }
 
     template<typename scalar, typename write_type>
-    void find_basis_set( scalar (*pot)(scalar), BasisParameters<scalar, write_type> *params)
+    void find_basis_set( std::function< scalar (scalar) > pot, BasisParameters<scalar, write_type> *params)
     {
         int rank;
         int num;

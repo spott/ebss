@@ -127,7 +127,7 @@ LaserParameters::efield(PetscReal t)
         return 0.0;
     PetscReal efield = std::sqrt(this->intensity());
     return efield 
-        * std::pow( std::sin( this->frequency() * t / this->cycles() ) ,2) 
+        * std::pow( std::sin( this->frequency() * t / (this->cycles() * 2) ) ,2) 
         * std::sin( this->frequency() * t + this->cep() );
 }
 
@@ -204,7 +204,7 @@ void LaserParameters::register_parameters()
             std::string(prefix).append("t_after\0").c_str()
            );
     opt.add(
-            "./laser.dat",
+            "./efield.dat",
             0,
             1,
             0,
