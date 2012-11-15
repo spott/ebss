@@ -47,6 +47,7 @@ public:
         opt.get("-hamiltonian_basis_config")->getString(basis_config_);
         basis_config_ = common::absolute_path(basis_config_);
         basis_ = new BasisParameters<write_type_, write_type_>(basis_config_, comm_);
+        std::cout << basis_config_ << std::endl;
 
         //If we are bigger than the basis we are using, shrink to fit, and print an error message:
         if (this->nmax() > this->basis_->nmax() || this->lmax() > this->basis_->lmax() )
