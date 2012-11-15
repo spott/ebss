@@ -5,132 +5,120 @@
 
 #include<slepc.h>
 #include<common/parameters/Parameters.hpp>
+#include<common/parameters/BasisParameters.hpp>
 #include<common/common.hpp>
 
 
 namespace finite_difference
 {
-    template<typename scalar>
-    scalar find_value(
-            const BasisParameters params,
-            const std::function<scalar (scalar)> potential,
-            const std::vector<PetscReal> grid,
-            const int i, const int j, const PetscReal dr
-            )
-    {
-        if (i == j)
-            return 
-    }
+    //template<int order, typename scalar>
 
-   template<int order>
-   bool test(int i, int j)
-   {
-      return ( i - j <= order || j - i <= order );
-   }
+        //std::vector<BasisID> find_basis_l( std::function<scalar (scalar)> potential,
+                                           //BasisParameters<scalar>* params)
 
 
-   template<int order, typename scalar, template <int , typename> class element>
-   void find_basis(const parameters params,
-                   const boost::function<scalar (scalar)> potential)
-   {
-      //check to make sure the right params is being passed
-      assert(params.type() == BASIS);
-
-      // Knot structure, we will start with a constant spacing:
-      std::vector<PetscReal> grid(params.points());
-      std::vector<PetscReal>::iterator it;
-
-      // dr is the number of points - the number of grid at the beginning.
-      PetscReal dr = (params.rmax() - params.rmin())
-          /(params.points() - order * 2);
-
-      for (it = grid.begin(); it < grid.end(); it++ )
-      {
-         if (it - grid.begin() <= order)
-            *it = params.rmin();
-         if (grid.end() - it <= order)
-            *it = params.rmax();
-         *it = params.rmin() + (it - grid.begin()) * dr;
-      }
 
 
-      std::function< bool (int, int) > t = boost::cref(test<order>);
-      std::function< scalar (int, int) > fv =
-         std::bind<PetscReal>(find_value<order,scalar,element>,
-                                params,
-                                potential,
-                                grid,
-                                _1, _2, dr);
-      Mat H = common::populate_matrix(params,
-                                      t,
-                                      fv,
-                                      params.points() - order*2);
+        template<int order, typename scalar>
+        void find_basis(std::function<scalar (scalar)> potential,
+                BasisParameters<scalar>* params)
+        {
+            // dr is the number of points - the number of grid at the beginning.
+            scalar dr = (params->rmax() - params->rmin())
+                /(params->points());
 
-      Vec xr, xi;
-      MatGetVecs(H, PETSC_NULL, &xr);
-      MatGetVecs(H, PETSC_NULL, &xi);
+            std::cout << order << std::endl;
 
-      EPS eps;
-      EPSCreate(params.comm(), &eps);
+            std::vector<scalar> *rgrid = params->grid();
+            for (size_t i = 0; i < rgrid->size(); i++)
+                rgrid->at(i) =params->rmin() + i * dr;
+            std::cout << rgrid->size() << std::endl;
 
-      EPSSetOperators(eps, H, PETSC_NULL);
-      EPSSetProblemType(eps, EPS_HEP);
-      EPSSetFromOptions(eps);
-      EPSSolve(eps);
+            std::function< bool (int, int) > t = [](int i, int j) { return ( std::abs(i - j) < order || std::abs(j - i) < order ); };
+            std::function< scalar (int, int) > fv = [potential, dr, rgrid] (int i, int j)
+            {
+                if (i == j) // diagonal
+                    return potential(rgrid->at(i)) + 1 / (dr*dr);
+                else if ( i - 1 == j || i + 1 == j) //off diagonal
+                    return -1/(2 * dr*dr);
+            };
 
-      PetscInt its, nconv,maxit, nev;
-      PetscReal error, tol, re, im;
-      PetscScalar kr, ki;
-      EPSGetIterationNumber(eps,&its);
-      PetscPrintf(params.comm()," Number of iterations of the method: %D\n",its);
-      EPSGetDimensions(eps,&nev,PETSC_NULL,PETSC_NULL);
-      PetscPrintf(params.comm()," Number of requested eigenvalues: %D\n",nev);
-      EPSGetTolerances(eps,&tol,&maxit);
-      PetscPrintf(params.comm()," Stopping condition: tol=%.4G, maxit=%D\n",tol,maxit);
+            Mat H = common::populate_matrix( static_cast<const Parameters>(*params),
+                    t,
+                    fv,
+                    params->points(),
+                    params->points(),
+                    true);
 
-      /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-         Display solution and clean up
-         - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-      /*
-         Get number of converged approximate eigenpairs
-      */
-      EPSGetConverged(eps,&nconv);
-      PetscPrintf(params.comm()," Number of converged eigenpairs: %D\n\n",nconv);
+            Vec xr, xi;
+            MatGetVecs(H, PETSC_NULL, &xr);
+            MatGetVecs(H, PETSC_NULL, &xi);
 
-      if (nconv>0) {
-         /*
-           Display eigenvalues and relative errors
-         */
-         PetscPrintf(params.comm()
-         ,
-                     "           k          ||Ax-kx||/||kx||\n"
-                     "   ----------------- ------------------\n");
+            EPS eps;
+            EPSCreate(params->comm(), &eps);
 
-         for (int i=0;i<nconv;i++) {
+            EPSSetOperators(eps, H, PETSC_NULL);
+            EPSSetProblemType(eps, EPS_HEP);
+            EPSSetDimensions(eps, params->nmax(), PETSC_DECIDE, PETSC_DECIDE);
+            EPSSetWhichEigenpairs(eps, EPS_SMALLEST_REAL);
+            EPSSetFromOptions(eps);
+            EPSSolve(eps);
+
+            PetscInt its, nconv,maxit, nev;
+            PetscReal error, tol, re, im;
+            PetscScalar kr, ki;
+            EPSGetIterationNumber(eps,&its);
+            PetscPrintf(params->comm()," Number of iterations of the method: %D\n",its);
+            EPSGetDimensions(eps,&nev,PETSC_NULL,PETSC_NULL);
+            PetscPrintf(params->comm()," Number of requested eigenvalues: %D\n",nev);
+            EPSGetTolerances(eps,&tol,&maxit);
+            PetscPrintf(params->comm()," Stopping condition: tol=%.4G, maxit=%D\n",tol,maxit);
+
+            /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+               Display solution and clean up
+               - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
             /*
-               Get converged eigenpairs: i-th eigenvalue is stored in kr (real part) and
-               ki (imaginary part)
-            */
-            EPSGetEigenpair(eps,i,&kr,&ki,xr,xi);
-            /*
-              Compute the relative error associated to each eigenpair
-            */
-            EPSComputeRelativeError(eps,i,&error);
+               Get number of converged approximate eigenpairs
+               */
+            EPSGetConverged(eps,&nconv);
+            PetscPrintf(params->comm()," Number of converged eigenpairs: %D\n\n",nconv);
 
-            re = PetscRealPart(kr);
-            im = PetscImaginaryPart(kr);
+            if (nconv>0) {
+                /*
+                   Display eigenvalues and relative errors
+                   */
+                PetscPrintf(params->comm()
+                        ,
+                        "           k          ||Ax-kx||/||kx||\n"
+                        "   ----------------- ------------------\n");
 
-            if (im!=0.0) {
-               PetscPrintf(params.comm()," %9F%+9F j %12G\n",re,im,error);
-            } else {
-               PetscPrintf(params.comm(),"   %12F       %12G\n",re,error);
+                for (int i=0;i<nconv;i++) {
+                    /*
+                       Get converged eigenpairs: i-th eigenvalue is stored in kr (real part) and
+                       ki (imaginary part)
+                       */
+                    EPSGetEigenpair(eps,i,&kr,&ki,xr,xi);
+                    /*
+                       Compute the relative error associated to each eigenpair
+                       */
+                    EPSComputeRelativeError(eps,i,&error);
+
+                    re = PetscRealPart(kr);
+                    im = PetscImaginaryPart(kr);
+
+                    if (im!=0.0) {
+                        PetscPrintf(params->comm()," %9F%+9F j %12G\n",re,im,error);
+                    } else {
+                        PetscPrintf(params->comm(),"   %12F       %12G\n",re,error);
+                    }
+
+                    common::export_vector_binary<PetscReal>(params->basis_function_filename({i+1,0,0,kr}), common::vector_type_change<PetscScalar, PetscReal>(common::Vec_to_vector(xr)));
+                }
+                PetscPrintf(params->comm(),"\n");
+
+
             }
-         }
-         PetscPrintf(params.comm(),"\n");
-
-
-      }
-   }
+        }
 
 
 }

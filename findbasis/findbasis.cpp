@@ -1,5 +1,6 @@
 #include<common/parameters/BasisParameters.hpp>
 #include<findbasis/numerov.hpp>
+#include<findbasis/finite_difference.hpp>
 //#include<common/special/bspline.hpp>
 
 #include<slepc.h>
@@ -29,7 +30,7 @@ T neon_pot(T r, T Z, T N, std::vector<sae_param> atom)
 }
 
 
-typedef long double scalar;
+typedef double scalar;
 
 int main(int argc, const char **argv)
 {
@@ -62,7 +63,12 @@ int main(int argc, const char **argv)
 
 
     //call function to find all the energy states here:
-    numerov::find_basis_set<scalar>( [neon](scalar r) {return neon_pot<scalar>(r, 10, 10, neon);}, params);
+    //numerov::find_basis_set<scalar>( [neon](scalar r) {return neon_pot<scalar>(r, 10, 10, neon);}, params);
+    
+    finite_difference::find_basis<2, scalar>( [neon](scalar r) {return neon_pot<scalar>(r, 10,10, neon);}, 
+                                              params);
+    //finite_difference::find_basis<2, scalar>( hydrogen_pot<scalar>, 
+                                              //params);
 
     //write out parameters:
     params->save_parameters();

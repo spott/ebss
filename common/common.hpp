@@ -160,6 +160,18 @@ namespace common
         return out;
     }
 
+    template <>
+    std::vector<PetscReal> vector_type_change(std::vector<PetscScalar> in)
+    {
+        std::vector<PetscReal> out(in.size());
+
+        for (size_t i = 0; i < in.size(); i++)
+        {
+            out[i] = in[i].real();
+        }
+
+        return out;
+    }
     /* Merge Vectors... (and sort?) 
      * sorting requires the > and < operators to be overloaded*/
     template <typename T>
@@ -277,6 +289,83 @@ namespace common
         return vec;
    };
 
+   //template <typename T>
+   //Vec vector_to_Vec(std::vector< T > vector, MPI_Comm comm)
+
+
+   //template <>
+   //Vec vector_to_Vec<PetscScalar>(std::vector< PetscScalar > vector, MPI_Comm comm)
+   //{
+       //int size;
+       //MPI_Comm_size(comm, &size);
+
+       //Vec v;
+       //PetscScalar* array;
+       //VecCreate(comm, &v);
+       //VecSetSize(v, PETSC_DECIDE, vector.size());
+       //VecGetArray(v, array);
+       //std::copy(vector.begin(), vector.end(), array);
+       //VecRestoreArray(v, array);
+       //VecAssemblyBegin(v);
+       //VecAssemblyEnd(v);
+
+       //if (size = 1)
+       //{
+           //Vec v;
+           //PetscScalar* array;
+           //VecCreate(comm, &v);
+           //VecSetSize(v, PETSC_DECIDE, vector.size());
+           //VecGetArray(v, array);
+           //std::copy(vector.begin(), vector.end(), array);
+           //VecRestoreArray(v, array);
+           //VecAssemblyBegin(v);
+           //VecAssemblyEnd(v);
+           //return v;
+       //}
+       //else
+       //{
+           //Vec v;
+           //PetscScalar* array;
+           //VecCreate(comm, &v);
+           //VecSetSize(v, PETSC_DECIDE, vector.size());
+           //VecGetArray(v, array);
+
+           //VecGet
+       //}
+   //}
+
+
+   std::vector<PetscScalar> Vec_to_vector(Vec v)
+   {
+       MPI_Comm comm;
+       int rank;
+       int size;
+       VecGetSize(v, &size);
+       PetscObjectGetComm((PetscObject)v,&comm);
+       MPI_Comm_rank(comm, &rank);
+       Vec seq;
+       VecScatter sc;
+       VecCreate(comm, &seq);
+       if (rank == 0)
+            VecSetSizes(seq, size, size);
+       else
+           VecSetSizes(seq, 0, size);
+       VecScatterCreateToZero(v, &sc, &seq);
+       VecScatterBegin(sc,v,seq,INSERT_VALUES,SCATTER_FORWARD);
+       VecScatterEnd(sc,v,seq,INSERT_VALUES,SCATTER_FORWARD);
+
+       std::vector<PetscScalar> vout(size);
+       PetscScalar* a;
+       VecGetArray(seq, &a);
+       std::copy(a, a+size, vout.begin());
+       VecRestoreArray(seq, &a);
+
+       VecScatterDestroy(&sc);
+       VecDestroy(&seq);
+       return vout;
+   }
+
+
    void printProgBar( double percent )
    {
        std::string bar;
@@ -306,10 +395,10 @@ namespace common
                        //const unsigned int offdiag_storage,
                        const bool symmetric=true)
    {
-       if (!symmetric && params.rank() == 0)
-           std::cout << "Calculating for non-symmetric matrix" << std::endl;
-       if (symmetric && params.rank() == 0)
-           std::cout << "Calculating for symmetric matrix" << std::endl;
+       //if (!symmetric && params.rank() == 0)
+           //std::cout << "Calculating for non-symmetric matrix" << std::endl;
+       //if (symmetric && params.rank() == 0)
+           //std::cout << "Calculating for symmetric matrix" << std::endl;
 
        // petsc objects:
        Mat H;
