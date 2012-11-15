@@ -47,7 +47,8 @@ int main(int argc, const char **argv)
     BasisParameters<scalar> *params = new BasisParameters<scalar>(argc, argv, PETSC_COMM_WORLD);
 
     // print out the parameters
-    std::cout << params->print();
+    if (params->rank() == 0) 
+        std::cout << params->print();
 
 
     std::vector< sae_param > neon{

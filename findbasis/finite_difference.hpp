@@ -62,6 +62,7 @@ namespace finite_difference
             EPSSetDimensions(eps, params->nmax(), PETSC_DECIDE, PETSC_DECIDE);
             EPSSetWhichEigenpairs(eps, EPS_SMALLEST_REAL);
             EPSSetFromOptions(eps);
+            if (params->rank() == 0) std::cout << "starting solve" << std::endl;
             EPSSolve(eps);
 
             PetscInt its, nconv,maxit, nev;
@@ -111,8 +112,11 @@ namespace finite_difference
                     } else {
                         PetscPrintf(params->comm(),"   %12F       %12G\n",re,error);
                     }
-
-                    common::export_vector_binary<PetscReal>(params->basis_function_filename({i+1,0,0,kr}), common::vector_type_change<PetscScalar, PetscReal>(common::Vec_to_vector(xr)));
+                    auto vout1 = common::Vec_to_vector(xr);
+                    if (params->rank() == 0)
+                        common::export_vector_binary<PetscReal>(
+                                params->basis_function_filename({i+1,0,0,kr}), 
+                                common::vector_type_change<PetscScalar, PetscReal>(vout1));
                 }
                 PetscPrintf(params->comm(),"\n");
 

@@ -343,31 +343,42 @@ namespace common
        VecGetSize(v, &size);
        PetscObjectGetComm((PetscObject)v,&comm);
        MPI_Comm_rank(comm, &rank);
+       if (rank==0) std::cerr << "entering Vec_to_vector, size = " << size << std::endl;
        Vec seq;
        VecScatter sc;
        VecCreate(comm, &seq);
-       if (rank == 0)
-            VecSetSizes(seq, size, size);
-       else
-           VecSetSizes(seq, 0, size);
+       //if (rank == 0)
+           //VecCreateSeq(comm, size, &seq);
+       //if (rank == 0)
+            //VecSetSizes(seq, size, size);
+       //else
+           //VecSetSizes(seq, 0, size);
+
        VecScatterCreateToZero(v, &sc, &seq);
+       if (rank==0) std::cerr << "scattering" << std::endl;
        VecScatterBegin(sc,v,seq,INSERT_VALUES,SCATTER_FORWARD);
        VecScatterEnd(sc,v,seq,INSERT_VALUES,SCATTER_FORWARD);
 
+       if (rank==0) std::cerr << "copying to vector" << std::endl;
        std::vector<PetscScalar> vout(size);
-       PetscScalar* a;
-       VecGetArray(seq, &a);
-       std::copy(a, a+size, vout.begin());
-       VecRestoreArray(seq, &a);
+       if (rank==0)
+       {
+           PetscScalar* a;
+           VecGetArray(seq, &a);
+           std::copy(a, a+size, vout.begin());
+           VecRestoreArray(seq, &a);
+       }
 
+       if (rank==0) std::cerr << "destroying vector/scatterer" << std::endl;
        VecScatterDestroy(&sc);
-       VecDestroy(&seq);
+       if (rank == 0) VecDestroy(&seq);
        return vout;
    }
 
 
    void printProgBar( double percent )
    {
+       percent *= 100;
        std::string bar;
 
        for(int i = 0; i < 50; i++){
@@ -455,8 +466,9 @@ namespace common
                }
            }
            if (params.rank() == 0) 
-               printProgBar( (i - rowstart)/(rowend-rowstart) );
+               printProgBar( double(i - rowstart)/ double(rowend-rowstart) );
        }
+       if (params.rank() == 0) std::cout << std::endl;
 
        MatAssemblyBegin(H,MAT_FINAL_ASSEMBLY);
        MatAssemblyEnd(H,MAT_FINAL_ASSEMBLY);
