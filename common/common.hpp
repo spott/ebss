@@ -81,11 +81,16 @@ namespace common
 
     std::string absolute_path(std::string rel_path)
     {
-        char* a = new char[1025];
-        getcwd(a, 1025);
-        std::string cwd = std::string(a);
-        delete a;
-        return cwd.append("/").append(rel_path);
+        if (rel_path[0] == '.')
+        {
+            char* a = new char[1025];
+            getcwd(a, 1025);
+            std::string cwd = std::string(a);
+            delete a;
+            return cwd.append("/").append(rel_path);
+        }
+        else
+            return rel_path;
     }
 
     template<typename T>
