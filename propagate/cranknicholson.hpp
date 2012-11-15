@@ -142,7 +142,7 @@ solve(Vec *wf, context* cntx, Mat *A)
                 //std::cerr << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << std::endl;
         }
     }
-    common::export_vector_ascii( lparams->laser_filename() , efvec);
+    common::export_vector_ascii( cntx->lparams->laser_filename() , efvec);
     KSPDestroy(&ksp);
     return 0;
 }
