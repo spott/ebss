@@ -41,7 +41,7 @@ bool operator!=(const BasisID &a, const BasisID &b)
 }
 std::ostream& operator<<(std::ostream &out, const BasisID &b)     //output
 {
-    out << b.n << ", " << b.l << ", " << b.m << ", " << b.e;
+    out << b.n << ", " << b.l << ", " << b.m << ", " << b.e.real() << ", " << b.e.imag();
     return out;
 }
 
@@ -258,6 +258,7 @@ namespace common
         {
             for (auto a: out)
                 file << a << std::endl;
+
             file.close();
         }
         else

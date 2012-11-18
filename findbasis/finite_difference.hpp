@@ -70,7 +70,7 @@ namespace finite_difference
 
                 EPSSetOperators(eps, H, PETSC_NULL);
                 EPSSetProblemType(eps, EPS_HEP);
-                EPSSetDimensions(eps, params->nmax(), PETSC_DECIDE, PETSC_DECIDE);
+                EPSSetDimensions(eps, params->nmax() - l, PETSC_DECIDE, PETSC_DECIDE);
                 EPSSetWhichEigenpairs(eps, EPS_SMALLEST_REAL);
                 EPSSetFromOptions(eps);
                 if (params->rank() == 0) std::cout << "starting solve" << std::endl;
@@ -133,8 +133,6 @@ namespace finite_difference
                                     common::vector_type_change<PetscScalar, PetscReal>(vout1));
                     }
                     PetscPrintf(params->comm(),"\n");
-
-
                 }
             }
         }
