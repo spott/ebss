@@ -18,7 +18,7 @@ T hydrogen_pot(T r)
 }
 
 template <typename T>
-T neon_pot(T r, T Z, T N, std::vector<sae_param> atom)
+T parameterized_pot(T r, T Z, T N, std::vector<sae_param> atom)
 {
     T a = 0;
     for( auto p: atom )
@@ -64,11 +64,11 @@ int main(int argc, const char **argv)
 
 
     //call function to find all the energy states here:
-    numerov::find_basis_set<scalar>( [neon](scalar r) {return neon_pot<scalar>(r, 10, 10, neon);}, params);
+    numerov::find_basis_set<scalar>( [neon](scalar r) {return parameterized_pot<scalar>(r, 10, 10, neon);}, params);
     
     //finite_difference::find_basis<2, scalar>( [neon](scalar r) {return neon_pot<scalar>(r, 10,10, neon);}, 
                                               //params);
-    //finite_difference::find_basis<2, scalar>( hydrogen_pot<scalar>, 
+    //numerov::find_basis_set<scalar>( hydrogen_pot<scalar>, 
                                               //params);
 
     //write out parameters:

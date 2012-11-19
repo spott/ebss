@@ -224,7 +224,7 @@ namespace numerov
     basis<scalar> find_bound(const int n, const int l, const scalar dx, const std::vector<scalar> &rgrid, std::function< scalar (scalar) > pot, bool &converged)
     {
         scalar de = 10e-10;
-        scalar de2 = 10e-3;
+        scalar de2 = 10e-2;
         scalar err = 10e-20;
         scalar rescale, deriv;
         scalar norm;
@@ -377,7 +377,7 @@ namespace numerov
             //check for convergence
             if (std::abs(de) < std::abs(err))
             {
-                std::cerr << "succeeded" << std::endl;
+                //std::cerr << "succeeded" << std::endl;
                 converged = true;
             }
             if (iterations > 10000)
@@ -505,7 +505,7 @@ namespace numerov
         for (int l = rank; l <= params->lmax(); l += num)
             for (int n = l+1; n <= params->nmax(); n++)
             {
-                res = find_basis(n, l, dx, *rgrid, pot );
+                res = find_basis(n, l, dx, *rgrid, pot);
                 tmp.n = n;
                 tmp.m = 0;
                 tmp.l = l;
@@ -514,8 +514,8 @@ namespace numerov
                 std::cerr << n << "\t" << l << "\t" << res.energy << "\t" << res.energy + 1./(2.*n*n) << "\t" << (res.energy + 1./(2.*n*n))/(1./(2.*n*n)) << std::endl;
                 //we need to convert the wf to PetscReal, or PetscScalar...
                 common::export_vector_binary(
-                        params->basis_function_filename(tmp), 
-                        common::vector_type_change<scalar, write_type>(res.wf)); 
+                        params->basis_function_filename(tmp),
+                        common::vector_type_change<scalar, write_type>(res.wf));
             }
 
         //Need to combine the energy vectors... and ideally sort them...
