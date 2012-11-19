@@ -261,7 +261,7 @@ namespace numerov
         while ( !converged )
         {
             iterations++;
-            std::cerr << std::scientific <<  "energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << energy << " de: " << de << " de2: " << de2 << std::endl ;
+            //std::cerr << std::scientific <<  "energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << energy << " de: " << de << " de2: " << de2 << std::endl ;
 
             //initialize f for the energy we are using
             f[0] = 1 + dx * dx / 12 * ( - std::pow((static_cast<scalar>(l) + .5), 2)
@@ -339,6 +339,7 @@ namespace numerov
                 energy = ( energy_upper + energy_lower )/2;
                 if (iterations >= 10000)
                 {
+                    std::cerr << "failed because of iterations" << std::endl;
                     break;
                 }
                 continue;
@@ -350,7 +351,10 @@ namespace numerov
             {
                 deriverror++;
                 if (deriverror >= 20)
+                {
+                    std::cerr << "failed because of deriverror" << std::endl;
                     break;
+                }
             }
 
             //std::cerr << std::scientific <<  "energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << energy << " de: " << de << " de2: " << de2 << std::endl ;
@@ -372,9 +376,15 @@ namespace numerov
 
             //check for convergence
             if (std::abs(de) < std::abs(err))
+            {
+                std::cerr << "succeeded" << std::endl;
                 converged = true;
-            if (iterations > 5000)
+            }
+            if (iterations > 10000)
+            {
+                std::cerr << "failed because of iterations" << std::endl;
                 break;
+            }
 
             //make sure we don't go out of energy bounds
             energy = std::min(energy, energy_upper);
@@ -421,7 +431,6 @@ namespace numerov
         out.energy = energy;
 
         return out;
-
     };
 
     int this_l_excited_n = 1000;
@@ -443,7 +452,7 @@ namespace numerov
             if (converged == false)
             {
                 this_l_excited_n = n;
-                //std::cout << "excited: " << std::endl;
+                //std::cout << "excited: ";
                 result = find_continuum(n, l, dx, rgrid, pot, converged);
             }
         }
@@ -454,7 +463,7 @@ namespace numerov
         }
 
         return result;
-    }
+    };
 
     template<typename scalar, typename write_type>
     void find_basis_set( std::function< scalar (scalar) > pot, BasisParameters<scalar, write_type> *params)
@@ -502,7 +511,7 @@ namespace numerov
                 tmp.l = l;
                 tmp.e = res.energy;
                 energies->push_back(tmp);
-                std::cout << n << "\t" << l << "\t" << res.energy << "\t" << res.energy + 1./(2.*n*n) << "\t" << (res.energy + 1./(2.*n*n))/(1./(2.*n*n)) << std::endl;
+                std::cerr << n << "\t" << l << "\t" << res.energy << "\t" << res.energy + 1./(2.*n*n) << "\t" << (res.energy + 1./(2.*n*n))/(1./(2.*n*n)) << std::endl;
                 //we need to convert the wf to PetscReal, or PetscScalar...
                 common::export_vector_binary(
                         params->basis_function_filename(tmp), 
@@ -514,6 +523,5 @@ namespace numerov
             std::cout << a << std::endl;
 
     };
-
 
 }

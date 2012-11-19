@@ -30,7 +30,7 @@ T neon_pot(T r, T Z, T N, std::vector<sae_param> atom)
 }
 
 
-typedef double scalar;
+typedef long double scalar;
 
 int main(int argc, const char **argv)
 {
@@ -64,10 +64,10 @@ int main(int argc, const char **argv)
 
 
     //call function to find all the energy states here:
-    //numerov::find_basis_set<scalar>( [neon](scalar r) {return neon_pot<scalar>(r, 10, 10, neon);}, params);
+    numerov::find_basis_set<scalar>( [neon](scalar r) {return neon_pot<scalar>(r, 10, 10, neon);}, params);
     
-    finite_difference::find_basis<2, scalar>( [neon](scalar r) {return neon_pot<scalar>(r, 10,10, neon);}, 
-                                              params);
+    //finite_difference::find_basis<2, scalar>( [neon](scalar r) {return neon_pot<scalar>(r, 10,10, neon);}, 
+                                              //params);
     //finite_difference::find_basis<2, scalar>( hydrogen_pot<scalar>, 
                                               //params);
 

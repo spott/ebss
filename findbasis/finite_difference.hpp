@@ -134,8 +134,6 @@ namespace finite_difference
                     }
                     PetscPrintf(params->comm(),"\n");
                 }
-            
-
                 MatDestroy(&H);
                 EPSDestroy(&eps);
                 VecDestroy(&xr);
