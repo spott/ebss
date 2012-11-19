@@ -125,15 +125,21 @@ namespace finite_difference
                         } else {
                             PetscPrintf(params->comm(),"   %12F       %12G\n",re,error);
                         }
-                        energies->push_back({i+1,l,0,kr});
+                        energies->push_back({i+1+l,l,0,kr});
                         auto vout1 = common::Vec_to_vector(xr);
                         if (params->rank() == 0)
                             common::export_vector_binary<PetscReal>(
-                                    params->basis_function_filename({i+1,l,0,kr}), 
+                                    params->basis_function_filename({i+1+l,l,0,kr}), 
                                     common::vector_type_change<PetscScalar, PetscReal>(vout1));
                     }
                     PetscPrintf(params->comm(),"\n");
                 }
+            
+
+                MatDestroy(&H);
+                EPSDestroy(&eps);
+                VecDestroy(&xr);
+                VecDestroy(&xi);
             }
         }
 
