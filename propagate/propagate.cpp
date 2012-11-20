@@ -52,7 +52,6 @@ main(int argc, const char ** argv)
     StateParameters *sparams = new StateParameters(argc, argv, MPI_COMM_WORLD);
 
     auto empty_states_index  = sparams->empty_states_index( params->prototype() );
-    
     if (params->rank() == 0)
     {
         std::cout << params->print();
@@ -95,10 +94,12 @@ main(int argc, const char ** argv)
     std::vector<PetscScalar> zeros(empty_states_index.size(), 0.0);
     VecSetValues(H, empty_states_index.size(), empty_states_index.data(), zeros.data(), INSERT_VALUES);
 
+
     VecAssemblyBegin(H);
     MatAssemblyBegin(D, MAT_FINAL_ASSEMBLY);
     VecAssemblyEnd(H);
     MatAssemblyEnd(D, MAT_FINAL_ASSEMBLY);
+    VecView(H, PETSC_VIEWER_STDOUT_WORLD);
     MatSetOption(D,MAT_KEEP_NONZERO_PATTERN,PETSC_TRUE);
 
     //Setup the wavefunction:

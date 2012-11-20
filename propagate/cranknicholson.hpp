@@ -140,10 +140,10 @@ solve(Vec *wf, context* cntx, Mat *A)
                 //std::cerr << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << std::endl;
         }
     }
-    file_name = std::string("./final_wf.dat");
+    std::string file_name = std::string("./final_wf.dat");
     PetscViewerASCIIOpen(cntx->hparams->comm(),file_name.c_str(),&view);
     PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
-    VecView(wf,view);
+    VecView(*wf,view);
 
     if (cntx->hparams->rank() == 0) common::export_vector_ascii( cntx->laser->laser_filename() , efvec);
     KSPDestroy(&ksp);

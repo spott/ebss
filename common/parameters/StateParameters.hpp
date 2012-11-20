@@ -90,10 +90,8 @@ std::vector<BasisID> StateParameters::empty_states(const std::vector<BasisID> pr
         return empty_states_;
 
     for (auto p: prototype)
-    {
         if (p.e.real() < 0 && p.n != 1)
             empty_states_.push_back(p);
-    }
 
     auto add_states_it = add_states.begin();
 
@@ -118,12 +116,12 @@ std::vector<int> StateParameters::empty_states_index(const std::vector<BasisID> 
     for (auto a: empty_states_)
     {
         int i;
-        auto it = std::find_if(empty_states_.begin(), empty_states_.end(), [a](BasisID b){ return (a.n == b.n && a.l == b.l); } );
-        if (it == empty_states_.end())
+        auto it = std::find_if(prototype.begin(), prototype.end(), [a](BasisID b){ return (a.n == b.n && a.l == b.l); } );
+        if (it == prototype.end())
             std::cerr << a << " wasn't found in prototype" << std::endl;
         else
         {
-            i = it - empty_states_.begin();
+            i = it - prototype.begin();
             state_index.push_back(i);
         }
     }
