@@ -1,0 +1,227 @@
+#pragma once
+
+//ebss:
+#include<common/common.hpp>
+#include<common/math.hpp>
+#include<common/parameters/Parameters.hpp>
+
+//stl:
+#include<sstream>
+#include<string>
+
+//petsc:
+//#include<petsc.h>
+
+class StateParameters: public Parameters
+{
+public:
+    StateParameters(int argc, const char** argv, MPI_Comm comm): Parameters(comm){
+        register_parameters();
+
+        opt.parse(argc, argv);
+
+        if (opt.isSet("+d")) {
+            std::string pretty;
+            opt.prettyPrint(pretty);
+            std::cout << pretty;
+        }
+        if (opt.isSet("-h")) {
+            std::string usage;
+            opt.getUsage(usage,80,ez::ezOptionParser::ALIGN);
+            std::cout << usage;
+        }
+
+        if (opt.isSet("-state_config"))
+        {
+            std::string fname;
+            opt.get("-state_config")->getString(fname);
+            if (! opt.importFile(fname.c_str(), '#'))
+            {
+                std::cout << "file must exist!" << std::endl;
+                throw std::exception();
+            }
+        }
+        if (opt.isSet("-state_load"))
+        {
+            std::string fn;
+            opt.get("-state_load")->getString(fn);
+            empty_states_ = common::import_vector_ascii<BasisID>(fn);
+        }
+        else
+            empty_states_ = std::vector<BasisID>();
+
+        if (opt.isSet("-state_no_bound"))
+            nobound = true;
+        else
+            nobound = false;
+
+        opt.get("-state_filename")->getString(filename_);
+        filename_ = common::absolute_path(filename_);
+
+        std::vector< std::vector<int> > added_states;
+        std::vector< std::vector<int> > removed_states;
+        opt.get("-state_add")->getMultiInts(added_states);
+        opt.get("-state_rem")->getMultiInts(removed_states);
+
+        for (size_t i = 0; i < removed_states.size(); i++)
+            empty_states_.push_back({removed_states[i][0], removed_states[i][1], 0, std::complex<double>(0)});
+        for (size_t i = 0; i < added_states.size(); i++)
+            add_states.push_back({added_states[i][0], added_states[i][1], 0, std::complex<double>(0)});
+    };
+
+    std::string print() const;
+    void save_parameters() const;
+
+    std::vector<int> empty_states_index(const std::vector<BasisID> prototype);
+    std::vector<BasisID> empty_states(const std::vector<BasisID> prototype);
+
+private:
+    bool nobound;
+    ez::ezOptionParser opt;
+    void register_parameters();
+    std::vector<BasisID> empty_states_;
+    std::vector<BasisID> add_states;
+    std::string filename_;
+};
+
+std::vector<BasisID> StateParameters::empty_states(const std::vector<BasisID> prototype)
+{
+    if (!nobound)
+        return empty_states_;
+
+    for (auto p: prototype)
+    {
+        if (p.e.real() < 0 && p.n != 1)
+            empty_states_.push_back(p);
+    }
+
+    auto add_states_it = add_states.begin();
+
+    for (auto a: add_states)
+    {
+        auto e = empty_states_.begin();
+        for (; e < empty_states_.end(); e++)
+        {
+            if (((*e).n == a.n) && ((*e).l == a.l))
+                empty_states_.erase(e);
+        }
+    }
+    nobound = false;
+    return empty_states_;
+
+}
+std::vector<int> StateParameters::empty_states_index(const std::vector<BasisID> prototype)
+{
+    empty_states(prototype);
+
+    std::vector<int> state_index;
+    for (auto a: empty_states_)
+    {
+        int i;
+        auto it = std::find_if(empty_states_.begin(), empty_states_.end(), [a](BasisID b){ return (a.n == b.n && a.l == b.l); } );
+        if (it == empty_states_.end())
+            std::cerr << a << " wasn't found in prototype" << std::endl;
+        else
+        {
+            i = it - empty_states_.begin();
+            state_index.push_back(i);
+        }
+    }
+
+    return state_index;
+}
+
+std::string StateParameters::print() const
+{
+    std::ostringstream out;
+
+    out << "state_no_bound " << nobound << std::endl;
+    out << "state_filename " << filename_ << std::endl;
+
+    //for (auto a: empty_states_)
+        //out << a << std::endl;
+
+    return out.str();
+}
+void StateParameters::save_parameters() const
+{
+    common::export_vector_ascii(std::string("./empty_states.dat"),empty_states_);
+    //std::ofstream file;
+    //file.open(std::string("./State.config"));
+    //file << "-state_lambda " << lambda_ << std::endl;
+    //file.close();
+}
+
+void StateParameters::register_parameters()
+{
+    std::string prefix = "-state_";
+    opt.overview = "State Parameters";
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Display usage instructions.", // Help description.
+            "-h",     // Flag token. 
+            "-help",  // Flag token.
+            "--help", // Flag token.
+            "--usage" // Flag token.
+           );
+    opt.add(
+            "",
+            0,
+            2,
+            ',',
+            "add a specific state (n,l pair), or set of states (if removed otherwise)",
+            std::string(prefix).append("add\0").c_str()
+           );
+    opt.add(
+            "",
+            0,
+            2,
+            ',',
+            "remove a specific state, or set of states (n,l pair)",
+            std::string(prefix).append("rem\0").c_str()
+           );
+    opt.add(
+            "./empty_states.dat",
+            0,
+            0,
+            0,
+            "load from file",
+            std::string(prefix).append("load\0").c_str()
+           );
+    opt.add(
+            "",
+            0,
+            0,
+            0,
+            "remove the bound states (toggle)",
+            std::string(prefix).append("no_bound\0").c_str()
+           );
+    opt.add(
+            "./empty_states.dat",
+            0,
+            1,
+            0,
+            "filename for states file",
+            std::string(prefix).append("filename\0").c_str()
+           );
+    opt.add(
+            "",
+            0,
+            1,
+            0,
+            "Config file to import",
+            std::string(prefix).append("config\0").c_str()
+           );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Print all inputs and categories for debugging.", // Help description.
+            "+d",
+            "--debug"     // Flag token. 
+           );
+}

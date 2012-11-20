@@ -2,6 +2,8 @@
 //ebss:
 #include<common/parameters/HamiltonianParameters.hpp>
 #include<common/parameters/LaserParameters.hpp>
+#include<common/parameters/StateParameters.hpp>
+#include<common/parameters/AbsorberParameters.hpp>
 #include<common/common.hpp>
 #include<propagate/cranknicholson.hpp>
 
@@ -47,16 +49,21 @@ main(int argc, const char ** argv)
     HamiltonianParameters<PetscReal> *params = new HamiltonianParameters<PetscReal>(MPI_COMM_WORLD, std::string(bagname) );
     LaserParameters *lparams = new LaserParameters(argc, argv, MPI_COMM_WORLD);
     AbsorberParameters *aparams = new AbsorberParameters(argc, argv, MPI_COMM_WORLD);
+    StateParameters *sparams = new StateParameters(argc, argv, MPI_COMM_WORLD);
 
+    auto empty_states_index  = sparams->empty_states_index( params->prototype() );
+    
     if (params->rank() == 0)
     {
         std::cout << params->print();
         std::cout << lparams->print();
         std::cout << aparams->print();
+        std::cout << sparams->print();
 
         common::export_vector_ascii(std::string("./prototype.csv"), params->prototype() );
         lparams->save_parameters();
         aparams->save_parameters();
+        sparams->save_parameters();
     }
 
 
@@ -79,12 +86,20 @@ main(int argc, const char ** argv)
     H = params->read_energy_eigenvalues();
     VecAssemblyBegin(H);
 
-    auto prototype = params->prototype();
-
     MatAssemblyEnd(D,MAT_FINAL_ASSEMBLY);
     VecAssemblyEnd(H);
 
-    //VecScale(H, std::complex<double> (0, -1));
+    //Do the state stuff... remove rows/columns:
+    MatSetOption(D,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE);
+    MatZeroRowsColumns(D, empty_states_index.size(), empty_states_index.data(), 0.0, PETSC_NULL, PETSC_NULL);
+    std::vector<PetscScalar> zeros(empty_states_index.size(), 0.0);
+    VecSetValues(H, empty_states_index.size(), empty_states_index.data(), zeros.data(), INSERT_VALUES);
+
+    VecAssemblyBegin(H);
+    MatAssemblyBegin(D, MAT_FINAL_ASSEMBLY);
+    VecAssemblyEnd(H);
+    MatAssemblyEnd(D, MAT_FINAL_ASSEMBLY);
+    MatSetOption(D,MAT_KEEP_NONZERO_PATTERN,PETSC_TRUE);
 
     //Setup the wavefunction:
     MatGetVecs(D, &wf, PETSC_NULL);
@@ -110,10 +125,10 @@ main(int argc, const char ** argv)
     cranknicholson::solve(&wf, cntx, &A);
 
     //create a viewer in the current directory:
-    file_name = std::string("./final_wf.dat");
-    PetscViewerASCIIOpen(MPI_COMM_WORLD,file_name.c_str(),&view);
-    PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
-    VecView(wf,view);
+    //file_name = std::string("./final_wf.dat");
+    //PetscViewerASCIIOpen(MPI_COMM_WORLD,file_name.c_str(),&view);
+    //PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
+    //VecView(wf,view);
 
     ////Create the TS context:
     //TSCreate(params->comm(), &ts);
@@ -184,7 +199,6 @@ HamiltonianJ(TS ts, PetscReal t, Vec u, Mat *A, Mat *B, MatStructure *flag, void
 	//err = MatAXPY(AA, ef, *(cntx->D), SAME_NONZERO_PATTERN);
     *flag = SAME_NONZERO_PATTERN;
 
-    MatSetOption(AA,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE);
     //A = B;
     if (cntx->hparams->rank() == 0)
         std::cout << "ef: " << ef << std::endl;

@@ -39,6 +39,13 @@ bool operator!=(const BasisID &a, const BasisID &b)
     else
         return false;
 }
+std::istream& operator>>(std::istream &in, BasisID &b)     //input
+{
+    PetscReal er, ei;
+    in >> b.n >> b.l >> b.m >> er >> ei;
+    b.e = std::complex<double>(er,ei);
+    return in;
+}
 std::ostream& operator<<(std::ostream &out, const BasisID &b)     //output
 {
     out << b.n << ", " << b.l << ", " << b.m << ", " << b.e.real() << ", " << b.e.imag();
@@ -269,10 +276,10 @@ namespace common
     }
 
     template <typename T>
-    std::vector<T>* import_vector_ascii(const std::string filename)
+    std::vector<T> import_vector_ascii(const std::string filename)
     {
         char* buffer;
-        std::vector<T> vec();
+        std::vector<T> vec;
         std::ifstream file;
         file.open(filename.c_str());
         if (file.is_open())
