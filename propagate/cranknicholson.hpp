@@ -81,7 +81,10 @@ solve(Vec *wf, context* cntx, Mat *A)
     VecAssemblyEnd(tmp);
 
     Vec abs = absorb(wf, cntx);
-    VecView(abs,PETSC_VIEWER_DRAW_WORLD);
+    std::string file_name = std::string("./absorber.dat");
+    PetscViewerASCIIOpen(cntx->hparams->comm(),file_name.c_str(),&view);
+    PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
+    VecView(abs,view);
 
     VecDuplicate(*wf, &prob);
     VecAssemblyBegin(prob);
@@ -140,7 +143,7 @@ solve(Vec *wf, context* cntx, Mat *A)
                 //std::cerr << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << std::endl;
         }
     }
-    std::string file_name = std::string("./final_wf.dat");
+    file_name = std::string("./final_wf.dat");
     PetscViewerASCIIOpen(cntx->hparams->comm(),file_name.c_str(),&view);
     PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
     VecView(*wf,view);
