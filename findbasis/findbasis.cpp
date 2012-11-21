@@ -5,10 +5,11 @@
 
 #include<slepc.h>
 
+template <typename T>
 struct sae_param {
     int p;
-    double c;
-    double beta;
+    T c;
+    T beta;
 };
 
 template <typename T>
@@ -18,7 +19,7 @@ T hydrogen_pot(T r)
 }
 
 template <typename T>
-T parameterized_pot(T r, T Z, T N, std::vector<sae_param> atom)
+T parameterized_pot(T r, T Z, T N, std::vector<sae_param<T> > atom)
 {
     T a = 0;
     for( auto p: atom )
@@ -51,7 +52,7 @@ int main(int argc, const char **argv)
         std::cout << params->print();
 
 
-    std::vector< sae_param > neon{
+    std::vector< sae_param<scalar> > neon{
         {0, .46087879, 4.68014471},
         {0, 0.53912121, 2.41322960},
         {1, 0.42068967, 5.80903874},
@@ -60,11 +61,38 @@ int main(int argc, const char **argv)
         {2, 1.29942636, 3.06518063}};
 
 
+    std::vector< sae_param<scalar> > rubidium{
+        {0, 7.83077875, 0.81691787},
+        {0, 0.18308213, 2.75163799},
+        {1, 2.53670563, 4.30010258},
+        {2, -19.56508990, 43.31975597},
+        {3, 1.06320272, 2.93818679},
+        {4, -0.99934358, 4.97097146}
+        };
+
+
+    std::vector< sae_param<scalar> > potasium{
+        {0, 0.77421694, 11.32240776},
+        {0, 0.22578306, 2.32391666},
+        {1, 6.07532608, 5.49215770},
+        {2, -17.36457454, 11.17407777},
+        {3, 1.95999037, 2.84608178},
+        {4, -0.13294584, 2.36656543}
+        };
     //for (size_t i = 0; i < 10000; i++)
 
 
     //call function to find all the energy states here:
-    numerov::find_basis_set<scalar>( [neon](scalar r) {return parameterized_pot<scalar>(r, 10, 10, neon);}, params);
+    if (params->atom() == "hydrogen")
+        numerov::find_basis_set<scalar>( hydrogen_pot<scalar>, params);
+    else if (params->atom() == "neon")
+        numerov::find_basis_set<scalar>( [neon](scalar r) {return parameterized_pot<scalar>(r, 10, 10, neon);}, params);
+    else if (params->atom() == "rubidium")
+        numerov::find_basis_set<scalar>( [rubidium](scalar r) {return parameterized_pot<scalar>(r, 37, 37, rubidium);}, params);
+    else if (params->atom() == "potasium")
+        numerov::find_basis_set<scalar>( [potasium](scalar r) {return parameterized_pot<scalar>(r, 19, 19, potasium);}, params);
+    //numerov::find_basis_set<scalar>( [neon](scalar r) {return parameterized_pot<scalar>(r, 10, 10, neon);}, params);
+    //numerov::find_basis_set<scalar>( [potasium](scalar r) {return parameterized_pot<scalar>(r, 19, 19, potasium);}, params);
     
     //finite_difference::find_basis<2, scalar>( [neon](scalar r) {return neon_pot<scalar>(r, 10,10, neon);}, 
                                               //params);

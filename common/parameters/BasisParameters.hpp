@@ -42,6 +42,8 @@ public:
         opt.get("-basis_rmin")->getDouble(rmin_);
         opt.get("-basis_points")->getInt(points_);
         opt.get("-basis_folder")->getString(folder_);
+        opt.get("-basis_atom")->getString(atom_);
+
 
         folder_ = common::absolute_path(folder_);
 
@@ -60,6 +62,7 @@ public:
     PetscInt points() const { return points_; };
     PetscInt nmax() const { return nmax_; };
     PetscInt lmax() const { return lmax_; };
+    std::string atom() const { return atom_; };
 
     //getting the folder:
     std::string basis_folder() const { return folder_; };
@@ -85,6 +88,7 @@ private:
     int points_;
     double rmax_;
     double rmin_;
+    std::string atom_;
 };
 
 template<typename compute_type_, typename write_type_ >
@@ -114,9 +118,7 @@ void BasisParameters<compute_type_, write_type_>::init_from_file(std::string fil
     opt.get("-basis_rmin")->getDouble(rmin_);
     opt.get("-basis_points")->getInt(points_);
     opt.get("-basis_folder")->getString(folder_);
-
-    std::cout << "folder: " << folder_ << std::endl;
-    std::cout << "fname: " << filename << std::endl;
+    opt.get("-basis_atom")->getString(atom_);
 
     this->grid_ = common::vector_type_change<write_type_, compute_type_>(
             common::import_vector_binary<write_type_>(this->grid_filename())
@@ -146,6 +148,7 @@ void BasisParameters<compute_type_, write_type_>::save_parameters()
     file << "-basis_rmin " << rmin_ << std::endl;
     file << "-basis_points " << points_ << std::endl;
     file << "-basis_folder " << folder_ << std::endl;
+    file << "-basis_atom " << atom_ << std::endl;
     file.close();
 }
 
@@ -177,6 +180,7 @@ std::string BasisParameters<compute_type_, write_type_>::print() const
     out << "basis_rmin: " << rmin_ << std::endl;
     out << "basis_points: " << points_ << std::endl;
     out << "basis_folder: " << folder_ << std::endl;
+    out << "basis_atom: " << atom_ << std::endl;
     return out.str();
 }
 
@@ -235,6 +239,14 @@ void BasisParameters<compute_type_, write_type_>::register_parameters()
             0,
             "Number of points on the grid",
             std::string(prefix).append("points\0").c_str()
+           );
+    opt.add(
+            "hydrogen",
+            1,
+            1,
+            0,
+            "the atom to simulate",
+            std::string(prefix).append("atom\0").c_str()
            );
     opt.add(
             "./",

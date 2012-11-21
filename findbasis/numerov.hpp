@@ -223,9 +223,9 @@ namespace numerov
     template <typename scalar>
     basis<scalar> find_bound(const int n, const int l, const scalar dx, const std::vector<scalar> &rgrid, std::function< scalar (scalar) > pot, bool &converged)
     {
-        scalar de = 10e-10;
-        scalar de2 = 10e-2;
-        scalar err = 10e-20;
+        scalar de = 10e-8;
+        scalar de2 = 10e-1;
+        scalar err = 10e-18;
         scalar rescale, deriv;
         scalar norm;
 
@@ -261,7 +261,7 @@ namespace numerov
         while ( !converged )
         {
             iterations++;
-            //std::cerr << std::scientific <<  "energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << energy << " de: " << de << " de2: " << de2 << std::endl ;
+            std::cerr << std::scientific <<  "energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << energy << " de: " << de << " de2: " << de2 << std::endl ;
 
             //initialize f for the energy we are using
             f[0] = 1 + dx * dx / 12 * ( - std::pow((static_cast<scalar>(l) + .5), 2)
@@ -489,6 +489,10 @@ namespace numerov
             rgrid->at(i) = std::exp(xgrid[i]);
         }
 
+        //write out potential:
+        //for (auto r: *rgrid)
+            //std::cout <<  pot(r) << ", " ;
+        //std::cout << std::endl;
 
         //get energy vector pointer from parameters
         std::vector<BasisID> *energies = params->basis_prototype();
@@ -511,7 +515,7 @@ namespace numerov
                 tmp.l = l;
                 tmp.e = res.energy;
                 energies->push_back(tmp);
-                std::cerr << n << "\t" << l << "\t" << res.energy << "\t" << res.energy + 1./(2.*n*n) << "\t" << (res.energy + 1./(2.*n*n))/(1./(2.*n*n)) << std::endl;
+                std::cout << n << "\t" << l << "\t" << res.energy << "\t" << res.energy + 1./(2.*n*n) << "\t" << (res.energy + 1./(2.*n*n))/(1./(2.*n*n)) << std::endl;
                 //we need to convert the wf to PetscReal, or PetscScalar...
                 common::export_vector_binary(
                         params->basis_function_filename(tmp),
