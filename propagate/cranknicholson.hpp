@@ -65,7 +65,8 @@ solve(Vec *wf, context* cntx, Mat *A)
 
     PetscScalar     cn_factor = -std::complex<double>(0, 0.5 * cntx->laser->dt());
     PetscReal       t = 0;
-    PetscScalar     ef = cntx->laser->efield(t);
+    PetscScalar     ef = cntx->laser->efield(t)  + cntx->laser->efield(t+cntx->laser->cycles());  //average between the points
+    ef /= 2;
     PetscReal       maxtime = math::PI * cntx->laser->cycles() / cntx->laser->frequency();
     PetscInt        step = 0;
     Vec             tmp;
@@ -103,9 +104,18 @@ solve(Vec *wf, context* cntx, Mat *A)
         MatScale(*A, cn_factor);                            // A = .5 * dt [ ef(t) * D + H_0 ]
         MatShift(*A, std::complex<double>(1,0));            // A = .5 * dt [ ef(t) * D + H_0 ] + 1
         MatMult(*A, *wf, tmp);                              // A u_n = tmp
-        MatAXPY(*A, cn_factor * (cntx->laser->efield(t+cntx->laser->dt()) - ef), *( cntx->D ), SAME_NONZERO_PATTERN);
         MatScale(*A, std::complex<double>(-1,0));           // A = - .5 dt [ef(t+dt) * D + H_0 ] - 1
         MatShift(*A, std::complex<double>(2,0));            // A = - .5 dt [ef(t+dt) * D + H_0 ] + 1
+        
+        //This has different 't's on both sides:
+        //MatScale(*A, ef);                                   // A = ef(t) * D
+        //MatDiagonalSet(*A, *(cntx->H), INSERT_VALUES);      // A = ef(t) * D + H_0
+        //MatScale(*A, cn_factor);                            // A = .5 * dt [ ef(t) * D + H_0 ]
+        //MatShift(*A, std::complex<double>(1,0));            // A = .5 * dt [ ef(t) * D + H_0 ] + 1
+        //MatMult(*A, *wf, tmp);                              // A u_n = tmp
+        //MatAXPY(*A, cn_factor * (cntx->laser->efield(t+cntx->laser->dt()) - ef), *( cntx->D ), SAME_NONZERO_PATTERN);
+        //MatScale(*A, std::complex<double>(-1,0));           // A = - .5 dt [ef(t+dt) * D + H_0 ] - 1
+        //MatShift(*A, std::complex<double>(2,0));            // A = - .5 dt [ef(t+dt) * D + H_0 ] + 1
 
         KSPSetOperators(ksp, *A, *A, SAME_NONZERO_PATTERN); // Solve[ A x = tmp ] for x
         KSPSetFromOptions(ksp);
@@ -115,7 +125,8 @@ solve(Vec *wf, context* cntx, Mat *A)
         VecPointwiseMult(*wf, *wf, abs);
 
         t += cntx->laser->dt();
-        ef = cntx->laser->efield(t);
+        ef = cntx->laser->efield(t)  + cntx->laser->efield(t+cntx->laser->cycles());  //average between the points
+        ef /= 2;
         step++;
         //at the zero of the field: write out the vector:
         if (( ef.real() <= 0. && cntx->laser->efield(t - cntx->laser->dt()).real() > 0 ) || ( ef.real() >= 0 && cntx->laser->efield(t - cntx->laser->dt()).real() < 0 ))
