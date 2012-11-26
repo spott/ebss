@@ -41,6 +41,11 @@ public:
                 throw std::exception();
             }
         }
+        if (opt.isSet("-laser_energy"))
+            opt.get("-laser_energy")->getDouble(energy_);
+        else
+            energy_ = -1.0;
+
 
         opt.get("-laser_lambda")->getDouble(lambda_);
         opt.get("-laser_intensity")->getDouble(intensity_);
@@ -77,6 +82,7 @@ private:
     double dt_;
     double dt_after_;
     double t_after_;
+    double energy_;
     std::string laser_filename_;
 
 };
@@ -110,7 +116,13 @@ void LaserParameters::save_parameters() const
 }
 
 PetscReal LaserParameters::lambda() const { return (lambda_ / 5.29177206e-2); }
-PetscReal LaserParameters::frequency() const { return (math::C * 2 * math::PI) / (this->lambda() ); }
+PetscReal LaserParameters::frequency() const 
+{ 
+    if (energy_ < 0)
+        return (math::C * 2 * math::PI) / (this->lambda() ); 
+    else
+        return energy_;
+}
 PetscReal LaserParameters::intensity() const
 { return intensity_/3.5094452e16; }
 PetscReal LaserParameters::cep() const { return cep_; }
@@ -154,6 +166,14 @@ void LaserParameters::register_parameters()
             0,
             "wavelength of the laser in nm",
             std::string(prefix).append("lambda\0").c_str()
+           );
+    opt.add(
+            "",
+            0,
+            1,
+            0,
+            "energy of the laser.  If this and the wavelength are specified, this will take precedence",
+            std::string(prefix).append("energy\0").c_str()
            );
     opt.add(
             "10e12",

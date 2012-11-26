@@ -211,7 +211,7 @@ void StateParameters::register_parameters()
     opt.add(
             "1,0",
             0,
-            0,
+            2,
             ',',
             "initial state: (n,l pair)",
             std::string(prefix).append("init\0").c_str()
