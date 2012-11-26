@@ -104,9 +104,8 @@ main(int argc, const char ** argv)
 
     //Setup the wavefunction:
     MatGetVecs(D, &wf, PETSC_NULL);
-    VecSetValue(wf, 0, 1., INSERT_VALUES);
-    VecAssemblyBegin(wf);
-    VecAssemblyEnd(wf);
+    sparams->initial_vector(&wf, params->prototype());
+
 
     //Copy the non-zero pattern from D to A (the matrix we use in our solver)
     MatDuplicate(D,MAT_SHARE_NONZERO_PATTERN,&A);

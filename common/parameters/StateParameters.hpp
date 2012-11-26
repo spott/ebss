@@ -41,6 +41,7 @@ public:
                 throw std::exception();
             }
         }
+        
         if (opt.isSet("-state_load"))
         {
             std::string fn;
@@ -54,6 +55,12 @@ public:
             nobound = true;
         else
             nobound = false;
+
+        std::vector< std::vector<int> > init;
+        opt.get("-state_init")->getMultiInts(init);
+        init_.n = init[0][0];
+        init_.l = init[0][1];
+
 
         opt.get("-state_filename")->getString(filename_);
         filename_ = common::absolute_path(filename_);
@@ -74,11 +81,13 @@ public:
 
     std::vector<int> empty_states_index(const std::vector<BasisID> prototype);
     std::vector<BasisID> empty_states(const std::vector<BasisID> prototype);
+    void initial_vector(Vec *v, const std::vector<BasisID> prototype);
 
 private:
     bool nobound;
     ez::ezOptionParser opt;
     void register_parameters();
+    BasisID init_;
     std::vector<BasisID> empty_states_;
     std::vector<BasisID> add_states;
     std::string filename_;
@@ -129,25 +138,35 @@ std::vector<int> StateParameters::empty_states_index(const std::vector<BasisID> 
     return state_index;
 }
 
+void StateParameters::initial_vector(Vec *v, const std::vector<BasisID> prototype)
+{
+    for (size_t i = 0; i < prototype.size(); i++)
+    {
+        if (prototype[i].n == init_.n && prototype[i].l == init_.l)
+        {
+            VecSetValue(*v, i, 1., INSERT_VALUES);
+            break;
+        }
+    }
+    VecAssemblyBegin(*v);
+    VecAssemblyEnd(*v);
+}
+
 std::string StateParameters::print() const
 {
     std::ostringstream out;
 
     out << "state_no_bound " << nobound << std::endl;
     out << "state_filename " << filename_ << std::endl;
-
-    //for (auto a: empty_states_)
-        //out << a << std::endl;
+    out << "state_init " << init_ << std::endl;
 
     return out.str();
 }
+
+//TODO fill this out
 void StateParameters::save_parameters() const
 {
     common::export_vector_ascii(std::string("./empty_states.dat"),empty_states_);
-    //std::ofstream file;
-    //file.open(std::string("./State.config"));
-    //file << "-state_lambda " << lambda_ << std::endl;
-    //file.close();
 }
 
 void StateParameters::register_parameters()
@@ -188,6 +207,14 @@ void StateParameters::register_parameters()
             0,
             "load from file",
             std::string(prefix).append("load\0").c_str()
+           );
+    opt.add(
+            "1,0",
+            0,
+            0,
+            ',',
+            "initial state: (n,l pair)",
+            std::string(prefix).append("init\0").c_str()
            );
     opt.add(
             "",
