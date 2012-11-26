@@ -99,7 +99,7 @@ main(int argc, const char ** argv)
     MatAssemblyBegin(D, MAT_FINAL_ASSEMBLY);
     VecAssemblyEnd(H);
     MatAssemblyEnd(D, MAT_FINAL_ASSEMBLY);
-    VecView(H, PETSC_VIEWER_STDOUT_WORLD);
+    //VecView(H, PETSC_VIEWER_STDOUT_WORLD);
     MatSetOption(D,MAT_KEEP_NONZERO_PATTERN,PETSC_TRUE);
 
     //Setup the wavefunction:

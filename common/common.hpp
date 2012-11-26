@@ -100,12 +100,31 @@ namespace common
             return rel_path;
     }
 
+    bool file_exists(std::string fname)
+    {
+        bool ret;
+        std::ifstream f(fname);
+        if (f.good())
+            ret = true;
+        else
+            ret = false;
+        f.close();
+
+        return ret;
+    }
+
     template<typename T>
     T petsc_binary_read(std::string filename, MPI_Comm comm);
 
     template<>
     Vec petsc_binary_read<Vec>(std::string filename, MPI_Comm comm)
     {
+        std::cerr << "importing " << filename << " into vector... " << std::endl;
+        if (!file_exists(filename))
+        {
+            std::cerr << "file doesn't exist" << std::endl;
+            throw (std::exception());
+        }
         Vec v;
         VecCreate(comm,&v);
         VecSetType(v, VECSTANDARD);
@@ -114,12 +133,19 @@ namespace common
         PetscViewerBinaryOpen(comm, filename.c_str(), FILE_MODE_READ, &view);
         VecLoad(v,view);
         PetscViewerDestroy(&view);
+        std::cerr << "done" << std::endl;
         return v;
     }
 
     template<>
     Mat petsc_binary_read<Mat>(std::string filename, MPI_Comm comm)
     {
+        std::cerr << "importing " << filename.c_str() << " into matrix... " << std::endl;
+        if (!file_exists(filename))
+        {
+            std::cerr << "file doesn't exist" << std::endl;
+            throw (std::exception());
+        }
         Mat v;
         MatCreate(comm,&v);
         MatSetType(v, MATAIJ);
@@ -128,6 +154,7 @@ namespace common
         PetscViewerBinaryOpen(comm, filename.c_str(), FILE_MODE_READ, &view);
         MatLoad(v,view);
         PetscViewerDestroy(&view);
+        std::cerr << "done" << std::endl;
         return v;
     }
 

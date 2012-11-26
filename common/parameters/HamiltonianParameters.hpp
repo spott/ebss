@@ -221,7 +221,7 @@ std::string HamiltonianParameters<write_type_>::dipole_matrix_filename() const
 {
     std::stringstream ss;
     ss << folder_;
-    ss << "/dipole_matrix.dat.gz";
+    ss << "/dipole_matrix.dat.gz\0";
     return ss.str();
 }
 
@@ -231,7 +231,7 @@ std::string HamiltonianParameters<write_type_>::energy_eigenvalues_filename() co
 {
     std::stringstream ss;
     ss << folder_;
-    ss << "/energy_eigenvalues_vector.dat.gz";
+    ss << "/energy_eigenvalues_vector.dat.gz\0";
     return ss.str();
 }
 
@@ -241,7 +241,7 @@ std::string HamiltonianParameters<write_type_>::prototype_filename() const
 {
     std::stringstream ss;
     ss << folder_;
-    ss << "/vector_prototype.dat";
+    ss << "/vector_prototype.dat\0";
     return ss.str();
 }
 
