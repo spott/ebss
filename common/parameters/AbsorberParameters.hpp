@@ -3,6 +3,12 @@
 #include<common/common.hpp>
 #include<common/parameters/Parameters.hpp>
 
+enum abs_type {
+    COSINE, 
+    CX_ROT,
+    CX_SCALE
+};
+
 class AbsorberParameters: public Parameters
 {
 public:
@@ -33,6 +39,20 @@ public:
             }
         }
 
+        std::string t;
+        opt.get("-absorber_type")->getString(t);
+        if (t == "cosine")
+            type_ = COSINE;
+        else if (t == "cx_rot")
+            type_ = CX_ROT;
+        else if (t == "cx_scale")
+            type_ = CX_SCALE;
+        else
+        {
+            std::cerr << "absorber type " << t << " not supported, defaulting to cosine" << std::endl;
+            type_ = COSINE;
+        }
+
         opt.get("-absorber_n_size")->getInt(n_size_);
         opt.get("-absorber_l_size")->getInt(l_size_);
         opt.get("-absorber_m_size")->getInt(m_size_);
@@ -48,6 +68,19 @@ public:
     PetscInt n_size() const { return n_size_; };
     PetscInt l_size() const { return l_size_; };
     PetscInt m_size() const { return m_size_; };
+    std::string type() const {
+        if (type_ == COSINE)
+            return std::string("cosine");
+        else if (type_ == CX_ROT)
+            return std::string("cx_rot");
+        else if (type_ == CX_SCALE)
+            return std::string("cx_scale");
+        else
+            return std::string("no type!");
+        }
+
+    //create the absorber:
+    void absorb(Vec *abs, HamiltonianParameters<PetscReal> *hparams);
 
     //PetscErrorCode init_from_file();
     void save_parameters();
@@ -60,7 +93,74 @@ private:
     int l_size_;
     int m_size_;
     double cos_factor_;
+    abs_type type_;
 };
+
+void AbsorberParameters::absorb(Vec *abs, HamiltonianParameters<PetscReal> *hparams)
+{
+    PetscInt start, end;
+    VecGetOwnershipRange(*abs,&start,&end);
+    VecSet(*abs, 1.);
+    VecAssemblyBegin(*abs);
+    VecAssemblyEnd(*abs);
+
+    auto prototype = hparams->prototype();
+
+    if (n_size_ == 0 && l_size_ == 0 && m_size_ == 0)
+        return;
+    
+    if ( type_ == COSINE )
+    {
+        PetscReal val;
+        if (rank() == 0)
+            std::cerr << "cos_factor: " << cos_factor_ << std::endl;
+
+
+        for (size_t i = start; i < end; i++)
+        {
+            val = 1.;
+            if ((hparams->nmax() - prototype[i].n) < n_size())
+                val *= std::pow(std::sin(
+                            ((hparams->nmax() - prototype[i].n) * math::PI)/(2*n_size())
+                            ),cos_factor());
+            if ((hparams->lmax() - prototype[i].l) < l_size())
+                val *= std::pow(std::sin(
+                            ((hparams->lmax() - prototype[i].l) * math::PI)/(2*l_size())),
+                        cos_factor());
+            if ((hparams->mmax() - std::abs(prototype[i].m)) < m_size())
+                val *= std::pow(std::sin(
+                            ((hparams->mmax() - prototype[i].m) * math::PI)/(2*m_size())),
+                        cos_factor());
+            VecSetValue(*abs, i, val, INSERT_VALUES);
+        }
+    }
+    else if ( type_ == CX_ROT )
+    {
+        PetscScalar val;
+        std::cerr << "complex rotation is still being tested!  no l-absorber yet" << std::endl;
+        for (size_t i = start; i < end; i++)
+        {
+            val = 1.;
+            if ((hparams->nmax() - prototype[i].n) < n_size())
+                val *= std::exp(
+                            std::complex<double>(0,((hparams->nmax() - prototype[i].n) * math::PI)/(2*n_size()))
+                            );
+            //if ((hparams->lmax() - prototype[i].l) < l_size())
+                //val *= std::exp(
+                            //std::complex<double>(0,((hparams->lmax() - prototype[i].l) * math::PI)/(2*l_size()))
+                            //);
+            //if ((hparams->mmax() - std::abs(prototype[i].m)) < m_size())
+                //val *= std::exp(
+                            //std::complex<double>(0,((hparams->mmax() - prototype[i].m) * math::PI)/(2*m_size()))
+                            //);
+            VecSetValue(*abs, i, val, INSERT_VALUES);
+        }
+    }
+
+    VecAssemblyBegin(*abs);
+    VecAssemblyEnd(*abs);
+
+}
 
 std::string AbsorberParameters::print() const
 {
@@ -69,6 +169,7 @@ std::string AbsorberParameters::print() const
     out << "absorber_l_size: " << l_size_ << std::endl;
     out << "absorber_m_size: " << m_size_ << std::endl;
     out << "absorber_cos_factor: " << cos_factor_ << std::endl;
+    out << "absorber_type: " << type_ << std::endl;
     return out.str();
 }
 
@@ -80,6 +181,12 @@ void AbsorberParameters::save_parameters()
     file << "-absorber_l_size " << l_size_ << std::endl;
     file << "-absorber_m_size " << m_size_ << std::endl;
     file << "-absorber_cos_factor " << cos_factor_ << std::endl;
+    if (type_ == COSINE)
+        file << "-absorber_type cosine" << std::endl;
+    if (type_ == CX_ROT)
+        file << "-absorber_type cx_rot" << std::endl;
+    if (type_ == CX_SCALE)
+        file << "-absorber_type cx_scale" << std::endl;
     file.close();
 }
 void AbsorberParameters::register_parameters()
@@ -128,6 +235,14 @@ void AbsorberParameters::register_parameters()
             0,
             "the exponential on the cosine",
             std::string(prefix).append("cos_factor\0").c_str()
+           );
+    opt.add(
+            "cosine",
+            0,
+            1,
+            0,
+            "type (one of: cosine, cx_rot, or cx_scaled)",
+            std::string(prefix).append("type\0").c_str()
            );
     opt.add(
             "",

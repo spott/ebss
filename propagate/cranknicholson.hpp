@@ -11,48 +11,6 @@ typedef struct {
 namespace cranknicholson
 {
 
-Vec
-absorb(Vec *wf, context *cntx)
-{
-    Vec abs;
-    PetscReal val;
-    PetscInt start, end;
-    VecDuplicate(*wf, &abs);
-    VecGetOwnershipRange(abs,&start,&end);
-    VecSet(abs, 1.);
-    VecAssemblyBegin(abs);
-    VecAssemblyEnd(abs);
-
-    auto prototype = cntx->hparams->prototype();
-
-
-    if (cntx->hparams->rank() == 0) std::cerr << "cos_factor: " << cntx->absorber->cos_factor() << std::endl;
-
-    if (cntx->absorber->n_size() == 0 && cntx->absorber->l_size() == 0 && cntx->absorber->m_size() == 0)
-        return abs;
-    for (size_t i = start; i < end; i++)
-    {
-        val = 1.;
-        if ((cntx->hparams->nmax() - prototype[i].n) < cntx->absorber->n_size())
-            val *= std::pow(std::sin(
-                        ((cntx->hparams->nmax() - prototype[i].n) * math::PI)/(2*cntx->absorber->n_size())
-                        ),cntx->absorber->cos_factor());
-        if ((cntx->hparams->lmax() - prototype[i].l) < cntx->absorber->l_size())
-            val *= std::pow(std::sin(
-                        ((cntx->hparams->lmax() - prototype[i].l) * math::PI)/(2*cntx->absorber->l_size())),
-                        cntx->absorber->cos_factor());
-        if ((cntx->hparams->mmax() - std::abs(prototype[i].m)) < cntx->absorber->m_size())
-            val *= std::pow(std::sin(
-                        ((cntx->hparams->mmax() - prototype[i].m) * math::PI)/(2*cntx->absorber->m_size())),
-                        cntx->absorber->cos_factor());
-        VecSetValue(abs, i, val, INSERT_VALUES);
-    }
-    VecAssemblyBegin(abs);
-    VecAssemblyEnd(abs);
-
-    return abs;
-}
-
 PetscErrorCode
 solve(Vec *wf, context* cntx, Mat *A)
 {
@@ -65,7 +23,7 @@ solve(Vec *wf, context* cntx, Mat *A)
     PCSetType(pc, PCJACOBI);
     KSPSetTolerances(ksp,1e-10, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT);
 
-    PetscScalar     cn_factor = -std::complex<double>(0, 0.5 * cntx->laser->dt());
+    PetscScalar     cn_factor = std::complex<double>(0, -0.5 * cntx->laser->dt());
     PetscReal       t = 0;
     PetscScalar     ef = cntx->laser->efield(t); // + cntx->laser->efield(t+cntx->laser->cycles());  //average between the points
     //ef /= 2;
@@ -83,7 +41,12 @@ solve(Vec *wf, context* cntx, Mat *A)
     VecAssemblyBegin(tmp);
     VecAssemblyEnd(tmp);
 
-    Vec abs = absorb(wf, cntx);
+    Vec abs;
+    VecDuplicate(*wf, &abs);
+    cntx->absorber->absorb(&abs, cntx->hparams);
+    if (cntx->absorber->type() == "cx_rot" || cntx->absorber->type() == "cx_scale")
+        VecPointwiseMult(*(cntx->H), *(cntx->H), abs);
+
     std::string file_name = std::string("./absorber.dat");
     PetscViewerASCIIOpen(cntx->hparams->comm(),file_name.c_str(),&view);
     PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
@@ -124,7 +87,8 @@ solve(Vec *wf, context* cntx, Mat *A)
 
         KSPSolve(ksp, tmp, *wf);
 
-        VecPointwiseMult(*wf, *wf, abs);
+        if (cntx->absorber->type() == "cosine")
+            VecPointwiseMult(*wf, *wf, abs);
 
         t += cntx->laser->dt();
         ef = cntx->laser->efield(t); //  + cntx->laser->efield(t+cntx->laser->cycles());  //average between the points
