@@ -26,6 +26,8 @@ absorb(Vec *wf, context *cntx)
     auto prototype = cntx->hparams->prototype();
 
 
+    if (cntx->hparams->rank() == 0) std::cerr << "cos_factor: " << cntx->absorber->cos_factor() << std::endl;
+
     if (cntx->absorber->n_size() == 0 && cntx->absorber->l_size() == 0 && cntx->absorber->m_size() == 0)
         return abs;
     for (size_t i = start; i < end; i++)
@@ -33,8 +35,8 @@ absorb(Vec *wf, context *cntx)
         val = 1.;
         if ((cntx->hparams->nmax() - prototype[i].n) < cntx->absorber->n_size())
             val *= std::pow(std::sin(
-                        ((cntx->hparams->nmax() - prototype[i].n) * math::PI)/(2*cntx->absorber->n_size())),
-                        cntx->absorber->cos_factor());
+                        ((cntx->hparams->nmax() - prototype[i].n) * math::PI)/(2*cntx->absorber->n_size())
+                        ),cntx->absorber->cos_factor());
         if ((cntx->hparams->lmax() - prototype[i].l) < cntx->absorber->l_size())
             val *= std::pow(std::sin(
                         ((cntx->hparams->lmax() - prototype[i].l) * math::PI)/(2*cntx->absorber->l_size())),
