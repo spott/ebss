@@ -290,6 +290,9 @@ namespace common
         file.open(filename.c_str());
         if (file.is_open())
         {
+            file << std::scientific;
+            file.setf(std::ios_base::fixed, std::ios_base::floatfield);
+            file.precision(20);
             for (auto a: out)
                 file << a << std::endl;
 

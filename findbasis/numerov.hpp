@@ -9,6 +9,22 @@
 #include<common/common.hpp>
 #include<limits>
 
+
+template <typename T>
+struct sae_param {
+    int p;
+    T c;
+    T beta;
+};
+
+template <typename T>
+struct sae {
+    std::vector< sae_param<T> > params;
+    int Z;
+    int N;
+    T gs_energy;
+};
+
 namespace numerov
 {
 
@@ -36,7 +52,7 @@ namespace numerov
             if (std::abs(*(wfstart+i)) == std::numeric_limits<typename iterator::value_type>::infinity() || (wfstart[i]) != (wfstart[i]))
             {
                 std::cerr << "infinity detected at " << i << " last two values: " << *(wfstart+i-1) << ", " << wfstart[i-2] << std::endl;
-                
+                throw (std::exception());
                 inf = true;
                 break;
             }
@@ -60,7 +76,7 @@ namespace numerov
         int nodes;
 
         scalar de = 1;
-        scalar err = 10e-17;
+        scalar err = 10e-19;
 
         std::vector<scalar> f(rgrid.size());
         std::vector<scalar> wf(rgrid.size());
@@ -221,7 +237,7 @@ namespace numerov
     };
 
     template <typename scalar>
-    basis<scalar> find_bound(const int n, const int l, const scalar dx, const std::vector<scalar> &rgrid, std::function< scalar (scalar) > pot, bool &converged)
+    basis<scalar> find_bound(const int n, const int l, const scalar dx, const std::vector<scalar> &rgrid, std::function< scalar (scalar) > pot, bool &converged, sae<scalar> atom)
     {
         scalar de = 10e-8;
         scalar de2 = 10e-1;
@@ -237,10 +253,6 @@ namespace numerov
         for(size_t i = 0; i < wf.size(); i++)
             wf[i] = std::numeric_limits<scalar>::quiet_NaN();
 
-        //initialize pot
-        //for(size_t i = 0; i < potential.size(); i++)
-            //potential[i] = pot(rgrid[i]);
-
         scalar energy_upper = pot(rgrid[rgrid.size()-1]);
         scalar energy_lower=0;
         scalar energy = 0;
@@ -248,6 +260,9 @@ namespace numerov
         {
             energy_lower = std::min(energy_lower, (std::pow((static_cast<scalar>(l)+.5),2)/(2. * std::pow(rgrid[i],2)) + pot(rgrid[i])));
         }
+        //if (std::abs(energy - atom.gs_energy) > 10)
+            //energy_lower = atom.gs_energy-32000;
+        //energy = energy_lower;
         energy = (energy_upper + energy_lower) / 2;
 
 
@@ -261,7 +276,7 @@ namespace numerov
         while ( !converged )
         {
             iterations++;
-            std::cerr << std::scientific <<  "energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << energy << " de: " << de << " de2: " << de2 << std::endl ;
+            std::cerr << std::scientific <<  "energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << energy << " de: " << de << " de2: " << de2 << " iterations: " << iterations << std::endl ;
 
             //initialize f for the energy we are using
             f[0] = 1 + dx * dx / 12 * ( - std::pow((static_cast<scalar>(l) + .5), 2)
@@ -328,9 +343,12 @@ namespace numerov
             de = dfcusp * 12 * dx * std::pow(cusp,2);
 
 
+            //std::stringstream ss;
+            //ss << "test_" << iterations << ".dat";
+            //common::export_vector_ascii(ss.str(), wf);
             if (nodes != n - l - 1 )
             {
-                //std::cerr << w << std::endl;
+                std::cerr << nodes << std::endl;
                 de2 /= 2;
                 if (nodes > n - l - 1)
                     energy_upper = energy;
@@ -358,7 +376,7 @@ namespace numerov
             }
 
             //std::cerr << std::scientific <<  "energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << energy << " de: " << de << " de2: " << de2 << std::endl ;
-            //std::cerr << "nodes: " << nodes << " norm: " << norm << " rescale " << rescale << " cusp: " << cusp << " dfcusp " << dfcusp << " deriv " << deriv << std::endl;
+            std::cerr << "nodes: " << nodes << " norm: " << norm << " rescale " << rescale << " cusp: " << cusp << " dfcusp " << dfcusp << " deriv " << deriv << std::endl;
             if (de < 0 && de2 > 0)
                 de2 = .5 * std::abs(de2) * de / std::abs(de);
             if (de > 0 && de2 < 0)
@@ -437,7 +455,7 @@ namespace numerov
     int this_l = 1000;
 
     template <typename scalar>
-    basis<scalar> find_basis(const int n, const int l, const scalar dx, const std::vector<scalar> &rgrid, std::function< scalar (scalar) > pot)
+    basis<scalar> find_basis(const int n, const int l, const scalar dx, const std::vector<scalar> &rgrid, std::function< scalar (scalar) > pot, sae<scalar> atom)
     {
         bool converged = false;
         basis<scalar> result;
@@ -448,7 +466,7 @@ namespace numerov
         }
         if (n < this_l_excited_n)
         {
-            result = find_bound(n, l, dx, rgrid, pot, converged);
+            result = find_bound(n, l, dx, rgrid, pot, converged, atom);
             if (converged == false)
             {
                 this_l_excited_n = n;
@@ -466,7 +484,7 @@ namespace numerov
     };
 
     template<typename scalar, typename write_type>
-    void find_basis_set( std::function< scalar (scalar) > pot, BasisParameters<scalar, write_type> *params)
+    void find_basis_set( std::function< scalar (scalar) > pot, BasisParameters<scalar, write_type> *params, sae<scalar> atom)
     {
         int rank;
         int num;
@@ -490,6 +508,13 @@ namespace numerov
         }
 
         //write out potential:
+        std::vector<scalar> potential(rgrid->size());
+        for (size_t i = 0; i < rgrid->size(); i++)
+        {
+            potential[i] = pot(rgrid->at(i));
+        }
+        common::export_vector_ascii("potential.dat",potential);
+
         //for (auto r: *rgrid)
             //std::cout <<  pot(r) << ", " ;
         //std::cout << std::endl;
@@ -504,18 +529,19 @@ namespace numerov
         energies->resize(0);
         //MPI stuff to split up workload:
 
-        if (rank==0) std::cout << "n\tl\te\t∆\t∆/exact" << std::endl;
+        if (rank==0) std::cout << "n\tl\te" << std::endl;
+        std::cout << std::scientific;
 
         for (int l = rank; l <= params->lmax(); l += num)
             for (int n = l+1; n <= params->nmax(); n++)
             {
-                res = find_basis(n, l, dx, *rgrid, pot);
+                res = find_basis(n, l, dx, *rgrid, pot, atom);
                 tmp.n = n;
                 tmp.m = 0;
                 tmp.l = l;
                 tmp.e = res.energy;
                 energies->push_back(tmp);
-                std::cout << n << "\t" << l << "\t" << res.energy << "\t" << res.energy + 1./(2.*n*n) << "\t" << (res.energy + 1./(2.*n*n))/(1./(2.*n*n)) << std::endl;
+                std::cout << n << "\t" << l << "\t" << res.energy << std::endl;
                 //we need to convert the wf to PetscReal, or PetscScalar...
                 common::export_vector_binary(
                         params->basis_function_filename(tmp),
