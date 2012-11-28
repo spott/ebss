@@ -27,7 +27,7 @@ solve(Vec *wf, context* cntx, Mat *A)
     PetscReal       t = 0;
     PetscScalar     ef = cntx->laser->efield(t); // + cntx->laser->efield(t+cntx->laser->cycles());  //average between the points
     //ef /= 2;
-    PetscReal       maxtime = math::PI * cntx->laser->cycles() / cntx->laser->frequency();
+    PetscReal       maxtime = math::PI * 2 * cntx->laser->cycles() / cntx->laser->frequency();
     PetscInt        step = 0;
     Vec             tmp;
     Vec             prob;

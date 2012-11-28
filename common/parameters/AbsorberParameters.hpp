@@ -143,7 +143,7 @@ void AbsorberParameters::absorb(Vec *abs, HamiltonianParameters<PetscReal> *hpar
             val = 1.;
             if ((hparams->nmax() - prototype[i].n) < n_size())
                 val *= std::exp(
-                            std::complex<double>(0,((hparams->nmax() - prototype[i].n) * math::PI)/(2*n_size()))
+                            std::complex<double>(0,((n_size() - hparams->nmax() + prototype[i].n) * math::PI)/(2*n_size()))
                             );
             //if ((hparams->lmax() - prototype[i].l) < l_size())
                 //val *= std::exp(
