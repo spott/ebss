@@ -1,13 +1,13 @@
-PETSC_DIR=/opt/local/petsc-3.3-gcc-debug/
-SLEPC_DIR=/opt/local/slepc-3.3-gcc-debug/
-TDSEBASE=/Users/spott/Documents/Code/ebss
+PETSC_DIR=/home/ansp6066/local/petsc-3.3/
+SLEPC_DIR=/home/ansp6066/local/slepc-3.3/
+TDSEBASE=/home/ansp6066/code/ebss
 
 #include ${PETSC_DIR}/conf/variables
 #include ${PETSC_DIR}/conf/rules
 include ${SLEPC_DIR}/conf/slepc_common
 
-CPP_FLAGS=-I${TDSEBASE}/ -I/opt/local/include/
-LDFLAGS=-L/opt/local/lib/ -lgsl -lboost_program_options
+CPP_FLAGS=-I${TDSEBASE}/
+LDFLAGS=-lgsl
 
 BINDIR=${TDSEBASE}/bin/
 
