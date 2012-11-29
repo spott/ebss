@@ -140,7 +140,7 @@ void AbsorberParameters::absorb(Vec *abs, HamiltonianParameters<PetscReal> *hpar
         std::cerr << "complex rotation is still being tested!  no l-absorber yet" << std::endl;
         for (size_t i = start; i < end; i++)
         {
-            val = 1.;
+            val = -1.;
             if ((hparams->nmax() - prototype[i].n) < n_size())
                 val *= std::exp(
                             std::complex<double>(0,((n_size() - hparams->nmax() + prototype[i].n) * math::PI)/(2*n_size()))

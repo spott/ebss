@@ -135,7 +135,7 @@ std::string LaserParameters::laser_filename() const { return std::string(laser_f
 PetscScalar 
 LaserParameters::efield(PetscReal t)
 {
-    if (t * this->frequency()/(this->cycles()) > math::PI)
+    if (t * this->frequency()/(this->cycles() * 2) > math::PI)
         return 0.0;
     PetscReal efield = std::sqrt(this->intensity());
     return efield 
