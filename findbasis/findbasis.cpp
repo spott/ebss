@@ -55,17 +55,6 @@ int main(int argc, const char **argv)
         {2, 1.29942636, 3.06518063}};
     sae<scalar> neon = {neon_params, 10, 10, -30.87114223};
 
-
-    //std::vector< sae_param<scalar> > rubidium_params{
-        //{0, 7.83077875, 0.81691787},
-        //{0, 0.18308213, 2.75163799},
-        //{1, 2.53670563, 4.30010258},
-        //{2, -19.56508990, 43.31975597},
-        //{3, 1.06320272, 2.93818679},
-        //{4, -0.99934358, 4.97097146}
-        //};
-    //sae<scalar> rubidium = {rubidium_params, 37, 37, -541.83186666};
-
     std::vector< sae_param<scalar> > rubidium_params{
         {0, 0.81691787, 7.83077875},
         {0, 0.18308213, 2.75163799},
@@ -86,10 +75,13 @@ int main(int argc, const char **argv)
         };
     sae<scalar> potassium = {potassium_params, 19, 19, -128.71233201};
 
+    sae<scalar> hydrogen = {potassium_params, 1, 1, -.5};
+
+
     //call function to find all the energy states here:
-    //if (params->atom() == "hydrogen")
-        //numerov::find_basis_set<scalar>( hydrogen_pot<scalar>, params, );
-    if (params->atom() == "neon")
+    if (params->atom() == "hydrogen")
+        numerov::find_basis_set<scalar>( hydrogen_pot<scalar>, params, hydrogen);
+    else if (params->atom() == "neon")
         numerov::find_basis_set<scalar>( [neon](scalar r) {return parameterized_pot<scalar>(r, neon);}, params, neon);
     else if (params->atom() == "rubidium")
         numerov::find_basis_set<scalar>( [rubidium](scalar r) {return parameterized_pot<scalar>(r, rubidium);}, params, rubidium);
