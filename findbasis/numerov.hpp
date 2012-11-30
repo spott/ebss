@@ -33,7 +33,7 @@ namespace numerov
     template <typename iterator>
     int numerov(iterator fstart, iterator fend, iterator wfstart, iterator wfend)
     {
-        int nodes = 0;
+        unsigned int nodes = 0;
 
         if (wfend - wfstart != fend - fstart || wfend-wfstart == 0)
             std::cerr << "wf and f don't have the same size or are zero." << std::endl;
@@ -41,7 +41,10 @@ namespace numerov
         bool inf = false;
         for(int i = 2; i < wfend-wfstart; i++)
         {
-            wfstart[i] = ((12. - fstart[i-1] * 10.) * wfstart[i-1] - fstart[i-2] * wfstart[i-2]) / fstart[i];
+            if (!inf)
+                wfstart[i] = ((12. - fstart[i-1] * 10.) * wfstart[i-1] - fstart[i-2] * wfstart[i-2]) / fstart[i];
+            else
+                wfstart[i] = wfstart[i-1];
 
             //std::cerr << i << " " << wfstart[i] << " ";
             if (*(wfstart+i) < 0 && *(wfstart+i-1) >= 0)
@@ -51,10 +54,10 @@ namespace numerov
             //check for inf & nan:
             if (std::abs(*(wfstart+i)) == std::numeric_limits<typename iterator::value_type>::infinity() || (wfstart[i]) != (wfstart[i]))
             {
-                std::cerr << "infinity detected at " << i << " last two values: " << *(wfstart+i-1) << ", " << wfstart[i-2] << std::endl;
-                throw (std::exception());
+                wfstart[i] = wfstart[i-1];
+                std::cerr << "infinity detected at " << i << " last two values: " << *(wfstart+i-1) << ", " << wfstart[i-2] << " nodes: " << nodes << std::endl;
+                //throw (std::exception());
                 inf = true;
-                break;
             }
         }
 

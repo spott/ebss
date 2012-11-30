@@ -27,8 +27,70 @@ scalar CGCoefficient(BasisID init, BasisID fin)
 }
 
 //I should split this into different methods, 
+
+
 template <typename scalar>
-scalar integrateGrid(std::vector<scalar> psi1, std::vector<scalar> psi2, std::vector<scalar> grid)
+scalar integrateSimpsonsRule(std::vector<scalar> psi1, std::vector<scalar> psi2, std::vector<scalar> grid)
+{
+    //check for correct size!
+    if (psi1.size() != psi2.size() || psi1.size() != grid.size() )
+        throw (std::exception());
+
+    std::function < scalar (scalar *) > det = [](scalar* g) {
+        return g[0] * g[0] * (g[1] - g[2]) 
+             - g[1] * ( g[1] * g[1] - g[2] * g[2] ) 
+             + g[1] * g[2] * (g[1] - g[2]);
+    };
+
+
+    std::function< scalar (scalar *, scalar*) > aj =
+        [det](scalar* f, scalar* g) {
+            scalar aj = f[0] * (g[1] - g[2]) 
+                      + f[1] * (g[2] - g[0]) 
+                      + f[2] * (g[0] - g[1]);
+            aj /= det(g);
+            return aj;
+        };
+    std::function< scalar ( scalar* , scalar*) > bj =
+        [det](scalar* f, scalar* g) {
+            scalar bj = f[0] * (g[2] * g[2] - g[1] * g[1]) 
+                      + f[1] * (g[0] * g[0] - g[2] * g[2]) 
+                      + f[2] * (g[0] * g[0] - g[1] * g[1]);
+            bj /= det(g);
+            return bj;
+        };
+    std::function< scalar ( scalar* , scalar*) > cj =
+        [det](scalar* f, scalar* g) {
+            scalar cj = f[0] * g[1] * g[2] * (g[1] - g[2]) 
+                      + f[1] * g[0] * g[2] * (g[2] - g[0]) 
+                      + f[2] * g[1] * g[0] * (g[0] - g[1]);
+            cj /= det(g);
+            return cj;
+        };
+    std::function< scalar ( scalar, scalar, scalar, scalar, scalar, scalar ) > simpsons = 
+        [aj, bj, cj]( scalar fjm1, scalar fj, scalar fjp1, scalar gjm1, scalar gj, scalar gjp1 ) {
+            scalar g[3] = {gjm1, gj, gjp1};
+            scalar f[3] = {fjm1, fj, fjp1};
+            scalar result = aj(f, g) * (g[2] * g[2] * g[2] - g[0] * g[0] * g[0]) / 3
+                          + bj(f, g) * (g[2] * g[2]        - g[0] * g[0]) / 2
+                          + cj(f, g) * (g[2]               - g[0]);
+            return result;
+        };
+
+    //do the first point, including zero:
+    scalar result = simpsons(0., psi1[0] * psi2[0] * grid[0], psi1[1] * psi2[1] * grid[1], 0., grid[0], grid[1]);
+
+    for (size_t i = 1; i < grid.size()-2; i+=2)
+    {
+        result += simpsons(psi1[i] * psi2[i] * grid[i], psi1[i+1] * psi2[i+1] * grid[i+1] , psi1[i+2] * psi2[i+2] * grid[i+2], grid[i], grid[i+1], grid[i+2]);
+    }
+
+    return result;
+}
+
+
+template <typename scalar>
+scalar integrateTrapezoidRule(std::vector<scalar> psi1, std::vector<scalar> psi2, std::vector<scalar> grid)
 {
     //check for correct size!
     if (psi1.size() != psi2.size() || psi1.size() != grid.size() )
@@ -45,6 +107,17 @@ scalar integrateGrid(std::vector<scalar> psi1, std::vector<scalar> psi2, std::ve
     return result;
 }
 
+template <typename scalar>
+scalar integrateGrid(std::vector<scalar> psi1, std::vector<scalar> psi2, std::vector<scalar> grid)
+{
+    scalar b = integrateTrapezoidRule(psi1, psi2, grid);
+    //scalar a = integrateSimpsonsRule(psi1, psi2, grid);
+    //std::cerr << std::scientific;
+    //std::cerr.precision(20);
+    //std::cerr << "trap: " << a << " simpsons: " << b << " error: " << a-b << " rel: " << a - b / a << std::endl;
+    return b;
+
+}
 
 
 inline std::complex<double> Gamma_Lanczos ( std::complex<double> z)
