@@ -12,6 +12,7 @@ T hydrogen_pot(T r)
    return -1./r;
 }
 
+
 template <typename T>
 T parameterized_pot(T r, sae<T> atom)
 {
@@ -24,6 +25,18 @@ T parameterized_pot(T r, sae<T> atom)
    return a;
 }
 
+template <typename T>
+T parameterized_finestructure_pot(T r, sae<T> atom)
+{
+    T a = parameterized_pot(r, atom);
+
+    T b = 0;
+    for( auto p: atom.params )
+        b += p.c * std::pow(r, p.p-2) * std::exp(- p.beta * r) * (p.p - 1 - r * p.beta);
+    b *= (atom.N-1);
+    b += (-1 + atom.N - atom.Z)/r*r;
+    return a + b;
+}
 
 typedef long double scalar;
 
@@ -89,7 +102,7 @@ int main(int argc, const char **argv)
         numerov::find_basis_set<scalar>( [potassium](scalar r) {return parameterized_pot<scalar>(r, potassium);}, params, potassium);
     //numerov::find_basis_set<scalar>( [neon](scalar r) {return parameterized_pot<scalar>(r, 10, 10, neon);}, params);
     //numerov::find_basis_set<scalar>( [potasium](scalar r) {return parameterized_pot<scalar>(r, 19, 19, potasium);}, params);
-    
+
     //finite_difference::find_basis<2, scalar>( [neon](scalar r) {return neon_pot<scalar>(r, 10,10, neon);}, 
                                               //params);
     //numerov::find_basis_set<scalar>( hydrogen_pot<scalar>, 
