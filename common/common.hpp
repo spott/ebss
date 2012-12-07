@@ -18,15 +18,20 @@
 #include<common/parameters/Parameters.hpp>
 
 struct BasisID {
-    PetscInt n,l,m;
+    // j = 1 -> 1/2;
+    // j = 3 -> 3/2;
+    // j != 1,3 -> 0;
+    PetscInt n,l,m,j;
     PetscScalar e;
     bool operator<(const BasisID b)
     {
         if (this->l < b.l)
             return true;
-        else if (this->l == b.l && this->n < b.n)
+        else if (this->l == b.l && this->j < b.j)
             return true;
-        else if (this->l == b.l && this->n == b.n && this->m < b.m)
+        else if (this->l == b.l && this->j == b.j && this->n < b.n)
+            return true;
+        else if (this->l == b.l && this->j == b.j && this->n == b.n && this->m < b.m)
             return true;
         else
             return false;
@@ -34,7 +39,7 @@ struct BasisID {
 };
 bool operator!=(const BasisID &a, const BasisID &b)
 {
-    if (a.l != b.l || a.n != b.n || a.m != b.m || a.e != b.e)
+    if (a.l != b.l || a.n != b.n || a.m != b.m || a.e != b.e || a.j != b.j)
         return true;
     else
         return false;
@@ -42,13 +47,13 @@ bool operator!=(const BasisID &a, const BasisID &b)
 std::istream& operator>>(std::istream &in, BasisID &b)     //input
 {
     PetscReal er, ei;
-    in >> b.n >> b.l >> b.m >> er >> ei;
+    in >> b.n >> b.j >> b.l >> b.m >> er >> ei;
     b.e = std::complex<double>(er,ei);
     return in;
 }
 std::ostream& operator<<(std::ostream &out, const BasisID &b)     //output
 {
-    out << b.n << ", " << b.l << ", " << b.m << ", " << b.e.real() << ", " << b.e.imag();
+    out << b.n << ", " << b.j << ", " << b.l << ", " << b.m << ", " << b.e.real() << ", " << b.e.imag();
     return out;
 }
 

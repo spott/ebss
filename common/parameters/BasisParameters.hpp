@@ -157,7 +157,7 @@ std::string BasisParameters<compute_type_, write_type_>::basis_function_filename
 {
     std::ostringstream ss;
     ss << folder_;
-    ss << "/n_" << a.n << "_l_" << a.l << ".dat";
+    ss << "/n_" << a.n << "_l_" << a.l << "_j_" << a.j << ".dat";
     return ss.str();
 }
 

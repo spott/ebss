@@ -1,7 +1,8 @@
 #include<common/parameters/BasisParameters.hpp>
-#include<findbasis/numerov.hpp>
-#include<findbasis/finite_difference.hpp>
+#include<findbasis/numerov2.hpp>
+//#include<findbasis/finite_difference.hpp>
 //#include<common/special/bspline.hpp>
+#include<common/math.hpp>
 
 #include<slepc.h>
 
@@ -26,16 +27,18 @@ T parameterized_pot(T r, sae<T> atom)
 }
 
 template <typename T>
-T parameterized_finestructure_pot(T r, sae<T> atom)
+T parameterized_finestructure_pot(const T r, const sae<T> atom, const BasisID state)
 {
     T a = parameterized_pot(r, atom);
 
-    T b = 0;
-    for( auto p: atom.params )
-        b += p.c * std::pow(r, p.p-2) * std::exp(- p.beta * r) * (p.p - 1 - r * p.beta);
-    b *= (atom.N-1);
-    b += (-1 + atom.N - atom.Z)/r*r;
-    return a + b;
+    //T b = 0;
+    //for( auto p: atom.params )
+        //b += p.c * std::pow(r, p.p-2) * std::exp(- p.beta * r) * (1. - p.p + r * p.beta);
+    //b *= T(atom.N-1);
+    //b += 1./(r*r);
+    //b *= T( (T(state.j)/2.) * (T(state.j)/2. + 1.) - T(state.l) * (T(state.l)+1.) - 3./4. );
+    //b *= 1. / (4. * math::C * math::C * r);
+    return a;
 }
 
 typedef long double scalar;
@@ -92,14 +95,14 @@ int main(int argc, const char **argv)
 
 
     //call function to find all the energy states here:
-    if (params->atom() == "hydrogen")
-        numerov::find_basis_set<scalar>( hydrogen_pot<scalar>, params, hydrogen);
-    else if (params->atom() == "neon")
-        numerov::find_basis_set<scalar>( [neon](scalar r) {return parameterized_pot<scalar>(r, neon);}, params, neon);
+    //if (params->atom() == "hydrogen")
+        //numerov::find_basis_set<scalar>( hydrogen_pot<scalar>, params, hydrogen);
+    if (params->atom() == "neon")
+        numerov::find_basis_set<scalar>( [neon](scalar r, BasisID s) {return parameterized_finestructure_pot<scalar>(r, neon, s);}, params, neon);
     else if (params->atom() == "rubidium")
-        numerov::find_basis_set<scalar>( [rubidium](scalar r) {return parameterized_pot<scalar>(r, rubidium);}, params, rubidium);
+        numerov::find_basis_set<scalar>( [rubidium](scalar r, BasisID s) {return parameterized_finestructure_pot<scalar>(r, rubidium, s);}, params, rubidium);
     else if (params->atom() == "potassium")
-        numerov::find_basis_set<scalar>( [potassium](scalar r) {return parameterized_pot<scalar>(r, potassium);}, params, potassium);
+        numerov::find_basis_set<scalar>( [potassium](scalar r, BasisID s) {return parameterized_finestructure_pot<scalar>(r, potassium, s);}, params, potassium);
     //numerov::find_basis_set<scalar>( [neon](scalar r) {return parameterized_pot<scalar>(r, 10, 10, neon);}, params);
     //numerov::find_basis_set<scalar>( [potasium](scalar r) {return parameterized_pot<scalar>(r, 19, 19, potasium);}, params);
 

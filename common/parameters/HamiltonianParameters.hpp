@@ -79,27 +79,31 @@ public:
             BasisID temp;
             for(int l = 0; l <= this->lmax(); l++)
             {
-                for(int m = -( l <= this->mmax() ? l : this->mmax() ); m <= ( l <= this->mmax() ? l : this->mmax() ); m++)
+                for (int j = 1; j <= 3; j+=2)
                 {
-                    for (int n = 1; n <= this->nmax(); n++)
+                    for(int m = -( l <= this->mmax() ? l : this->mmax() ); m <= ( l <= this->mmax() ? l : this->mmax() ); m++)
                     {
-                        if (n > l)
+                        for (int n = 1; n <= this->nmax(); n++)
                         {
-                            temp.n = n;
-                            temp.l = l;
-                            auto el = std::find_if(this->basis_->basis_prototype()->begin(), 
-                                                   this->basis_->basis_prototype()->end(),
-                                                   [temp](BasisID a)->bool
-                                                   { return (a.n == temp.n && a.l == temp.l);});
-                            if ( el != this->basis_->basis_prototype()->end())
-                                temp.e = el->e;
-                            else
+                            if (n > l)
                             {
-                                std::cout << "The energy wasn't in the basis prototype... I don't know what it is." << std::endl;
-                                throw(std::exception());
+                                temp.n = n;
+                                temp.l = l;
+                                temp.j = j;
+                                auto el = std::find_if(this->basis_->basis_prototype()->begin(), 
+                                        this->basis_->basis_prototype()->end(),
+                                        [temp](BasisID a)->bool
+                                        { return (a.n == temp.n && a.l == temp.l && a.j == temp.j);});
+                                if ( el != this->basis_->basis_prototype()->end())
+                                    temp.e = el->e;
+                                else
+                                {
+                                    std::cout << "The energy wasn't in the basis prototype... I don't know what it is." << std::endl;
+                                    throw(std::exception());
+                                }
+                                temp.m = m;
+                                this->prototype_.push_back(temp);
                             }
-                            temp.m = m;
-                            this->prototype_.push_back(temp);
                         }
                     }
                 }
