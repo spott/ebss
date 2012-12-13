@@ -1,5 +1,5 @@
 #include<common/parameters/BasisParameters.hpp>
-#include<findbasis/numerov2.hpp>
+#include<findbasis/numerov3.hpp>
 //#include<findbasis/finite_difference.hpp>
 //#include<common/special/bspline.hpp>
 #include<common/math.hpp>
@@ -31,14 +31,14 @@ T parameterized_finestructure_pot(const T r, const sae<T> atom, const BasisID st
 {
     T a = parameterized_pot(r, atom);
 
-    //T b = 0;
-    //for( auto p: atom.params )
-        //b += p.c * std::pow(r, p.p-2) * std::exp(- p.beta * r) * (1. - p.p + r * p.beta);
-    //b *= T(atom.N-1);
-    //b += 1./(r*r);
-    //b *= T( (T(state.j)/2.) * (T(state.j)/2. + 1.) - T(state.l) * (T(state.l)+1.) - 3./4. );
-    //b *= 1. / (4. * math::C * math::C * r);
-    return a;
+    T b = 0;
+    for( auto p: atom.params )
+        b += p.c * std::pow(r, p.p-2) * std::exp(- p.beta * r) * (1. - p.p + r * p.beta);
+    b *= T(atom.N-1);
+    b += 1./(r*r);
+    b *= T( (T(state.j)/2.) * (T(state.j)/2. + 1.) - T(state.l) * (T(state.l)+1.) - 3./4. );
+    b *= 1. / (4. * math::C * math::C * r);
+    return a + b;
 }
 
 typedef long double scalar;
@@ -95,8 +95,8 @@ int main(int argc, const char **argv)
 
 
     //call function to find all the energy states here:
-    //if (params->atom() == "hydrogen")
-        //numerov::find_basis_set<scalar>( hydrogen_pot<scalar>, params, hydrogen);
+    if (params->atom() == "hydrogen")
+        numerov::find_basis_set<scalar>( [hydrogen](scalar r, BasisID s) {return parameterized_finestructure_pot<scalar>(r, hydrogen, s);}, params, hydrogen);
     if (params->atom() == "neon")
         numerov::find_basis_set<scalar>( [neon](scalar r, BasisID s) {return parameterized_finestructure_pot<scalar>(r, neon, s);}, params, neon);
     else if (params->atom() == "rubidium")

@@ -13,8 +13,8 @@
 namespace math{
 //Constants:
 
-PetscReal PI = std::atan(1.0)*4.0;
-PetscReal C = 137.035999;
+constexpr PetscReal PI = std::atan(1.0)*4.0;
+const PetscReal C = 137.035999;
 
 template <typename T> inline constexpr
 int signum(T x, std::false_type is_signed) {

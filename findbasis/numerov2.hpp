@@ -8,6 +8,7 @@
 #include<common/common.hpp>
 #include<limits>
 #include<common/math.hpp>
+#include<common/output.hpp>
 
 template <typename T>
 struct sae_param {
@@ -87,6 +88,7 @@ namespace numerov
                 std::array< scalar, 3 > back;
                 scalar deriv;
                 scalar de;
+                scalar f;
             };
 
             basis<scalar> result;
@@ -117,23 +119,24 @@ namespace numerov
             ss << "potential_l_" << state.l << "_j_" << state.j << ".dat";
             common::export_vector_ascii(ss.str(),potential);
             //if the energy lower bound is much much lower than the gs_energy, cut it off...
-            //if (energy_lower < e_gue - 100)
-                //energy_lower = atom.gs_energy - 100;
+            if (energy_lower < state.e.real() - 200)
+                energy_lower = state.e.real() - 200;
 
-            energy = e_guess;
+            energy = state.e.real();
                 //(energy_lower + energy_upper) / 2;
 
-            it now = {-1, energy, -1, -1, {0,0,0}, {0,0,0}, 0, 1.};
+            it now = {-1, energy, -1, -1, {0,0,0}, {0,0,0}, 0, 1., 10};
             it last = now;
             scalar rescale;
             scalar norm;
             converged = false;
+            scalar fmax;
 
             while ( !converged )
             {
                 now.iteration++;
 
-                std::cerr << "\e[31m" << std::scientific <<  "energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << now.energy << " deriv: " << now.deriv  << " iterations: " << now.iteration << " node: " << now.nodes << "\e[0m" << std::endl;
+                std::cerr << output::red << std::scientific <<  "energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << now.energy << " deriv: " << now.deriv  << " iterations: " << now.iteration << " node: " << now.nodes << output::reset << std::endl;
 
                 //initialize f:
                 f[0] = 1 + dx * dx / 12 * ( - std::pow((static_cast<scalar>(state.l) + .5), 2)
@@ -148,7 +151,7 @@ namespace numerov
                     f[i] = dx * dx / 12 * ( - std::pow((static_cast<scalar>(state.l) + .5), 2)
                             - 2 * std::pow(rgrid[i],2) * (pot(rgrid[i], state) - now.energy));
 
-                    if ( (f[i] < 0 && f[i-1] - 1 >= 0) || (f[i] > 0 && f[i-1] -1 <= 0) )
+                    if (( (f[i] < 0 && f[i-1] - 1 >= 0) || (f[i] > 0 && f[i-1] -1 <= 0) ))
                     {
                         if (in_well)
                         {
@@ -183,7 +186,7 @@ namespace numerov
                     std::cerr << " turnover: " << now.turnover << " r[turnover]: " << rgrid[now.turnover] << std::endl;
                 //TODO check the last iteration, and go to continuum states if they are both (or more?) 
                 //failing
-                if (now.turnover < 2 || now.turnover > (rgrid.size() - 2) )
+                if (now.turnover < 3000 || now.turnover > (rgrid.size() - 2) )
                 {
                     if (now.turnover != -1 && now.turnover < 2)
                     {
@@ -193,18 +196,38 @@ namespace numerov
                         now.nodes = -1;
                         continue;
                     }
+                    else if (now.turnover == -1 || now.turnover < 3000)
+                    {
+                        energy_lower = now.energy;
+                        last = now;
+                        now.energy = (energy_upper + energy_lower)/2;
+                        now.nodes = -1;
+                        continue;
+                    }
                 }
 
                 //set the initial values
-                wf[0] = std::pow(rgrid[0],state.l+1) * (1. - 2. * rgrid[0] / (2. * scalar(state.l) + 2. )) 
-                    / std::sqrt(rgrid[0]);
-                wf[1] = std::pow(rgrid[1],state.l+1) * (1. - 2. * rgrid[1] / (2. * scalar(state.l) + 2. )) 
-                    / std::sqrt(rgrid[1]);
-
+                if (state.j != 2 * state.l - 1)
+                {
+                    wf[0] = std::pow(rgrid[0],state.l+1) * (1. - 2. * rgrid[0] / (2. * scalar(state.l) + 2. )) 
+                        / std::sqrt(rgrid[0]);
+                    wf[1] = std::pow(rgrid[1],state.l+1) * (1. - 2. * rgrid[1] / (2. * scalar(state.l) + 2. )) 
+                        / std::sqrt(rgrid[1]);
+                    now.nodes = numerov(f.begin(), f.begin() + now.turnover + 2, wf.begin(), wf.begin() + now.turnover + 2);
+                }
+                else
+                {
+                    wf[3000] = std::pow(rgrid[3000],state.l+1) * (1. - 2. * rgrid[3000] / (2. * scalar(state.l) + 2. )) 
+                        / std::sqrt(rgrid[3000]);
+                    wf[3001] = std::pow(rgrid[3001],state.l+1) * (1. - 2. * rgrid[3001] / (2. * scalar(state.l) + 2. )) 
+                        / std::sqrt(rgrid[3001]);
+                    for (size_t i = 0; i < 3000; i++)
+                        wf[i] = 0;
+                    now.nodes = numerov(f.begin() + 3000, f.begin() + now.turnover + 2, wf.begin() + 3000, wf.begin() + now.turnover + 2);
+                }
                 wf[wf.size()-1] = dx;
                 wf[wf.size()-2] = (12 - f[f.size()-1] * 10) * wf[wf.size()-1] / f[wf.size()-2];
 
-                now.nodes = numerov(f.begin(), f.begin() + now.turnover + 2, wf.begin(), wf.begin() + now.turnover + 2);
                 std::cerr << "nodes: " << now.nodes << std::endl;
                 if (now.nodes > state.n - state.l - 1 )
                 {
@@ -215,7 +238,10 @@ namespace numerov
                         it t = now;
                         now.energy = (now.energy + last.energy)/2;
                         last = t;
-                        now.de = (now.energy - last.energy)/2;
+                        if (std::abs(now.energy - last.energy) > 0.00)
+                            now.de /= 2;
+                        else
+                            now.de *= .5;
                         now.nodes = -1;
                         std::cerr << " energy " <<  now.energy << " last.energy: " << last.energy << std::endl;
                     }
@@ -236,7 +262,7 @@ namespace numerov
                         it t = now;
                         now.energy = (now.energy + last.energy)/2;
                         last = t;
-                        now.de = (now.energy - last.energy)/2;
+                        now.de /= 2;
                         now.nodes = -1;
                     }
                     else
@@ -285,11 +311,13 @@ namespace numerov
                 std::cerr << " back: " << now.back[0] << ", " << now.back[1] << ", " << now.back[2];
                 std::cerr << std::endl;
 
-                scalar deriv1 = (now.fore[0] - 2 * now.fore[1] + now.fore[2]) / dx;
-                scalar deriv2 = (now.back[0] - 2 * now.back[1] + now.back[2]) / dx;
-                if ( math::signum(deriv1) != math::signum(deriv2) )
+                scalar derivf1 = (now.fore[0] - now.fore[1]) /(2*dx);
+                scalar derivf2 = (now.fore[1] - now.fore[2]) /(2*dx);
+                scalar derivb1 = (now.back[0] - now.back[1]) /(2*dx);
+                scalar derivb2 = (now.back[1] - now.back[2]) /(2*dx);
+                if ( math::signum(derivf1) != math::signum(derivb2) )
                 {
-                    std::cerr << "\e[34m" << "deriv1: " << deriv1 << " deriv2 " << deriv2 << "\e[0m" <<std::endl;
+                    std::cerr << output::blue << "deriv1: " << derivf1 << ", " << math::signum(derivf1) << " deriv2 " << derivb2 << ", " << math::signum(derivb2) << output::reset <<std::endl;
                     last = now;
                     now.energy = now.energy + now.de;
                     now.energy = std::min(now.energy, energy_upper);
@@ -304,46 +332,73 @@ namespace numerov
                 scalar dfcusp = f[now.turnover] * (wf[now.turnover] / cusp - 1);
                 now.deriv = dfcusp * 12 * dx * std::pow(cusp,2);
                 std::cerr << "deriv: " <<  now.deriv << std::endl;
+                std::cerr << "f: " << derivf1 - derivb2 << std::endl;
+                std::cerr << "f2: " << derivb1 - derivf2 << std::endl;
+                std::cerr << "f3: " << (derivf1 + derivf2)/2 - (derivb1 + derivb2)/2 << std::endl;
+                now.f = (derivf1 + derivf2)/2 - (derivb1 + derivb2)/2;
 
-                //it t = now;
-                //if (now.nodes > state.n - state.l - 1 )
-                //{
-                    //energy_upper = now.energy;
-                    //last = now;
-                    //now.energy = (energy_upper + energy_lower)/2;
-                    //continue;
-                //}
-                //else if (now.nodes < state.n - state.l - 1 )
-                //{
-                    //energy_lower = now.energy;
-                    //last = now;
-                    //now.energy = (energy_upper + energy_lower)/2;
-                    //continue;
-                //}
 
                 //flip back and forth, but keep the de big:
                 if (math::signum(last.deriv) == - math::signum(now.deriv))
                 {
-                     now.de = (now.energy + last.energy)/2 - now.energy;
+                    if (now.energy > last.energy)
+                        energy_lower = last.energy;
+                    else if (now.energy < last.energy)
+                    {
+                        energy_upper = last.energy; 
+                        fmax = last.f;
+                    }
+                    std::cerr << "now.energy - last.energy " << now.energy - last.energy << std::endl;
+                    if (std::abs(now.energy - last.energy) >= 0.000) 
+                        now.de = (now.energy + last.energy)/2 - now.energy;
+                }
+                else if (fmax * now.f > 0)
+                {
+                    if (std::abs((derivf1 + derivf2)/2 - (derivb1 + derivb2)/2) < 1e-15)
+                    {
+                        std::cerr << output::green << "left because of convergence: de:" << now.de << " err: " << err << output::reset << std::endl;
+                        converged = true;
+                    }
+                    last = now;
+                    now.energy -= std::abs(now.de);
+                    continue;
                 }
                 else
-                    now.energy += std::abs(now.de) * math::signum(now.deriv);
+                {
+                    if (std::abs((derivf1 + derivf2)/2 - (derivb1 + derivb2)/2) < 1e-14)
+                    {
+                        std::cerr << output::green << "left because of convergence: de:" << now.de << " err: " << err << output::reset << std::endl;
+                        converged = true;
+                    }
+                    last = now;
+                    now.de /= 2;
+                    now.energy += std::abs(now.de);
+                    continue;
+                }
+                //{
+                    //std::cerr << " going the right direction, or wrong direction: " << last.deriv << ", " << now.deriv<< ", de:" << now.de  <<std::endl;
+                    //now.energy += std::abs(now.de) * math::signum(now.deriv);
+                    //now.de /= 2;
+                //}
 
 
-                if (std::abs(now.de) < err)
+                if (std::abs((derivf1 + derivf2)/2 - (derivb1 + derivb2)/2) < 1e-15)
+                {
+                    std::cerr << output::green << "left because of convergence: de:" << now.de << " err: " << err << output::reset << std::endl;
                     converged = true;
+                }
 
 
                 last = now;
-                last.energy = std::min(last.energy, energy_upper);
-                last.energy = std::max(last.energy, energy_lower);
+                //last.energy = std::min(last.energy, energy_upper);
+                //last.energy = std::max(last.energy, energy_lower);
 
                 now.energy += std::abs(now.de) * math::signum(now.deriv);
 
                 now.energy = std::min(now.energy, energy_upper);
                 now.energy = std::max(now.energy, energy_lower);
             }
-
+            std::cout << now.turnover << "\t";
             result.wf = wf;
             result.energy = now.energy;
             return result;
@@ -383,25 +438,25 @@ namespace numerov
             //MPI stuff to split up workload:
             bool converged = false;
 
-            if (rank==0) std::cout << "n\tl\tj\te" << std::endl;
+            if (rank==0) std::cout << "n\tl\tj\tturn\te" << std::endl;
             std::cout << std::scientific;
-            for (int l = rank; l <= params->lmax(); l += num)
+            for (int l = 0; l <= params->lmax(); l += num)
             {
                 //int n = 4;
                 for (int n = l+1; n <= params->nmax(); n++)
                 {
-                    for (int j = ((l>0)? 2 * l - 1 : 1); j <= ((l>0)? 2*l+1 : 1 ); j+=2)
+                    for (int j = ((l>0)? 2*l+1 : 1 ); j >= ((l>0)? 2 * l - 1 : 1); j-=2)
                     {
                         //tmp.e = -.159;
                         if (1 == n)
                             tmp.e = atom.gs_energy;
                         else
-                            tmp.e = (energies->end()-1)->e;
+                            tmp.e = atom.gs_energy;
                         tmp.n = n;
                         tmp.j = j;
                         tmp.m = 0;
                         tmp.l = l;
-                        std::cout << n << "\t" << l << "\t" << j << "\t";
+                        std::cout << tmp.n << "\t" << tmp.l << "\t" << tmp.j << "\t";
                         res = find_basis<scalar>( tmp, dx, *rgrid, pot, 1e-18, tmp.e.real(), converged);
                         tmp.e = res.energy;
                         energies->push_back(tmp);
