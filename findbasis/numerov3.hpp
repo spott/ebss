@@ -84,7 +84,7 @@ namespace numerov
     template <typename scalar>
     std::ostream& operator<<(std::ostream &out, const it<scalar> &b)     //output
     {
-        out << "iteration: " << b.iteration << " energy_upper: " << b.energy_upper << " upper_converged: " << b.upper_converged << " energy_lower: " << b.energy_lower << "\n\t energy: " << b.energy << " f: " << b.f << " de: " << b.de;
+        out << "iteration: " << b.iteration << " energy_upper: " << b.energy_upper << " upper_converged: " << (b.upper_converged ? "true" : "false")  << " energy_lower: " << b.energy_lower << "\n\t energy: " << b.energy << " f: " << b.f << " de: " << b.de;
         return out;
     };
 
@@ -109,6 +109,7 @@ namespace numerov
 
 
             current.iteration = 0;
+            //current.upper_converged = false;
             //initialize to NaN's.... makes sure that things are done correctly
             for (auto &i: wf)
                 i = std::numeric_limits<scalar>::quiet_NaN();
@@ -119,7 +120,7 @@ namespace numerov
             //This breaks down for continuum states
             current.energy_upper = pot(rgrid[ wf.size()-1 ],state);
             //the energy_upper isn't converged yet:
-            current.upper_converged == false;
+            current.upper_converged = false;
             current.energy_lower = 0;
             for (size_t i = 0; i < f.size(); i++)
             {
@@ -130,9 +131,8 @@ namespace numerov
             }
             //but the lowest the energy can get is the ground state or the last energy level.
             current.energy_lower = std::max(scalar(state.e.real()), current.energy_lower);
-            //The energy guess is an average of the lowest and the highest:
-            current.energy = (current.energy_upper + current.energy_lower)/2;
-
+            //The energy guess is an average of the lowest and the highest, but biased towards the highest:
+            current.energy = (10 * current.energy_upper + current.energy_lower)/11;
             std::cerr << state << std::endl;
             std::cerr << "energy_upper: " << current.energy_upper << " energy_lower: " << current.energy_lower << " energy: " << current.energy << std::endl;
 
@@ -147,7 +147,7 @@ namespace numerov
 
                 std::vector< std::array<int,2> > wells;
                 std::array< int, 2 > w = {0,-1};
-                bool in_well = true;
+                bool in_well = (f[0] - 1 < 0)? false : true;
                 for (size_t i = 1; i < f.size(); i++)
                 {
                     f[i] = dx * dx / 12 * ( - std::pow((static_cast<scalar>(state.l) + .5), 2)
@@ -176,6 +176,10 @@ namespace numerov
                 if (wells.size() == 0)
                     wells.push_back(w);
 
+                if (wells.size() >=2 && state.j == 2 * state.l - 1)
+                    messiness = wells[0][1];
+                else
+                    messiness = 3000;
 
                 w = *std::max_element(wells.begin(),
                                  wells.end(), 
@@ -233,7 +237,7 @@ namespace numerov
 
                 std::cerr << "nodes: " << current.nodes << std::endl;
                 //now we check the nodes and iterate:
-                if (current.nodes - (state.n - state.l - 1) >= 1)
+                if (current.nodes - (state.n - state.l - 1) >= 1 && !current.upper_converged)
                 {
                     //we are too high in energy:
                     history = current;
@@ -241,6 +245,12 @@ namespace numerov
                     //average the energy_upper and energy_lower and try again:
                     current.de = (current.energy_upper + current.energy_lower)/2 - current.energy_upper;
                     current.energy += current.de;
+                    continue;
+                }
+                else if (current.nodes - (state.n - state.l - 1) >= 1 && current.upper_converged)
+                {
+                    current.energy_lower = current.energy;
+                    current.energy = (current.energy_upper + current.energy_lower)/2;
                     continue;
                 }
                 else if (current.nodes - (state.n - state.l - 1) == 0 && !current.upper_converged)
@@ -336,7 +346,7 @@ namespace numerov
                 }
 
                 //otherwise, we do our convergence check:
-                if (std::abs(current.f) < 1e-13)
+                if (std::abs(current.f) < err || current.iteration > 500)
                 {
                     converged = true;
                     std::cout << current.turnover << "\t";
@@ -402,7 +412,17 @@ namespace numerov
             for (int l = rank; l <= params->lmax(); l += num)
             {
                 //for each run through the "n's", start with an energy min of the gs,
-                tmp.e = atom.gs_energy - 1;
+                if (l == 0)
+                    tmp.e = atom.gs_energy - 1;
+                else //or the l == 0 state energy we have already found
+                {
+                    tmp = *std::find_if(
+                            energies->begin(), 
+                            energies->end(), 
+                            [l](const BasisID &a) {return (a.n == l+1 && a.l == l-1 && a.j == 2 * a.l + 1); }
+                            );
+                    tmp.e = tmp.e*1.1;
+                }
                 for (int n = l+1; n <= params->nmax(); n++)
                 {
                     for (int j = ((l>0)? 2 * l - 1 : 1); j <= ((l>0)? 2*l+1 : 1 ); j+=2)
@@ -413,7 +433,7 @@ namespace numerov
                         tmp.m = 0;
                         tmp.l = l;
                         std::cout << n << "\t" << l << "\t" << j << "\t";
-                        res = find_basis<scalar>( tmp, dx, *rgrid, pot, 1e-18);
+                        res = find_basis<scalar>( tmp, dx, *rgrid, pot, 1e-13);
                         tmp.e = res.energy;     //the energy min for the next will be the correct energy for the last.
                         energies->push_back(tmp);
                         std::cout << res.energy << std::endl;

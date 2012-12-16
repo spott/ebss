@@ -33,8 +33,8 @@ int main(int argc, const char ** argv)
     auto prototype = params->prototype();
 
     std::function<bool (int, int)> dipole_selection_rules = [prototype](int i, int j) {
-        return (
-                (std::abs(prototype[i].l - prototype[j].l) == 1) || i == j
+        return (// since j is multiplied by 2, need to have a 2 between them.
+                (std::abs(prototype[i].j - prototype[j].j) == 2) || prototype[i].j == prototype[j].j || i == j 
                );
     };
 
@@ -46,6 +46,11 @@ int main(int argc, const char ** argv)
                 common::import_vector_binary<PetscReal>(params->basis_parameters()->basis_function_filename(prototype[j])),
                 *grid);
         PetscScalar angular = math::CGCoefficient<PetscScalar>(prototype[i],prototype[j]);
+        //we are only considering spin up electrons.  so m_j always == +1/2 (since m_l is always 0)
+        angular *= std::sqrt ( 
+                (prototype[i].l + (prototype[i].j - 2 * prototype[i].l) * .5 * .5 + .5) * 
+                (prototype[j].l + (prototype[j].j - 2 * prototype[j].l) * .5 * .5 + .5) / 
+                ((2. * prototype[i].l + 1) * (2. * prototype[j].l + 1)));
        return radial * angular;
     };
 

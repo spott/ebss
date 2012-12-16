@@ -60,6 +60,7 @@ public:
         opt.get("-state_init")->getMultiInts(init);
         init_.n = init[0][0];
         init_.l = init[0][1];
+        init_.j = init[0][2];
 
 
         opt.get("-state_filename")->getString(filename_);
@@ -71,9 +72,9 @@ public:
         opt.get("-state_rem")->getMultiInts(removed_states);
 
         for (size_t i = 0; i < removed_states.size(); i++)
-            empty_states_.push_back({removed_states[i][0], removed_states[i][1], 0, std::complex<double>(0)});
+            empty_states_.push_back({removed_states[i][0], removed_states[i][1], 0, removed_states[i][2], std::complex<double>(0)});
         for (size_t i = 0; i < added_states.size(); i++)
-            add_states.push_back({added_states[i][0], added_states[i][1], 0, std::complex<double>(0)});
+            add_states.push_back({added_states[i][0], added_states[i][1], 0, added_states[i][2], std::complex<double>(0)});
     };
 
     std::string print() const;
@@ -99,8 +100,14 @@ std::vector<BasisID> StateParameters::empty_states(const std::vector<BasisID> pr
         return empty_states_;
 
     for (auto p: prototype)
-        if (p.e.real() < 0 && p.n != 1)
+    {
+        if (p.e.real() < 0 && !(p.n == init_.n && p.l == init_.l &&  p.j == init_.j) )
+        {
             empty_states_.push_back(p);
+        }
+        else
+            std::cout << std::endl;
+    }
 
     auto add_states_it = add_states.begin();
 
@@ -109,7 +116,7 @@ std::vector<BasisID> StateParameters::empty_states(const std::vector<BasisID> pr
         auto e = empty_states_.begin();
         for (; e < empty_states_.end(); e++)
         {
-            if (((*e).n == a.n) && ((*e).l == a.l))
+            if ( ((*e).n == a.n) && ((*e).l == a.l) && ((*e).j == a.j) )
                 empty_states_.erase(e);
         }
     }
@@ -125,7 +132,7 @@ std::vector<int> StateParameters::empty_states_index(const std::vector<BasisID> 
     for (auto a: empty_states_)
     {
         int i;
-        auto it = std::find_if(prototype.begin(), prototype.end(), [a](BasisID b){ return (a.n == b.n && a.l == b.l); } );
+        auto it = std::find_if(prototype.begin(), prototype.end(), [a](BasisID b){ return (a.n == b.n && a.l == b.l && a.j == b.j); } );
         if (it == prototype.end())
             std::cerr << a << " wasn't found in prototype" << std::endl;
         else
@@ -142,7 +149,7 @@ void StateParameters::initial_vector(Vec *v, const std::vector<BasisID> prototyp
 {
     for (size_t i = 0; i < prototype.size(); i++)
     {
-        if (prototype[i].n == init_.n && prototype[i].l == init_.l)
+        if (prototype[i].n == init_.n && prototype[i].l == init_.l && prototype[i].j)
         {
             VecSetValue(*v, i, 1., INSERT_VALUES);
             break;
@@ -187,17 +194,17 @@ void StateParameters::register_parameters()
     opt.add(
             "",
             0,
-            2,
+            3,
             ',',
-            "add a specific state (n,l pair), or set of states (if removed otherwise)",
+            "add a specific state (n,l,j triplet), or set of states (if removed otherwise)",
             std::string(prefix).append("add\0").c_str()
            );
     opt.add(
             "",
             0,
-            2,
+            3,
             ',',
-            "remove a specific state, or set of states (n,l pair)",
+            "remove a specific state, or set of states (n,l,j pair)",
             std::string(prefix).append("rem\0").c_str()
            );
     opt.add(
@@ -211,9 +218,9 @@ void StateParameters::register_parameters()
     opt.add(
             "1,0",
             0,
-            2,
+            3,
             ',',
-            "initial state: (n,l pair)",
+            "initial state: (n,l,j pair)",
             std::string(prefix).append("init\0").c_str()
            );
     opt.add(

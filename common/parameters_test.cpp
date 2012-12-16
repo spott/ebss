@@ -1,5 +1,6 @@
-#include<common/new_parameters/BasisParameters.hpp>
-#include<common/new_parameters/HamiltonianParameters.hpp>
+//#include<common/new_parameters/BasisParameters.hpp>
+//#include<common/new_parameters/HamiltonianParameters.hpp>
+#include<common/parameters/PulsetrainParameters.hpp>
 //#include<common/common.hpp>
 #include<vector>
 #include<petsc.h>
@@ -17,8 +18,24 @@ main (int argc, const char* argv[])
 
     PetscInitialize(&ac,&av,PETSC_NULL,PETSC_NULL);
 
-    BasisParameters<double, double> p(argc, argv, PETSC_COMM_WORLD);
-    HamiltonianParameters h(argc, argv , PETSC_COMM_WORLD);
+    //BasisParameters<double, double> p(argc, argv, PETSC_COMM_WORLD);
+    //HamiltonianParameters h(argc, argv , PETSC_COMM_WORLD);
+    PulsetrainParameters p(argc, argv, PETSC_COMM_WORLD);
 
     std::cout << p.print();
+
+    double maxtime = p.max_time();
+    std::cout << maxtime << std::endl;
+    std::cout << p.pulse_length() << std::endl;
+    double t = 0;
+
+    std::vector< double > ef;
+    while (t < maxtime)
+    {
+        ef.push_back(p.efield(t).real());
+        std::cerr << t << ", " << ef.back() << std::endl;
+        t += p.dt();
+    }
+    common::export_vector_binary("efield.dat", ef);
+
 }

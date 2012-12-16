@@ -20,42 +20,16 @@ public:
 
         opt.parse(argc, argv);
 
-        if (opt.isSet("+d")) {
-            std::string pretty;
-            opt.prettyPrint(pretty);
-            std::cout << pretty;
-        }
-        if (opt.isSet("-h")) {
-            std::string usage;
-            opt.getUsage(usage,80,ez::ezOptionParser::ALIGN);
-            std::cout << usage;
-        }
+        get_parameters();
 
-        if (opt.isSet("-laser_config"))
-        {
-            std::string fname;
-            opt.get("-laser_config")->getString(fname);
-            if (! opt.importFile(fname.c_str(), '#'))
-            {
-                std::cout << "file must exist!" << std::endl;
-                throw std::exception();
-            }
-        }
-        if (opt.isSet("-laser_energy"))
-            opt.get("-laser_energy")->getDouble(energy_);
-        else
-            energy_ = -1.0;
-
-
-        opt.get("-laser_lambda")->getDouble(lambda_);
-        opt.get("-laser_intensity")->getDouble(intensity_);
-        opt.get("-laser_cep")->getDouble(cep_);
-        opt.get("-laser_cycles")->getDouble(cycles_);
-        opt.get("-laser_dt")->getDouble(dt_);
-        opt.get("-laser_dt_after")->getDouble(dt_after_);
-        opt.get("-laser_t_after")->getDouble(t_after_);
-        opt.get("-laser_laser_filename")->getString(laser_filename_);
     };
+
+    LaserParameters(MPI_Comm comm): Parameters(comm){
+        //when the parsing will be done elsewhere:
+    }
+
+    //call after parsing:
+    void get_parameters();
 
     PetscReal lambda() const;
     PetscReal frequency() const;
@@ -66,13 +40,14 @@ public:
     PetscReal dt_after() const;
     PetscReal t_after() const;
     std::string laser_filename() const;
-    PetscScalar efield(PetscReal t);
+    PetscReal pulse_length() const;
+    virtual PetscScalar efield(PetscReal t);
 
-    std::string print() const;
+    virtual std::string print() const;
 
     void save_parameters() const;
 
-private:
+protected:
     ez::ezOptionParser opt;
     void register_parameters();
     double lambda_;
@@ -87,17 +62,56 @@ private:
 
 };
 
+void LaserParameters::get_parameters()
+{
+    if (opt.isSet("+d")) {
+        std::string pretty;
+        opt.prettyPrint(pretty);
+        std::cout << pretty;
+    }
+    if (opt.isSet("-h")) {
+        std::string usage;
+        opt.getUsage(usage,80,ez::ezOptionParser::ALIGN);
+        std::cout << usage;
+    }
+
+    if (opt.isSet("-laser_config"))
+    {
+        std::string fname;
+        opt.get("-laser_config")->getString(fname);
+        if (! opt.importFile(fname.c_str(), '#'))
+        {
+            std::cout << "file must exist!" << std::endl;
+            throw std::exception();
+        }
+    }
+    if (opt.isSet("-laser_energy"))
+        opt.get("-laser_energy")->getDouble(energy_);
+    else
+        energy_ = -1.0;
+
+
+    opt.get("-laser_lambda")->getDouble(lambda_);
+    opt.get("-laser_intensity")->getDouble(intensity_);
+    opt.get("-laser_cep")->getDouble(cep_);
+    opt.get("-laser_cycles")->getDouble(cycles_);
+    opt.get("-laser_dt")->getDouble(dt_);
+    opt.get("-laser_dt_after")->getDouble(dt_after_);
+    opt.get("-laser_t_after")->getDouble(t_after_);
+    opt.get("-laser_laser_filename")->getString(laser_filename_);
+}
+
 std::string LaserParameters::print() const
 {
     std::ostringstream out;
     out << "laser_lambda: " << lambda_ << std::endl;
     out << "laser_intensity: " << intensity_ << std::endl;
     out << "laser_cep: " << cep_ << std::endl;
-    out << "laser_cycles" << cycles_ << std::endl;
-    out << "laser_dt" << dt_ << std::endl;
-    out << "laser_dt_after" << dt_after_ << std::endl;
-    out << "laser_t_after" << t_after_ << std::endl;
-    out << "laser_filename" << laser_filename_ << std::endl;
+    out << "laser_cycles: " << cycles_ << std::endl;
+    out << "laser_dt: " << dt_ << std::endl;
+    out << "laser_dt_after: " << dt_after_ << std::endl;
+    out << "laser_t_after: " << t_after_ << std::endl;
+    out << "laser_filename: " << laser_filename_ << std::endl;
     return out.str();
 }
 void LaserParameters::save_parameters() const
@@ -130,12 +144,13 @@ PetscReal LaserParameters::cycles() const { return cycles_; }
 PetscReal LaserParameters::dt() const { return dt_; }
 PetscReal LaserParameters::dt_after() const { return dt_after_; }
 PetscReal LaserParameters::t_after() const { return t_after_; }
+PetscReal LaserParameters::pulse_length() const { return ((math::PI * 2 * cycles()) / frequency()); }
 std::string LaserParameters::laser_filename() const { return std::string(laser_filename_); }
 
 PetscScalar 
 LaserParameters::efield(PetscReal t)
 {
-    if (t * this->frequency()/(this->cycles() * 2) > math::PI)
+    if (t * this->frequency()/(this->cycles() * 2) > math::PI || t < 0)
         return 0.0;
     PetscReal efield = std::sqrt(this->intensity());
     return efield 

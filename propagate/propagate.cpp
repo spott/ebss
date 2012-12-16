@@ -1,10 +1,11 @@
 
 //ebss:
 #include<common/parameters/HamiltonianParameters.hpp>
-#include<common/parameters/LaserParameters.hpp>
+#include<common/parameters/PulsetrainParameters.hpp>
 #include<common/parameters/StateParameters.hpp>
 #include<common/parameters/AbsorberParameters.hpp>
 #include<common/common.hpp>
+#include<common/output.hpp>
 #include<propagate/cranknicholson.hpp>
 
 //petsc:
@@ -41,13 +42,13 @@ main(int argc, const char ** argv)
 
     if (!flg)
     {
-        std::cerr << "I need a hamiltonian to propagate." << std::endl;
+        std::cerr << "I need a hamiltonian to propagate. (-hamiltonian_config )" << std::endl;
         PetscFinalize();
         return 0;
     }
 
     HamiltonianParameters<PetscReal> *params = new HamiltonianParameters<PetscReal>(MPI_COMM_WORLD, std::string(bagname) );
-    LaserParameters *lparams = new LaserParameters(argc, argv, MPI_COMM_WORLD);
+    PulsetrainParameters *lparams = new PulsetrainParameters(argc, argv, MPI_COMM_WORLD);
     AbsorberParameters *aparams = new AbsorberParameters(argc, argv, MPI_COMM_WORLD);
     StateParameters *sparams = new StateParameters(argc, argv, MPI_COMM_WORLD);
 
@@ -99,12 +100,17 @@ main(int argc, const char ** argv)
     MatAssemblyBegin(D, MAT_FINAL_ASSEMBLY);
     VecAssemblyEnd(H);
     MatAssemblyEnd(D, MAT_FINAL_ASSEMBLY);
-    //VecView(H, PETSC_VIEWER_STDOUT_WORLD);
+    std::cout << output::red << "H: " << std::endl;
+    VecView(H, PETSC_VIEWER_STDOUT_WORLD);
+    std::cout << output::reset <<std::endl;
     MatSetOption(D,MAT_KEEP_NONZERO_PATTERN,PETSC_TRUE);
 
     //Setup the wavefunction:
     MatGetVecs(D, &wf, PETSC_NULL);
     sparams->initial_vector(&wf, params->prototype());
+    std::cout << output::blue << "WF: " << std::endl;
+    VecView(wf, PETSC_VIEWER_STDOUT_WORLD);
+    std::cout << output::reset <<std::endl;
 
 
     //Copy the non-zero pattern from D to A (the matrix we use in our solver)
