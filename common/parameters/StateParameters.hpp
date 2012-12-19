@@ -62,6 +62,9 @@ public:
         init_.l = init[0][1];
         init_.j = init[0][2];
 
+        if (opt.isSet("-state_initial_wavefunction"))
+            opt.get("-state_initial_wavefunction")->getString(wavefunction_fname_);
+
 
         opt.get("-state_filename")->getString(filename_);
         filename_ = common::absolute_path(filename_);
@@ -92,6 +95,7 @@ private:
     std::vector<BasisID> empty_states_;
     std::vector<BasisID> add_states;
     std::string filename_;
+    std::string wavefunction_fname_;
 };
 
 std::vector<BasisID> StateParameters::empty_states(const std::vector<BasisID> prototype)
@@ -147,16 +151,31 @@ std::vector<int> StateParameters::empty_states_index(const std::vector<BasisID> 
 
 void StateParameters::initial_vector(Vec *v, const std::vector<BasisID> prototype)
 {
-    for (size_t i = 0; i < prototype.size(); i++)
+    if (!wavefunction_fname_.empty())
     {
-        if (prototype[i].n == init_.n && prototype[i].l == init_.l && prototype[i].j)
+        if (!common::file_exists(wavefunction_fname_))
         {
-            VecSetValue(*v, i, 1., INSERT_VALUES);
-            break;
+            std::cerr << wavefunction_fname_ <<  " doesn't exist" << std::endl;
+            throw (std::exception());
         }
+        PetscViewer view;
+        PetscViewerBinaryOpen(this->comm_, wavefunction_fname_.c_str(), FILE_MODE_READ, &view);
+        VecLoad(*v,view);
+        PetscViewerDestroy(&view);
     }
-    VecAssemblyBegin(*v);
-    VecAssemblyEnd(*v);
+    else
+    {
+        for (size_t i = 0; i < prototype.size(); i++)
+        {
+            if (prototype[i].n == init_.n && prototype[i].l == init_.l && prototype[i].j)
+            {
+                VecSetValue(*v, i, 1., INSERT_VALUES);
+                break;
+            }
+        }
+        VecAssemblyBegin(*v);
+        VecAssemblyEnd(*v);
+    }
 }
 
 std::string StateParameters::print() const
@@ -222,6 +241,14 @@ void StateParameters::register_parameters()
             ',',
             "initial state: (n,l,j pair)",
             std::string(prefix).append("init\0").c_str()
+           );
+    opt.add(
+            "",
+            0,
+            1,
+            0,
+            "initial wavefunction filename (PetscVec binary file)",
+            std::string(prefix).append("initial_wavefunction\0").c_str()
            );
     opt.add(
             "",
