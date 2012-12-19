@@ -3,6 +3,7 @@
 #include<common/parameters/PulsetrainParameters.hpp>
 //#include<common/common.hpp>
 #include<vector>
+#include<array>
 #include<petsc.h>
 
 int
@@ -25,15 +26,19 @@ main (int argc, const char* argv[])
     std::cout << p.print();
 
     double maxtime = p.max_time();
-    std::cout << maxtime << std::endl;
-    std::cout << p.pulse_length() << std::endl;
+    std::cout << "maxtime: " << maxtime << std::endl;
+    std::cout << "pulse_length: " << p.pulse_length() << std::endl;
     double t = 0;
 
-    std::vector< double > ef;
+    for (auto a: p.spacing())
+        std::cout << a << ", ";
+    std::cout << std::endl;
+
+    std::vector< std::array< double, 2 > > ef;
     while (t < maxtime)
     {
-        ef.push_back(p.efield(t).real());
-        std::cerr << t << ", " << ef.back() << std::endl;
+        ef.push_back({ { t , p.efield(t).real() } });
+        //std::cerr << t << ", " << ef.back() << std::endl;
         t += p.dt();
     }
     common::export_vector_binary("efield.dat", ef);

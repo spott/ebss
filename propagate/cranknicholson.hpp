@@ -1,4 +1,5 @@
 #pragma once
+#include<array>
 
 typedef struct {
     Mat *D;
@@ -10,6 +11,34 @@ typedef struct {
 
 namespace cranknicholson
 {
+
+void FieldFreePropagate(Vec *H, Vec *wf, PetscReal dt) //propagate forward in time
+{
+    PetscReal norm1;
+    VecNorm(*wf,NORM_2 ,&norm1);
+    std::cout << "before: " << norm1-1 << std::endl;
+    //copy H:
+    Vec tmp;
+    VecDuplicate(*H, &tmp);
+    VecCopy(*H, tmp);
+
+    //scale by -I:
+    VecScale(tmp, std::complex<double>(0,-dt));
+
+    //exponentiate:
+    VecExp(tmp);
+
+
+    //pointwise mult:
+    VecPointwiseMult(*wf, *wf, tmp);
+
+    PetscReal norm2;
+    VecNorm(*wf,NORM_2 ,&norm2);
+    std::cout << "after: " << norm2-1 << " difference: " << norm1 - norm2 <<  std::endl;
+    
+
+    VecDestroy(&tmp);
+}
 
 PetscErrorCode
 solve(Vec *wf, context* cntx, Mat *A)
@@ -25,8 +54,7 @@ solve(Vec *wf, context* cntx, Mat *A)
 
     PetscScalar     cn_factor = std::complex<double>(0, -0.5 * cntx->laser->dt());
     PetscReal       t = 0;
-    PetscScalar     ef = cntx->laser->efield(t); // + cntx->laser->efield(t+cntx->laser->cycles());  //average between the points
-    //ef /= 2;
+    PetscScalar     ef = cntx->laser->efield(t);
     PetscReal       maxtime = cntx->laser->max_time();
     PetscInt        step = 0;
     Vec             tmp;
@@ -35,7 +63,7 @@ solve(Vec *wf, context* cntx, Mat *A)
     PetscInt        zero = 0;
 
     if (cntx->hparams->rank() == 0)
-        std::cout << "maxtime: " << maxtime << " steps: " << maxtime/cntx->laser->dt() << std::endl;
+        std::cout << "maxtime: " << maxtime << " steps: " << maxtime/cntx->laser->dt() << " pulse length: " << cntx->laser->pulse_length() << std::endl;
 
     VecDuplicate(*wf, &tmp);
     VecAssemblyBegin(tmp);
@@ -56,31 +84,22 @@ solve(Vec *wf, context* cntx, Mat *A)
     VecAssemblyBegin(prob);
     VecAssemblyEnd(prob);
 
-    std::vector<PetscReal> efvec;
+    std::vector< std::array<PetscReal, 2> > efvec;
 
     while (t < maxtime)
     {
-        efvec.push_back(ef.real());
+        efvec.push_back({ {t, ef.real()} });
         MatCopy(*( cntx->D ), *A , SAME_NONZERO_PATTERN);   // A = D
 
-        //This has the same "t" at both sides of the equation... should be different...
-        //MatScale(*A, ef);                                   // A = ef(t) * D
-        //MatDiagonalSet(*A, *(cntx->H), INSERT_VALUES);      // A = ef(t) * D + H_0
-        //MatScale(*A, cn_factor);                            // A = .5 * dt [ ef(t) * D + H_0 ]
-        //MatShift(*A, std::complex<double>(1,0));            // A = .5 * dt [ ef(t) * D + H_0 ] + 1
-        //MatMult(*A, *wf, tmp);                              // A u_n = tmp
-        //MatScale(*A, std::complex<double>(-1,0));           // A = - .5 dt [ef(t+dt) * D + H_0 ] - 1
-        //MatShift(*A, std::complex<double>(2,0));            // A = - .5 dt [ef(t+dt) * D + H_0 ] + 1
-        
         //This has different 't's on both sides:
         MatScale(*A, ef);                                   // A = ef(t) * D
         MatDiagonalSet(*A, *(cntx->H), INSERT_VALUES);      // A = ef(t) * D + H_0
-        MatScale(*A, cn_factor);                            // A = .5 * dt [ ef(t) * D + H_0 ]
-        MatShift(*A, std::complex<double>(1,0));            // A = .5 * dt [ ef(t) * D + H_0 ] + 1
+        MatScale(*A, cn_factor);                            // A = - i * .5 * dt [ ef(t) * D + H_0 ]
+        MatShift(*A, std::complex<double>(1,0));            // A = - i * .5 * dt [ ef(t) * D + H_0 ] + 1
         MatMult(*A, *wf, tmp);                              // A u_n = tmp
         MatAXPY(*A, cn_factor * (cntx->laser->efield(t+cntx->laser->dt()) - ef), *( cntx->D ), SAME_NONZERO_PATTERN);
-        MatScale(*A, std::complex<double>(-1,0));           // A = - .5 dt [ef(t+dt) * D + H_0 ] - 1
-        MatShift(*A, std::complex<double>(2,0));            // A = - .5 dt [ef(t+dt) * D + H_0 ] + 1
+        MatScale(*A, std::complex<double>(-1,0));           // A = i * .5 dt [ef(t+dt) * D + H_0 ] - 1
+        MatShift(*A, std::complex<double>(2,0));            // A = i * .5 dt [ef(t+dt) * D + H_0 ] + 1
 
         KSPSetOperators(ksp, *A, *A, SAME_NONZERO_PATTERN); // Solve[ A x = tmp ] for x
         KSPSetFromOptions(ksp);
@@ -90,9 +109,45 @@ solve(Vec *wf, context* cntx, Mat *A)
         if (cntx->absorber->type() == "cosine")
             VecPointwiseMult(*wf, *wf, abs);
 
+        //look at the next point
         t += cntx->laser->dt();
-        ef = cntx->laser->efield(t); //  + cntx->laser->efield(t+cntx->laser->cycles());  //average between the points
-        //ef /= 2;
+        ef = cntx->laser->efield(t);
+        
+        //check if we are "in" a pulse now:
+        if(!cntx->laser->in_pulse(t))
+        {
+            //first write out the zero:
+            std::cout << output::red ;
+            if (cntx->hparams->rank() == 0)
+                std::cout << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << " * " << zero << std::endl;
+            std::ostringstream wf_name;
+            wf_name << "./wf_" << zero << ".dat";
+            PetscViewerBinaryOpen(cntx->hparams->comm(),wf_name.str().c_str(),FILE_MODE_WRITE,&view);
+            VecView(*wf, PETSC_VIEWER_STDOUT_WORLD);
+            //PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_MATHEMATICA);
+            VecView(*wf, view);
+            zero++;
+            //analytically propagate for said time:
+            std::cout << "analytically propagating the pulse: ";
+            PetscReal dt = cntx->laser->next_pulse_start(t) - t; //the difference between then and now.
+            std::cout << dt <<  std::endl;
+            FieldFreePropagate((cntx->H), wf, dt); //propagate forward in time
+            t = cntx->laser->next_pulse_start(t);
+            ef = cntx->laser->efield(t);
+            //write out the next zero:
+            if (cntx->hparams->rank() == 0)
+                std::cout << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << " *" << zero << std::endl;
+            wf_name.str("");
+            wf_name << "./wf_" << zero << ".dat";
+            PetscViewerBinaryOpen(cntx->hparams->comm(),wf_name.str().c_str(),FILE_MODE_WRITE,&view);
+            //PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
+            VecView(*wf, view);
+            zero++;
+            std::cout << output::reset;
+            continue;
+        }
+        //else do nothing...
+
         step++;
         //at the zero of the field: write out the vector:
         if (( ef.real() <= 0. && cntx->laser->efield(t - cntx->laser->dt()).real() > 0 ) || ( ef.real() >= 0 && cntx->laser->efield(t - cntx->laser->dt()).real() < 0 ))
@@ -101,13 +156,14 @@ solve(Vec *wf, context* cntx, Mat *A)
                 std::cout << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << " *" << std::endl;
             std::ostringstream wf_name;
             wf_name << "./wf_" << zero << ".dat";
-            PetscViewerASCIIOpen(cntx->hparams->comm(),wf_name.str().c_str(),&view);
-            PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
+            PetscViewerBinaryOpen(cntx->hparams->comm(),wf_name.str().c_str(),FILE_MODE_WRITE,&view);
+            //PetscViewerASCIIOpen(cntx->hparams->comm(),wf_name.str().c_str(),&view);
+            //PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
             VecView(*wf, view);
             zero++;
         }
 
-        if (!(step%50))
+        if (!(step%1000))
         {
             VecCopy(*wf, prob);
             VecAbs(prob);
@@ -132,5 +188,6 @@ solve(Vec *wf, context* cntx, Mat *A)
     std::cerr << "leaving cranknicholson" << std::endl;
     return 0;
 }
+
 
 }

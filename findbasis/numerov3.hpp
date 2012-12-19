@@ -78,6 +78,7 @@ namespace numerov
         int turnover;       //where the turnover is...
         scalar f;       //the derivative matching value;
         scalar de;  //Will be used to bisect
+        //bool excited;
     };
 
 
@@ -109,6 +110,7 @@ namespace numerov
 
 
             current.iteration = 0;
+            //current.excited = false;
             //current.upper_converged = false;
             //initialize to NaN's.... makes sure that things are done correctly
             for (auto &i: wf)
@@ -119,6 +121,7 @@ namespace numerov
             //the last value of the potentialis the highest the energy can get.  
             //This breaks down for continuum states
             current.energy_upper = pot(rgrid[ wf.size()-1 ],state);
+
             //the energy_upper isn't converged yet:
             current.upper_converged = false;
             current.energy_lower = 0;
@@ -131,8 +134,15 @@ namespace numerov
             }
             //but the lowest the energy can get is the ground state or the last energy level.
             current.energy_lower = std::max(scalar(state.e.real()), current.energy_lower);
+
+            if (current.energy_upper < current.energy_lower)
+                current.energy_upper = 2;
             //The energy guess is an average of the lowest and the highest, but biased towards the highest:
             current.energy = (10 * current.energy_upper + current.energy_lower)/11;
+
+            //Then we screw things up:
+            current.energy_upper = 2;
+            current.de = 1e-3; //we don't want to converge to quickly
             std::cerr << state << std::endl;
             std::cerr << "energy_upper: " << current.energy_upper << " energy_lower: " << current.energy_lower << " energy: " << current.energy << std::endl;
 
@@ -148,18 +158,28 @@ namespace numerov
                 std::vector< std::array<int,2> > wells;
                 std::array< int, 2 > w = {0,-1};
                 bool in_well = (f[0] - 1 < 0)? false : true;
+                std::cerr << "start in well? " << (in_well ? "true" : "false") << std::endl;
                 for (size_t i = 1; i < f.size(); i++)
                 {
                     f[i] = dx * dx / 12 * ( - std::pow((static_cast<scalar>(state.l) + .5), 2)
                             - 2 * std::pow(rgrid[i],2) * (pot(rgrid[i], state) - current.energy));
 
-                    if (( (f[i] < 0 && f[i-1] - 1 >= 0) || (f[i] > 0 && f[i-1] -1 <= 0) ))
+                    if ( (f[i] < 0 && f[i-1] - 1 >= 0) ) //going out of well:
                     {
-                        if (in_well)
+                        if (in_well) //I should be...
                         {
                             w[1] = i;
                             wells.push_back(w);
                             in_well = false;
+                        }
+                        else
+                            std::cerr << "I thought I was in well... but I'm not" << std::endl;
+                    }
+                    else if ( (f[i] > 0 && f[i-1] -1 <= 0) ) //going into a well
+                    {
+                        if (in_well)
+                        {
+                            std::cerr << "I thought I was out of a well, but I'm not" << std::endl;
                         }
                         if (!in_well)
                         {
@@ -169,17 +189,25 @@ namespace numerov
                     }
                     f[i] += 1;
                 }
+                if (in_well == true)
+                {
+                    w[1] = rgrid.size();
+                    wells.push_back(w);
+                }
 
                 std::cerr << "wells: " << std::endl;
                 for (auto a: wells)
                     std::cerr << a[0] << ", " << a[1] << std::endl;
-                if (wells.size() == 0)
-                    wells.push_back(w);
+                //if (wells.size() == 0)
+                //{
+                    //w[1] = rgrid.size();
+                    //wells.push_back(w);
+                //}
 
                 if (wells.size() >=2 && state.j == 2 * state.l - 1)
                     messiness = wells[0][1];
                 else
-                    messiness = 3000;
+                    messiness = 10;
 
                 w = *std::max_element(wells.begin(),
                                  wells.end(), 
@@ -188,11 +216,13 @@ namespace numerov
                                 );
                 current.turnover = w[1];
 
-                if (w[1] != -1)
+                if (w[1] != -1 && w[1] < rgrid.size())
                     std::cerr << " turnover: " << current.turnover << " r[turnover]: " << rgrid[current.turnover] << std::endl;
+                else
+                    std::cerr << " turnover: " << current.turnover << " wells.size() " << wells.size() << " wells: " << wells.front()[0] << std::endl;
 
                 //The wavefunction should NOT have a classical turning point before this:
-                if (current.turnover < messiness || current.turnover > (rgrid.size() - 2) )
+                if (current.turnover <= messiness || current.turnover > (rgrid.size() - 2) )
                 {
                     if (current.turnover != -1 && current.turnover < 2)
                     {
@@ -202,8 +232,16 @@ namespace numerov
                         current.nodes = -1;
                         continue;
                     }
-                    else if (current.turnover == -1 || current.turnover < messiness)
+                    else if (current.turnover > rgrid.size() - 2)
                     {
+                        std::cerr << "excited!" << std::endl;
+                        //current.excited = true;
+                        //This is now an excited state...
+                        //current.energy_upper += std::abs( current.energy - current.energy_lower );
+                    }
+                    else if (current.turnover == -1 || current.turnover <= messiness)
+                    {
+                        std::cerr << "the messiness is getting in the way" << std::endl;
                         history = current;
                         current.energy_lower = current.energy;
                         current.energy = (current.energy_upper + current.energy_lower)/2;
@@ -211,7 +249,6 @@ namespace numerov
                         continue;
                     }
                 }
-
                 //Set the initial values:
 
                 //if the state is not a "problematic" state:
@@ -221,7 +258,8 @@ namespace numerov
                         / std::sqrt(rgrid[0]);
                     wf[1] = std::pow(rgrid[1],state.l+1) * (1. - 2. * rgrid[1] / (2. * scalar(state.l) + 2. )) 
                         / std::sqrt(rgrid[1]);
-                    current.nodes = numerov(f.begin(), f.begin() + current.turnover + 2, wf.begin(), wf.begin() + current.turnover + 2);
+                    current.nodes = numerov(f.begin(),  (f.begin() + current.turnover + 2 > f.end() ? f.end() : f.begin() + current.turnover + 2), 
+                                            wf.begin(), (wf.begin() + current.turnover + 2 > wf.end() ? wf.end() : wf.begin() + current.turnover + 2 ));
                 }
                 else //if the state is:
                 {
@@ -232,14 +270,31 @@ namespace numerov
                     //zero everything before our new start
                     for (size_t i = 0; i < messiness; i++)
                         wf[i] = 0;
-                    current.nodes = numerov(f.begin() + messiness, f.begin() + current.turnover + 2, wf.begin() + messiness, wf.begin() + current.turnover + 2);
+                    current.nodes = numerov(f.begin() + messiness,  (f.begin() + current.turnover + 2 > f.end() ? f.end() : f.begin() + current.turnover + 2), 
+                                            wf.begin()+ messiness, (wf.begin() + current.turnover + 2 > wf.end() ? wf.end() : wf.begin() + current.turnover + 2 ));
                 }
 
                 std::cerr << "nodes: " << current.nodes << std::endl;
                 //now we check the nodes and iterate:
                 if (current.nodes - (state.n - state.l - 1) >= 1 && !current.upper_converged)
                 {
+                    std::cerr << "we are too high in energy: " << std::endl;
+                    if (std::abs(current.de) < 1e-18)
+                    {
+                        current.energy -= std::abs(current.de);
+                        continue;
+                    }
                     //we are too high in energy:
+                    if (history.nodes == current.nodes - 1)
+                    {
+                        auto t = current;
+                        current.energy_upper = current.energy;
+                        current.de = (current.energy_upper + 3 * history.energy)/4 - current.energy_upper; //be biased towards the history end
+                        current.energy += current.de;
+                        history = t;
+                        continue;
+                    }
+
                     history = current;
                     current.energy_upper = current.energy;
                     //average the energy_upper and energy_lower and try again:
@@ -255,29 +310,60 @@ namespace numerov
                 }
                 else if (current.nodes - (state.n - state.l - 1) == 0 && !current.upper_converged)
                 {
+                    std::cerr << "we have the right energy" << std::endl;
                     //current.upper_converged is false, so we actually want to go back up:
                     history = current;
                     //difference between this and the last:
-                    current.de = (current.energy + current.energy_upper)/2 - current.energy;
+                    //current.de = (current.energy + current.energy_upper)/2 - current.energy;
+
+                    //if the "turnover point" is at the end of the grid, look at the current.de.
+                    //we are now using that as our "end point":
                     //if we are very close to the last upper limit that we had, we have converged
                     //otherwise, add the de and bisect:
-                    if (current.de > 1e-5)
+                    if (std::abs(current.de) < 1e-18 && current.turnover > wf.size() - 2) //if we have converged for an excited state:
                     {
-                        current.energy += current.de;
+                        converged = true;
+                        std::cout << current.turnover << "\t";
                         continue;
                     }
-                    else
+                    else if (std::abs(current.de) < 1e-10 && current.turnover < wf.size() - 2) //we have converged for a bound state, time to do more iterations:
                     {
+                        std::cerr << "we have converged!";
+                        std::cerr << " de: " << current.de << std::endl;
                         current.upper_converged = true;
                         current.energy_upper = current.energy;
                         //we need a starting de, this shouldn't be changed:
                         current.de =std::abs( (current.energy_upper - current.energy_lower) / 2);
                         //This will continue below:
                     }
+                    else if (current.turnover > wf.size() - 2)
+                    {
+                        current.energy_lower = current.energy;
+                        current.de = (current.energy_upper + current.energy)/2 - current.energy;
+                        current.energy += current.de;
+                        continue;
+                    }
+                    else
+                    {
+                        current.de = (current.energy_upper + current.energy)/2 - current.energy;
+                        current.energy += current.de;
+                        //if (current.excited)
+                            //current.energy_lower = current.energy;
+                        continue;
+                    }
                 }
                 // if we are below (should only happen for lowest n for an l state):
-                else if (current.nodes - (state.n-state.l-1) <= -1)
+                else if (current.nodes - (state.n - state.l - 1) <= -1)
                 {
+                    std::cerr << "we are too low in energy: " << std::endl;
+                    if (current.turnover > wf.size() - 2) //we are probably looking at an excited state, and we can't get to higher energy because of the current upper bound.
+                    {
+                        //bump the current energy upper bound by the de:
+                        history = current;
+                        current.energy_lower = current.energy;
+                        current.energy = (current.energy_lower + current.energy_upper)/2;
+                        continue;
+                    }
                     history = current;
                     current.energy_lower = current.energy;
                     current.energy = (current.energy_upper + current.energy_lower)/2;
@@ -346,7 +432,7 @@ namespace numerov
                 }
 
                 //otherwise, we do our convergence check:
-                if (std::abs(current.f) < err || current.iteration > 500)
+                if (std::abs(current.f) < err || current.iteration > 600)
                 {
                     converged = true;
                     std::cout << current.turnover << "\t";

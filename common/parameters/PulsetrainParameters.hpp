@@ -22,73 +22,101 @@ public:
         opt.parse(argc, argv);
 
         get_parameters();
+        spacing();
     };
+
 
     //call after parsing
     void get_parameters();
 
-    std::vector<double> spacing() const;
+    bool in_pulse(PetscReal t);
+    std::vector<double> spacing();
     std::vector<double> phase() const;
     virtual PetscScalar efield(PetscReal t);
-    PetscReal max_time() const;
+    PetscReal max_time();
+    PetscReal next_pulse_start(PetscReal t);
 
+    void save_parameters() const;
     std::string print() const;
 protected:
     void register_parameters();
-    int num_;
     std::vector<double> spacing_;
     std::vector<double> phase_;
+    std::vector<double> s_au;  //spacing in au
 };
 
-std::vector<double> PulsetrainParameters::spacing() const
+std::vector<double> PulsetrainParameters::spacing()
 {
-    std::vector<double> s(spacing_.size());
+    if (s_au.size() == spacing_.size())
+        return s_au;
 
-    for(size_t i = 0; i < s.size(); i++)
-        s[i] = spacing_[i] / 0.024188843265;
 
-    return s;
+    s_au.resize(spacing_.size());
+    for(size_t i = 0; i < s_au.size(); i++)
+        s_au[i] = spacing_[i] / 0.024188843265; //translate to AU
+
+    return s_au;
 }
 
-PetscReal PulsetrainParameters::max_time() const
+bool PulsetrainParameters::in_pulse(PetscReal t)
 {
-    auto s = spacing();
+    double tot_time = 0;
+    for (size_t i = 0; i < s_au.size(); i++)
+    {
+        if ( t < tot_time + s_au[i] && t > pulse_length() + tot_time)
+            return false;
+        tot_time += s_au[i];
+    }
+    return true;
+}
+
+PetscReal PulsetrainParameters::next_pulse_start(PetscReal t)
+{
+    PetscReal start = 0;
+    PetscReal total = 0;
+    for (size_t i = 0; i < s_au.size(); i++)
+    {
+        total += s_au[i];
+        if (t < total)
+            return total;
+    }
+    return 0;
+}
+
+
+PetscReal PulsetrainParameters::max_time()
+{
     double tot;
-    for (auto a: s)
-        tot += a;
+    for (auto a: s_au)
+        tot += a; //one pulse per, the "spacing" is peak to peak.
 
-    if (num_ == s.size() + 1)
-        return tot + pulse_length();
-    else
-        return tot > pulse_length() ? tot : pulse_length();
+    return tot + pulse_length();
 }
+
 std::vector<double> PulsetrainParameters::phase() const { return phase_; }
 
 PetscScalar PulsetrainParameters::efield(PetscReal t)
 {
-    //we need the AU spacing times:
-    auto sp = spacing();
-    //so, we use the laser class version, but give it times that correspond to where we are in the pulse.
-
-    PetscScalar ef = 0;
-    //First see if the time is below the pulse length:
-    double tot_time = 0;
-    for (size_t i = 0; i < sp.size(); i++)
+    //find the start of the pulse:
+    PetscReal start = 0;
+    PetscReal total = 0;
+    for (size_t i = 0; i < s_au.size(); i++)
     {
-        if (t > tot_time)
-        {
-            cep_ = phase_[i];
-            ef += LaserParameters::efield(t - tot_time);
-        }
-        tot_time += sp[i];
+        if (t > total)
+            start = total;
+        total += s_au[i];
     }
-    if (t > tot_time && num_ == sp.size() + 1)
-    {
-        cep_ = phase_.back();
-        ef += LaserParameters::efield(t - tot_time);
-    }
+    if (t > total)
+        start = total;
 
-    return ef;
+    if (in_pulse(t))
+    {
+        PetscScalar efield = std::sqrt(this->intensity());
+        efield *= envelope(t, start) * std::sin( this->frequency() * t);
+        return efield;
+    }
+    else
+        return 0;
 }
 
 void PulsetrainParameters::get_parameters()
@@ -115,17 +143,39 @@ void PulsetrainParameters::get_parameters()
         }
     }
 
-    opt.get("-pulsetrain_num")->getInt(num_);
     opt.get("-pulsetrain_spacing")->getDoubles(spacing_);
     opt.get("-pulsetrain_phase")->getDoubles(phase_);
 }
 
+void PulsetrainParameters::save_parameters() const
+{
+    std::ofstream file;
+    file.open(std::string("./Pulsetrain.config"));
+    file << "-pulsetrain_spacing ";
+    for (size_t i = 0; i < spacing_.size(); i++)
+    {
+        if (i == 0)
+            file << spacing_[i];
+        else
+            file << "," << spacing_[i];
+    }
+    file << std::endl;
+    file << "-pulsetrain_phase ";
+    for (size_t i = 0; i < phase_.size(); i++)
+    {
+        if (i == 0)
+            file << phase_[i];
+        else
+            file << "," << phase_[i];
+    }
+    file << std::endl;
+    file.close();
+}
+
 std::string PulsetrainParameters::print() const
 {
-
     std::ostringstream out;
     out << LaserParameters::print();
-    out << "pulsetrain_num: " << num_ << std::endl;
     out << "pulsetrain_spacing: ";
     for (auto a: spacing_)
         out << a << ",";
@@ -153,14 +203,6 @@ void PulsetrainParameters::register_parameters()
             "-help",  // Flag token.
             "--help", // Flag token.
             "--usage" // Flag token.
-           );
-    opt.add(
-            "1",
-            0,
-            1,
-            0,
-            "number of pulses",
-            std::string(prefix).append("num\0").c_str()
            );
     opt.add(
             "100",

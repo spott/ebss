@@ -57,6 +57,18 @@ std::ostream& operator<<(std::ostream &out, const BasisID &b)     //output
     return out;
 }
 
+template<typename T, size_t N>
+std::ostream& operator<<(std::ostream &out, const std::array<T, N> &b) //output an array
+{
+    for (size_t i = 0; i < b.size(); i++)
+    {
+        if (i != 0)
+            out << ", " << b[i];
+        else
+            out << b[i];
+    }
+    return out;
+}
 
 namespace common
 {
