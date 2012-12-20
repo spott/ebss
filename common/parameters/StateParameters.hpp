@@ -192,7 +192,19 @@ std::string StateParameters::print() const
 //TODO fill this out
 void StateParameters::save_parameters() const
 {
-    common::export_vector_ascii(std::string("./empty_states.dat"),empty_states_);
+    common::export_vector_ascii(filename_,empty_states_);
+
+    std::ofstream file;
+    file.open(std::string("./State.config"));
+    if (wavefunction_fname_.empty())
+        file << "-state_init " << init_.n << "," << init_.l << "," << init_.j << std::endl;
+    else
+        file << "-state_initial_wavefunction " << wavefunction_fname_ << std::endl;
+    for (auto a: empty_states_)
+    {
+        file << "-state_rem " << a.n << "," << a.l << "," << a.j << std::endl;
+    }
+    file.close();
 }
 
 void StateParameters::register_parameters()

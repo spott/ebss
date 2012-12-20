@@ -50,10 +50,20 @@ std::vector<double> PulsetrainParameters::spacing()
     if (s_au.size() == spacing_.size())
         return s_au;
 
-
+    double tmp;
+    double total = 0;
     s_au.resize(spacing_.size());
     for(size_t i = 0; i < s_au.size(); i++)
+    {
         s_au[i] = spacing_[i] / 0.024188843265; //translate to AU
+        tmp = std::floor( (total + s_au[i]) * frequency() / (2 * math::PI) );
+        //std::cout << s_au[i] << ", " << tmp << std::endl;
+        s_au[i] = (tmp * 2 * math::PI + phase_[i]) / frequency() - total;
+        total += s_au[i];
+    }
+    //however, our spacing isn't exact:
+    //divide the spacing by the period (multiply by the frequency?), drop the remainder, and
+    //add the phase / 2pi * a period:
 
     return s_au;
 }
@@ -82,7 +92,6 @@ PetscReal PulsetrainParameters::next_pulse_start(PetscReal t)
     }
     return 0;
 }
-
 
 PetscReal PulsetrainParameters::max_time()
 {
@@ -149,6 +158,7 @@ void PulsetrainParameters::get_parameters()
 
 void PulsetrainParameters::save_parameters() const
 {
+    LaserParameters::save_parameters();
     std::ofstream file;
     file.open(std::string("./Pulsetrain.config"));
     file << "-pulsetrain_spacing ";

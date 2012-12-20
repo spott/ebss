@@ -61,6 +61,7 @@ main(int argc, const char ** argv)
         std::cout << sparams->print();
 
         common::export_vector_ascii(std::string("./prototype.csv"), params->prototype() );
+        //params->save_parameters();
         lparams->save_parameters();
         aparams->save_parameters();
         sparams->save_parameters();

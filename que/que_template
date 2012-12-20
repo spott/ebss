@@ -1,0 +1,37 @@
+#!/bin/bash
+
+#PBS -N {jobname}
+#PBS -l walltime={time}
+#PBS -l nodes={nodes}:ppn={ppn}
+#PBS -m abe
+#PBS -M andrew.spott@gmail.com
+
+. /curc/tools/utils/dkinit
+
+reuse .openmpi-1.6_gcc-4.7.1_torque-2.5.11_ib
+reuse GSL
+
+cd /home/ansp6066/code/ebss/propagate/
+
+make clean
+make all
+
+echo "
+
+
+"
+
+git log | head -n 10
+
+cd $PBS_O_WORKDIR
+
+mpiexec -n {proc} propagate \
+    -hamiltonian_config {hamiltonian}\
+    -laser_config {laser_defaults} \
+    -absorber_config {absorber_defaults} \
+    -state_config {state_defaults} \
+    -pulsetrain_config {pulsetrain_defaults} \
+    {parameters}
+	-not_shared_tmp \
+	-log_summary \
+	> ./stdout
