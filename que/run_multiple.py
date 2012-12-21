@@ -35,6 +35,7 @@ parser.add_argument('-que', default="janus-short",
                       help='que to use')
 parser.add_argument('-jobname_prefix', default="",
                       help='the prefix for the job name')
+parser.add_argument('-que_args', help="arguments to add to the que")
 
 #parameters to iterate over, add to this as I need it:
 parser.add_argument('--param_linear', '-l', nargs='*',action='append',
@@ -134,7 +135,8 @@ for p in parameter_sets:
     try:
         os.chdir(directory)
         os.chmod("que", stat.S_IRWXU | stat.S_IRWXG)
-        out = subprocess.check_output(["qsub", "-q", args.que,"./que"])
+        #print(args.que_args)
+        out = subprocess.check_output(["qsub", args.que_args, "-q", args.que,"./que"])
         procidf = file("proc_id", 'w')
         procidf.write(out)
         procidf.close()
