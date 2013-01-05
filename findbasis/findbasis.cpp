@@ -1,44 +1,14 @@
 #include<common/parameters/BasisParameters.hpp>
-#include<findbasis/numerov3.hpp>
-//#include<findbasis/finite_difference.hpp>
-//#include<common/special/bspline.hpp>
+#include<findbasis/numerov.hpp>
 #include<common/math.hpp>
 
 #include<slepc.h>
 
 
 template <typename T>
-T hydrogen_pot(T r)
+T pot(T r)
 {
    return -1./r;
-}
-
-
-template <typename T>
-T parameterized_pot(T r, sae<T> atom)
-{
-    T a = 0;
-    for( auto p: atom.params )
-        a += p.c * std::pow(r, p.p) * std::exp(- p.beta * r);
-    a *= (atom.N-1);
-    a += 1 - atom.N + atom.Z;
-    a *= -1/r;
-   return a;
-}
-
-template <typename T>
-T parameterized_finestructure_pot(const T r, const sae<T> atom, const BasisID state)
-{
-    T a = parameterized_pot(r, atom);
-
-    T b = 0;
-    for( auto p: atom.params )
-        b += p.c * std::pow(r, p.p-2) * std::exp(- p.beta * r) * (1. - p.p + r * p.beta);
-    b *= T(atom.N-1);
-    b += 1./(r*r);
-    b *= T( (T(state.j)/2.) * (T(state.j)/2. + 1.) - T(state.l) * (T(state.l)+1.) - 3./4. );
-    b *= 1. / (4. * math::C * math::C * r);
-    return a + b;
 }
 
 typedef long double scalar;
@@ -61,55 +31,11 @@ int main(int argc, const char **argv)
     if (params->rank() == 0) 
         std::cout << params->print();
 
-
-    std::vector< sae_param<scalar> > neon_params{
-        {0, .46087879, 4.68014471},
-        {0, 0.53912121, 2.41322960},
-        {1, 0.42068967, 5.80903874},
-        {1, 0.47271993, 2.90207510},
-        {2, -1.12569309, 4.51696279},
-        {2, 1.29942636, 3.06518063}};
-    sae<scalar> neon = {neon_params, 10, 10, -30.87114223};
-
-    std::vector< sae_param<scalar> > rubidium_params{
-        {0, 0.81691787, 7.83077875},
-        {0, 0.18308213, 2.75163799},
-        {1, 2.53670563, 4.30010258},
-        {2, -19.56508990, 43.31975597},
-        {3, 1.06320272, 2.93818679},
-        {4, -0.99934358, 4.97097146}
-        };
-    sae<scalar> rubidium = {rubidium_params, 37, 37, -541.83186666};
-
-    std::vector< sae_param<scalar> > potassium_params{
-        {0, 0.77421694, 11.32240776},
-        {0, 0.22578306, 2.32391666},
-        {1, 6.07532608, 5.49215770},
-        {2, -17.36457454, 11.17407777},
-        {3, 1.95999037, 2.84608178},
-        {4, -0.13294584, 2.36656543}
-        };
-    sae<scalar> potassium = {potassium_params, 19, 19, -128.71233201};
-
     sae<scalar> hydrogen = {potassium_params, 1, 1, -.5};
 
 
     //call function to find all the energy states here:
-    if (params->atom() == "hydrogen")
-        numerov::find_basis_set<scalar>( [hydrogen](scalar r, BasisID s) {return parameterized_finestructure_pot<scalar>(r, hydrogen, s);}, params, hydrogen);
-    if (params->atom() == "neon")
-        numerov::find_basis_set<scalar>( [neon](scalar r, BasisID s) {return parameterized_finestructure_pot<scalar>(r, neon, s);}, params, neon);
-    else if (params->atom() == "rubidium")
-        numerov::find_basis_set<scalar>( [rubidium](scalar r, BasisID s) {return parameterized_finestructure_pot<scalar>(r, rubidium, s);}, params, rubidium);
-    else if (params->atom() == "potassium")
-        numerov::find_basis_set<scalar>( [potassium](scalar r, BasisID s) {return parameterized_finestructure_pot<scalar>(r, potassium, s);}, params, potassium);
-    //numerov::find_basis_set<scalar>( [neon](scalar r) {return parameterized_pot<scalar>(r, 10, 10, neon);}, params);
-    //numerov::find_basis_set<scalar>( [potasium](scalar r) {return parameterized_pot<scalar>(r, 19, 19, potasium);}, params);
-
-    //finite_difference::find_basis<2, scalar>( [neon](scalar r) {return neon_pot<scalar>(r, 10,10, neon);}, 
-                                              //params);
-    //numerov::find_basis_set<scalar>( hydrogen_pot<scalar>, 
-                                              //params);
+    numerov::find_basis_set<scalar>( [](scalar r) {return pot<scalar>(r);}, params);
 
     //write out parameters:
     params->save_parameters();
@@ -119,23 +45,3 @@ int main(int argc, const char **argv)
     SlepcFinalize();
     return 0;
 }
-
-
-/**************************************
- *
- * We need to design an interface for the 
- * basis finder.  The potential function,
- * sans the angular term, seems most appropriate.
- * It seems unlikely that I will ever be using this code 
- * (without major modification) on non-spherically
- * symmetric code.
- *
- * find_basis_set< ScalarType >( potential function, l_value , BasisParameters)
- *
- * This should be all that is needed.  So using different
- * find_basis functions, SHOULD make this fairly uniform.
- *
- * Different grids should be usable, but the grid should be in the
- * parameters class anyways.
- *
- **************************************/
