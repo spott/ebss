@@ -212,7 +212,7 @@ namespace numerov
                 w = *std::max_element(wells.begin(),
                                  wells.end(), 
                                  [](std::array< int, 2 > a, std::array< int, 2 > b) 
-                                            { return (a[1] < b[1]); } 
+                                            { return (a[1]-a[2] < b[1]-b[0]); } 
                                 );
                 current.turnover = w[1];
 
@@ -241,7 +241,7 @@ namespace numerov
                     }
                     else if (current.turnover == -1 || current.turnover <= messiness)
                     {
-                        std::cerr << "the messiness is getting in the way " << messiness<< std::endl;
+                        std::cerr << "the messiness is getting in the way" << std::endl;
                         history = current;
                         current.energy_lower = current.energy;
                         current.energy = (current.energy_upper + current.energy_lower)/2;

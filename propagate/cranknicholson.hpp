@@ -88,7 +88,7 @@ solve(Vec *wf, context* cntx, Mat *A)
 
     while (t < maxtime)
     {
-        efvec.push_back({ {t, ef.real()} });
+
         MatCopy(*( cntx->D ), *A , SAME_NONZERO_PATTERN);   // A = D
 
         //This has different 't's on both sides:
@@ -162,8 +162,9 @@ solve(Vec *wf, context* cntx, Mat *A)
             VecView(*wf, view);
             zero++;
         }
-
-        if (!(step%1000))
+        if (!(step%100))
+            efvec.push_back({ {t, ef.real()} });
+        if (!(step%100))
         {
             VecCopy(*wf, prob);
             VecAbs(prob);
@@ -183,7 +184,7 @@ solve(Vec *wf, context* cntx, Mat *A)
     PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
     VecView(*wf,view);
 
-    if (cntx->hparams->rank() == 0) common::export_vector_ascii( cntx->laser->laser_filename() , efvec);
+    if (cntx->hparams->rank() == 0) common::export_vector_binary( cntx->laser->laser_filename() , efvec);
     KSPDestroy(&ksp);
     std::cerr << "leaving cranknicholson" << std::endl;
     return 0;

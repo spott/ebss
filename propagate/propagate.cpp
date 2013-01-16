@@ -94,7 +94,8 @@ main(int argc, const char ** argv)
     MatSetOption(D,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE);
     MatZeroRowsColumns(D, empty_states_index.size(), empty_states_index.data(), 0.0, PETSC_NULL, PETSC_NULL);
     std::vector<PetscScalar> zeros(empty_states_index.size(), 0.0);
-    VecSetValues(H, empty_states_index.size(), empty_states_index.data(), zeros.data(), INSERT_VALUES);
+    if (zeros.size() != 0)
+        VecSetValues(H, empty_states_index.size(), empty_states_index.data(), zeros.data(), INSERT_VALUES);
 
 
     VecAssemblyBegin(H);

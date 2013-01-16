@@ -2,5 +2,3 @@
 bin/*
 *.swo
 tmp/*
-makefile.include
-*gitignore

@@ -22,7 +22,7 @@ public:
         opt.parse(argc, argv);
 
         get_parameters();
-        spacing();
+        s_au = spacing();
     };
 
 
@@ -30,7 +30,7 @@ public:
     void get_parameters();
 
     bool in_pulse(PetscReal t);
-    std::vector<double> spacing();
+    std::vector<double> spacing() const;
     std::vector<double> phase() const;
     virtual PetscScalar efield(PetscReal t);
     PetscReal max_time();
@@ -45,27 +45,25 @@ protected:
     std::vector<double> s_au;  //spacing in au
 };
 
-std::vector<double> PulsetrainParameters::spacing()
+std::vector<double> PulsetrainParameters::spacing() const
 {
-    if (s_au.size() == spacing_.size())
-        return s_au;
-
     double tmp;
     double total = 0;
-    s_au.resize(spacing_.size());
-    for(size_t i = 0; i < s_au.size(); i++)
+    std::vector<double> sau(spacing_.size());
+    auto pha = phase();
+    for(size_t i = 0; i < sau.size(); i++)
     {
-        s_au[i] = spacing_[i] / 0.024188843265; //translate to AU
-        tmp = std::floor( (total + s_au[i]) * frequency() / (2 * math::PI) );
+        sau[i] = spacing_[i] / 0.024188843265; //translate to AU
+        tmp = std::floor( (total + sau[i]) * frequency() / (2 * math::PI) );
         //std::cout << s_au[i] << ", " << tmp << std::endl;
-        s_au[i] = (tmp * 2 * math::PI + phase_[i]) / frequency() - total;
-        total += s_au[i];
+        sau[i] = (tmp * 2 * math::PI + pha[i]) / frequency() - total;
+        total += sau[i];
     }
     //however, our spacing isn't exact:
     //divide the spacing by the period (multiply by the frequency?), drop the remainder, and
     //add the phase / 2pi * a period:
 
-    return s_au;
+    return sau;
 }
 
 bool PulsetrainParameters::in_pulse(PetscReal t)
@@ -102,7 +100,13 @@ PetscReal PulsetrainParameters::max_time()
     return tot + pulse_length();
 }
 
-std::vector<double> PulsetrainParameters::phase() const { return phase_; }
+std::vector<double> PulsetrainParameters::phase() const 
+{
+    if (phase_.size() == spacing_.size())
+        return phase_; 
+    else
+        return std::vector<double>(spacing_.size(),0);
+}
 
 PetscScalar PulsetrainParameters::efield(PetscReal t)
 {
@@ -171,12 +175,12 @@ void PulsetrainParameters::save_parameters() const
     }
     file << std::endl;
     file << "-pulsetrain_phase ";
-    for (size_t i = 0; i < phase_.size(); i++)
+    for (size_t i = 0; i < phase().size(); i++)
     {
         if (i == 0)
-            file << phase_[i];
+            file << phase()[i];
         else
-            file << "," << phase_[i];
+            file << "," << phase()[i];
     }
     file << std::endl;
     file.close();
@@ -190,8 +194,12 @@ std::string PulsetrainParameters::print() const
     for (auto a: spacing_)
         out << a << ",";
     out << std::endl;
+    out << "pulsetrain_spacing_au: ";
+    for (auto a: s_au )
+        out << a << ",";
+    out << std::endl;
     out << "pulsetrain_phase: ";
-    for (auto a: phase_)
+    for (auto a: phase())
         out << a << ",";
     out << std::endl;
     return out.str();
