@@ -131,7 +131,30 @@ scalar integrateGrid(std::vector<scalar> psi1, std::vector<scalar> psi2, std::ve
     //std::cerr.precision(20);
     //std::cerr << "trap: " << a << " simpsons: " << b << " error: " << a-b << " rel: " << a - b / a << std::endl;
     return b;
+}
 
+template<typename scalar>
+scalar normalize(std::vector<scalar> &wf, const std::vector<scalar> &grid)
+{
+	//auto wf = *wavefunction;
+	scalar norm = wf[0] * wf[0] * grid[0] / 2; //the first point is always zero...
+	scalar tmp1 = norm;
+	scalar tmp2 = 0;
+	for (size_t i = 1; i < grid.size(); i++)
+	{
+		tmp2 = wf[i] * wf[i] * (grid[i]-grid[i-1]) / 2;
+		norm += tmp2 + tmp1;
+		tmp1 = tmp2;
+	}
+
+    if (norm != norm || norm == std::numeric_limits<scalar>::infinity() )
+        throw(std::exception());
+	norm = std::sqrt(norm);
+	for (size_t i = 0; i < grid.size(); i++)
+	{
+		wf[i] /= norm;
+	}
+	return norm;
 }
 
 

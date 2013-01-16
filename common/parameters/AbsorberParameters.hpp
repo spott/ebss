@@ -171,7 +171,12 @@ std::string AbsorberParameters::print() const
     out << "absorber_l_size: " << l_size_ << std::endl;
     out << "absorber_m_size: " << m_size_ << std::endl;
     out << "absorber_cos_factor: " << cos_factor_ << std::endl;
-    out << "absorber_type: " << type_ << std::endl;
+    if (type_ == COSINE)
+        out << "-absorber_type cosine" << std::endl;
+    if (type_ == CX_ROT)
+        out << "-absorber_type cx_rot" << std::endl;
+    if (type_ == CX_SCALE)
+        out << "-absorber_type cx_scale" << std::endl;
     return out.str();
 }
 

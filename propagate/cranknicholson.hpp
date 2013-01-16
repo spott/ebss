@@ -85,12 +85,11 @@ solve(Vec *wf, context* cntx, Mat *A)
     VecAssemblyEnd(prob);
 
     std::vector< std::array<PetscReal, 2> > efvec;
-
     while (t < maxtime)
     {
+		//if (cntx->hparams->rank() == 0) std::cerr << "t: " << t << " step: " << step << std::endl;
         efvec.push_back({ {t, ef.real()} });
         MatCopy(*( cntx->D ), *A , SAME_NONZERO_PATTERN);   // A = D
-
         //This has different 't's on both sides:
         MatScale(*A, ef);                                   // A = ef(t) * D
         MatDiagonalSet(*A, *(cntx->H), INSERT_VALUES);      // A = ef(t) * D + H_0
@@ -100,14 +99,14 @@ solve(Vec *wf, context* cntx, Mat *A)
         MatAXPY(*A, cn_factor * (cntx->laser->efield(t+cntx->laser->dt()) - ef), *( cntx->D ), SAME_NONZERO_PATTERN);
         MatScale(*A, std::complex<double>(-1,0));           // A = i * .5 dt [ef(t+dt) * D + H_0 ] - 1
         MatShift(*A, std::complex<double>(2,0));            // A = i * .5 dt [ef(t+dt) * D + H_0 ] + 1
-
+		
         KSPSetOperators(ksp, *A, *A, SAME_NONZERO_PATTERN); // Solve[ A x = tmp ] for x
-        KSPSetFromOptions(ksp);
-
         KSPSolve(ksp, tmp, *wf);
 
         if (cntx->absorber->type() == "cosine")
+		{
             VecPointwiseMult(*wf, *wf, abs);
+		}
 
         //look at the next point
         t += cntx->laser->dt();
@@ -144,10 +143,9 @@ solve(Vec *wf, context* cntx, Mat *A)
             VecView(*wf, view);
             zero++;
             std::cout << output::reset;
-            continue;
+            break;
         }
         //else do nothing...
-
         step++;
         //at the zero of the field: write out the vector:
         if (( ef.real() <= 0. && cntx->laser->efield(t - cntx->laser->dt()).real() > 0 ) || ( ef.real() >= 0 && cntx->laser->efield(t - cntx->laser->dt()).real() < 0 ))
@@ -163,7 +161,7 @@ solve(Vec *wf, context* cntx, Mat *A)
             zero++;
         }
 
-        if (!(step%1000))
+        if (!(step%100))
         {
             VecCopy(*wf, prob);
             VecAbs(prob);
@@ -171,7 +169,7 @@ solve(Vec *wf, context* cntx, Mat *A)
             VecPointwiseMult(prob, prob, prob);
             VecShift(prob, 1e-20);
             VecLog(prob);
-            VecView(prob, PETSC_VIEWER_DRAW_WORLD);
+            //VecView(prob, PETSC_VIEWER_DRAW_WORLD);
             if (cntx->hparams->rank() == 0)
                 std::cout << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << std::endl;
             //if (norm-1 > 10e-5 && cntx->hparams->rank() == 0)

@@ -41,9 +41,17 @@ int main(int argc, const char ** argv)
     std::function<PetscScalar (int, int)> findvalue = [prototype,params,grid](int i, int j)->PetscScalar{
         if (i == j)
             return 0.0;
+		std::vector<PetscReal> a = common::import_vector_binary<PetscReal>(params->basis_parameters()->basis_function_filename(prototype[i]));
+		math::normalize(a,*grid);
+		//std::cout << "a norm: " << 
+		//std::cout << " after: " << math::normalize(a,*grid);
+		std::vector<PetscReal> b = common::import_vector_binary<PetscReal>(params->basis_parameters()->basis_function_filename(prototype[j]));
+		math::normalize(b,*grid);
+		//std::cout << " b norm: " << 
+		//std::cout << " after: " << math::normalize(a,*grid) << std::endl;
         PetscScalar radial = math::integrateGrid(
-                common::import_vector_binary<PetscReal>(params->basis_parameters()->basis_function_filename(prototype[i])),
-                common::import_vector_binary<PetscReal>(params->basis_parameters()->basis_function_filename(prototype[j])),
+                a,
+                b,
                 *grid);
         PetscScalar angular = math::CGCoefficient<PetscScalar>(prototype[i],prototype[j]);
         //we are only considering spin up electrons.  so m_j always == +1/2 (since m_l is always 0)
