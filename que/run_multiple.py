@@ -6,6 +6,8 @@ import itertools
 import os
 import subprocess
 import stat
+import re
+import time
 
 
 parser = argparse.ArgumentParser(description='Run a number of different jobs with a set of common configs, but small differences')
@@ -35,7 +37,7 @@ parser.add_argument('-que', default="janus-short",
                       help='que to use')
 parser.add_argument('-jobname_prefix', default="",
                       help='the prefix for the job name')
-parser.add_argument('-que_args', help="arguments to add to the que")
+#parser.add_argument('-que_args',default="", help="arguments to add to the que")
 
 #parameters to iterate over, add to this as I need it:
 parser.add_argument('--param_linear', '-l', nargs='*',action='append',
@@ -69,8 +71,8 @@ reuse GSL
 
 cd /home/ansp6066/code/ebss/propagate/
 
-make clean
-make all
+#make clean
+#make all
 
 echo "
 
@@ -102,6 +104,20 @@ for p in argdict["param_list"]:
 
 parameter_sets = itertools.product(*parameters)
 
+#compile the code:
+try:
+    dir = os.getcwd()
+    os.chdir("/home/ansp6066/code/ebss/propagate/")
+    out = subprocess.check_output(["make","clean"])
+    out += subprocess.check_output(["make","all"])
+    print(out)
+    os.chdir(dir)
+except subprocess.CalledProcessError:
+    print("make returned an error")
+    exit()
+
+
+
 for p in parameter_sets:
     #print p
     #create a directory name:
@@ -110,7 +126,8 @@ for p in parameter_sets:
     for i in p:
         directory += i[0][1:] + "_" + i[1] + "_"
         paramstring += "    " + i[0] + " " + i[1] + " \\\n"
-    #print(directory)
+        directory = re.sub(r',',r'-', directory, count=0, flags=0)
+    print(directory)
     #make the directory:
     try:
         os.makedirs(directory)
@@ -136,13 +153,14 @@ for p in parameter_sets:
         os.chdir(directory)
         os.chmod("que", stat.S_IRWXU | stat.S_IRWXG)
         #print(args.que_args)
-        out = subprocess.check_output(["qsub", args.que_args, "-q", args.que,"./que"])
+        out = subprocess.check_output(["qsub", "-q", args.que,"./que"])
         procidf = file("proc_id", 'w')
         procidf.write(out)
         procidf.close()
         os.chdir("../")
     except subprocess.CalledProcessError:
         print ("qsub returned an error")
+    time.sleep(1)
 
 
 

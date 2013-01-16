@@ -247,7 +247,7 @@ void StateParameters::register_parameters()
             std::string(prefix).append("load\0").c_str()
            );
     opt.add(
-            "1,0",
+            "1,0,1",
             0,
             3,
             ',',

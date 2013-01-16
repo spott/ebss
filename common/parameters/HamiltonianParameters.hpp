@@ -79,7 +79,7 @@ public:
             BasisID temp;
             for(int l = 0; l <= this->lmax(); l++)
             {
-                for (int j = 1; j <= 3; j+=2)
+                for (int j = 2 * l - 1 < 0 ? 2 * l + 1 : 2 * l - 1 ; j <= 2 * l + 1; j+=2)
                 {
                     for(int m = -( l <= this->mmax() ? l : this->mmax() ); m <= ( l <= this->mmax() ? l : this->mmax() ); m++)
                     {
