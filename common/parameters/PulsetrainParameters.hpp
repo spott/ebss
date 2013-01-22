@@ -111,21 +111,20 @@ std::vector<double> PulsetrainParameters::phase() const
 PetscScalar PulsetrainParameters::efield(PetscReal t)
 {
     //find the start of the pulse:
-    PetscReal start = 0;
     PetscReal total = 0;
+    std::vector<PetscReal> starts(s_au.size());
     for (size_t i = 0; i < s_au.size(); i++)
     {
-        if (t > total)
-            start = total;
         total += s_au[i];
+        starts[i] = total;
     }
-    if (t > total)
-        start = total;
 
     if (in_pulse(t))
     {
-        PetscScalar efield = std::sqrt(this->intensity());
-        efield *= envelope(t, start) * std::sin( this->frequency() * t);
+        PetscScalar efield = 0;
+        for(const auto &a : starts)
+            efield += std::sqrt(this->intensity()) * envelope(t, a);
+        efield *= std::sin( this->frequency() * t);
         return efield;
     }
     else

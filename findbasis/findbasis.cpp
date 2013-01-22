@@ -1,8 +1,10 @@
 #include<common/parameters/BasisParameters.hpp>
-#include<findbasis/numerov3.hpp>
+#include<findbasis/numerov.hpp>
 //#include<findbasis/finite_difference.hpp>
 //#include<common/special/bspline.hpp>
 #include<common/math.hpp>
+#include<functional>
+#include<unordered_map>
 
 #include<slepc.h>
 
@@ -15,7 +17,7 @@ T hydrogen_pot(T r)
 
 
 template <typename T>
-T parameterized_pot(T r, sae<T> atom)
+T parameterized_pot(T r, const sae<T> &atom)
 {
     T a = 0;
     for( auto p: atom.params )
@@ -27,7 +29,7 @@ T parameterized_pot(T r, sae<T> atom)
 }
 
 template <typename T>
-T parameterized_finestructure_pot(const T r, const sae<T> atom, const BasisID state)
+T parameterized_finestructure_pot(const T r, const sae<T> &atom, const BasisID &state)
 {
     T a = parameterized_pot(r, atom);
 
@@ -41,8 +43,32 @@ T parameterized_finestructure_pot(const T r, const sae<T> atom, const BasisID st
     return a + b;
 }
 
-typedef long double scalar;
+template <typename T>
+std::function< T (const T, BasisID) >  memoized_finestructure_pot(const sae<T> &atom)
+{
+    BasisID state;
+    auto cache = std::make_shared<std::unordered_map< T, T> >();
+    auto func = std::bind(parameterized_finestructure_pot<T>, std::placeholders::_1, std::cref(atom), std::placeholders::_2);
+    return ( [state, cache, func](const T r, BasisID s) mutable {
+            if (s != state)
+            {
+                cache->clear();
+                state = s;
+                (*cache)[r] = func(r, s);
+                return (*cache)[r];
+            }
+            else
+            {
+                if (cache->find(r) == cache->end())
+                {
+                    (*cache)[r] = func(r, state);
+                }
+                return (*cache)[r];
+            }
+        });
+}
 
+typedef long double scalar;
 int main(int argc, const char **argv)
 {
     int ac = argc;
@@ -91,26 +117,22 @@ int main(int argc, const char **argv)
         };
     sae<scalar> potassium = {potassium_params, 19, 19, -128.71233201};
 
-    sae<scalar> hydrogen = {potassium_params, 1, 1, -.5};
+    sae<scalar> hydrogen = {std::vector< sae_param<scalar> >(0), 1, 1, -.5};
 
 
     //call function to find all the energy states here:
     if (params->atom() == "hydrogen")
-        numerov::find_basis_set<scalar>( [hydrogen](scalar r, BasisID s) {return parameterized_finestructure_pot<scalar>(r, hydrogen, s);}, params, hydrogen);
+        numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(hydrogen)), params, hydrogen);
     if (params->atom() == "neon")
-        numerov::find_basis_set<scalar>( [neon](scalar r, BasisID s) {return parameterized_finestructure_pot<scalar>(r, neon, s);}, params, neon);
+        numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(neon)), params, neon);
     else if (params->atom() == "rubidium")
-        numerov::find_basis_set<scalar>( [rubidium](scalar r, BasisID s) {return parameterized_finestructure_pot<scalar>(r, rubidium, s);}, params, rubidium);
+        numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(rubidium)), params, rubidium);
     else if (params->atom() == "potassium")
-        numerov::find_basis_set<scalar>( [potassium](scalar r, BasisID s) {return parameterized_finestructure_pot<scalar>(r, potassium, s);}, params, potassium);
-    //numerov::find_basis_set<scalar>( [neon](scalar r) {return parameterized_pot<scalar>(r, 10, 10, neon);}, params);
-    //numerov::find_basis_set<scalar>( [potasium](scalar r) {return parameterized_pot<scalar>(r, 19, 19, potasium);}, params);
+        numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(potassium)), params, potassium);
 
-    //finite_difference::find_basis<2, scalar>( [neon](scalar r) {return neon_pot<scalar>(r, 10,10, neon);}, 
-                                              //params);
-    //numerov::find_basis_set<scalar>( hydrogen_pot<scalar>, 
-                                              //params);
-
+    //numerov::find_basis_set<scalar>( 
+    //std::bind(parameterized_finestructure_pot<scalar>, std::placeholders::_1, std::cref(hydrogen), std::placeholders::_2)
+    //,params, hydrogen);
     //write out parameters:
     params->save_parameters();
 

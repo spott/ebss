@@ -35,7 +35,7 @@ void FieldFreePropagate(Vec *H, Vec *wf, PetscReal dt) //propagate forward in ti
     PetscReal norm2;
     VecNorm(*wf,NORM_2 ,&norm2);
     std::cout << "after: " << norm2-1 << " difference: " << norm1 - norm2 <<  std::endl;
-    
+
 
     VecDestroy(&tmp);
 }
@@ -51,6 +51,7 @@ solve(Vec *wf, context* cntx, Mat *A)
     KSPGetPC(ksp, &pc);
     PCSetType(pc, PCJACOBI);
     KSPSetTolerances(ksp,1e-10, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT);
+    KSPSetFromOptions(ksp);
 
     PetscScalar     cn_factor = std::complex<double>(0, -0.5 * cntx->laser->dt());
     PetscReal       t = 0;
@@ -102,7 +103,6 @@ solve(Vec *wf, context* cntx, Mat *A)
         MatShift(*A, std::complex<double>(2,0));            // A = i * .5 dt [ef(t+dt) * D + H_0 ] + 1
 
         KSPSetOperators(ksp, *A, *A, SAME_NONZERO_PATTERN); // Solve[ A x = tmp ] for x
-        KSPSetFromOptions(ksp);
 
         KSPSolve(ksp, tmp, *wf);
 

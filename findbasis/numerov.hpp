@@ -1,25 +1,24 @@
 #pragma once
 
 #include<vector>
+#include<forward_list>
+#include<array>
 #include<iterator>
 #include<cmath>
 #include<iostream>
-//#include<common/parameters/Parameters.hpp>
-//#include<common/parameters/BasisParameters.hpp>
 #include<common/common.hpp>
 #include<limits>
-
+#include<common/math.hpp>
 
 template <typename T>
 struct sae_param {
     int p;
-    T c;
-    T beta;
+    T c, beta;
 };
 
 template <typename T>
 struct sae {
-    std::vector< sae_param<T> > params;
+    std::vector < sae_param<T> > params;
     int Z;
     int N;
     T gs_energy;
@@ -28,7 +27,6 @@ struct sae {
 namespace numerov
 {
 
-    enum type_node { A, B, C, D, E };
 
     template <typename iterator>
     int numerov(iterator fstart, iterator fend, iterator wfstart, iterator wfend)
@@ -64,534 +62,479 @@ namespace numerov
         return nodes;
     };
 
-    template<typename scalar>
-    struct basis {
-        std::vector<scalar> wf;
-        scalar energy;
+    template <typename scalar>
+        struct basis {
+            std::vector<scalar> wf;
+            scalar energy;
+        };
+    template <typename scalar>
+    struct it {
+        int iteration;
+        scalar energy_upper; //Eventually will be the n-l-1 == 1 energy
+        bool upper_converged; //this tells us if the energy_upper is converged on the correct value;
+        scalar energy_lower; //This won't change, except for special cases (but we will test for it anyways...
+        scalar energy;      //the energy of this iteration
+        int nodes;          //how many nodes for this iteration
+        int turnover;       //where the turnover is...
+        scalar f;       //the derivative matching value;
+        scalar de;  //Will be used to bisect
+        //bool excited;
+    };
+
+
+    template <typename scalar>
+    std::ostream& operator<<(std::ostream &out, const it<scalar> &b)     //output
+    {
+        out << "iteration: " << b.iteration << " energy_upper: " << b.energy_upper << " upper_converged: " << (b.upper_converged ? "true" : "false")  << " energy_lower: " << b.energy_lower << "\n\t energy: " << b.energy << " f: " << b.f << " de: " << b.de;
+        return out;
     };
 
     template <typename scalar>
-    basis<scalar> find_continuum(const int n, const int l, const int j, const scalar dx, const std::vector<scalar> &rgrid, std::function< scalar (scalar, int, int) > pot, bool &converged)
-    {
-        scalar energy_upper = 10;
-        scalar energy_lower = -1;
-        scalar energy = (energy_upper - energy_lower) / 2;
-        int nodes;
-
-        scalar de = 1;
-        scalar err = 10e-19;
-
-        std::vector<scalar> f(rgrid.size());
-        std::vector<scalar> wf(rgrid.size());
-        std::vector<scalar> potential(rgrid.size());
-
-        //initialize to NaNs:
-        for(size_t i = 0; i < wf.size(); i++)
-            wf[i] = std::numeric_limits<scalar>::quiet_NaN();
-
-        //initialize pot
-        for(size_t i = 0; i < potential.size(); i++)
-            potential[i] = pot(rgrid[i], l, j);
-
-        int iterations = -1;
-        converged = false;
-
-        type_node w;
-
-        scalar norm;
-        //std::cerr.precision(22);
-        while ( !converged )
+        basis<scalar> 
+        find_basis( const BasisID state, 
+                    const scalar dx, const std::vector<scalar> &rgrid, 
+                    const std::function< scalar (scalar, BasisID) > pot, 
+                    const scalar err)
         {
-            iterations++;
-            //std::cerr << std::scientific <<  "excited: energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << energy << std::endl ;
 
-            //initialize f for the energy we are using
+            int messiness = 3000; //where the messiness for the shitty j's is adjusted away:
+            std::array< scalar, 3 > fore;  //I don't think I need a memory of these...
+            std::array< scalar, 3 > back;
+            basis<scalar> result; //The result of the calculation will be stored here.
+
+            std::vector<scalar> f(rgrid.size());  // where the complete "potential" will be stored
+            std::vector<scalar> wf(rgrid.size()); // where the wf will be stored
+
+            it<scalar> history;  //the last/"max" iteration info:
+            it<scalar> current;
+
+
+            current.iteration = 0;
+            //current.excited = false;
+            //current.upper_converged = false;
+            //initialize to NaN's.... makes sure that things are done correctly
+            for (auto &i: wf)
+                i = std::numeric_limits<scalar>::quiet_NaN();
+            for (auto &i: f)
+                i = std::numeric_limits<scalar>::quiet_NaN();
+
+            //the last value of the potentialis the highest the energy can get.  
+            //This breaks down for continuum states
+            current.energy_upper = pot(rgrid[ wf.size()-1 ],state);
+
+            //the energy_upper isn't converged yet:
+            current.upper_converged = false;
+            current.energy_lower = 0;
             for (size_t i = 0; i < f.size(); i++)
-                f[i] = 1 + dx * dx / 12 * ( - std::pow((static_cast<scalar>(l) + .5), 2)
-                        - 2 * std::pow(rgrid[i],2) * (pot(rgrid[i], l, j) - energy));
-
-            //set the initial values
-            wf[0] = std::pow(rgrid[0],l+1) * (1. - 2. * rgrid[0] / (2. * (double)l + 2. )) / std::sqrt(rgrid[0]);
-            wf[1] = std::pow(rgrid[1],l+1) * (1. - 2. * rgrid[1] / (2. * (double)l + 2. )) / std::sqrt(rgrid[1]);
-
-            nodes = numerov(f.begin(),f.end(),wf.begin(),wf.end());
-
-            //normalize!
-            norm = 0.0;
-            for (size_t i = 0; i < wf.size(); i++)
-                norm += wf[i] * wf[i] * rgrid[i] * rgrid[i] * dx;
-            norm = std::sqrt(norm);
-            for (size_t i = 0; i < wf.size(); i++)
-                wf[i] /= norm;
-
-            // Right: between A and B (just shy of the correct number of nodes +1)
-            // more nodes: A, D
-            // fewer nodes: B, C, E
-            if (nodes == n - l )
             {
-                //std::cerr << w << std::endl;
-                energy_upper = energy;
-                if (w == C || w == E)
-                    de /= -2;
-                if (w == B)
-                    de /= -2;
-
-                energy = energy + de;
-                w = A;
+                current.energy_lower = std::min (
+                        current.energy_lower,
+                        std::pow( scalar(state.l) + .5, 2) / (2. * std::pow(rgrid[i],2) ) + pot(rgrid[i], state)
+                        );
             }
-            else if (nodes == n - l - 1)
+            //but the lowest the energy can get is the ground state or the last energy level.
+            current.energy_lower = std::max(scalar(state.e.real()), current.energy_lower);
+
+            if (current.energy_upper < current.energy_lower)
+                current.energy_upper = 2;
+            //The energy guess is an average of the lowest and the highest, but biased towards the highest:
+            current.energy = (10 * current.energy_upper + current.energy_lower)/11;
+
+            //Then we screw things up:
+            current.energy_upper = 2;
+            current.de = 1e-3; //we don't want to converge to quickly
+            std::cerr << state << std::endl;
+            std::cerr << "energy_upper: " << current.energy_upper << " energy_lower: " << current.energy_lower << " energy: " << current.energy << std::endl;
+
+            bool converged = false;
+
+            while (!converged)
             {
-                //std::cerr << w << std::endl;
-                if (w == A)
-                    de /= -2;
-                if (w == D)
-                    de *= -1;
-                energy = energy + de;
-                w = B;
-            }
-            else if (nodes == n - l - 2)
-            {
-                energy_lower = energy;
-                if (w == A)
-                    de /= -2;
-                if (w == D)
-                    de /= -2;
-                energy += de;
-                w = C;
-            }
-            else if (nodes > n - l)
-            {
-                if (w == A)
-                    de *= -1;
-                if (w == B || w == C)
-                    de /= -2;
-                if (w == D && de > 0)
-                    de *= -1;
-                if (w == E)
-                    de /= -2;
+                std::cerr << current << std::endl;
+                current.iteration++;
+                f[0] = 1 + dx * dx / 12 * ( - std::pow((static_cast<scalar>(state.l) + .5), 2)
+                        - 2 * std::pow(rgrid[0],2) * (pot(rgrid[0], state) - current.energy));
 
-                energy_upper = energy;
-                energy += de;
-                w = D;
-            }
-            else if (nodes < n - l - 2)
-            {
-                energy_lower = energy;
-
-                if (w == E && de < 0)
-                    de *= -1;
-                else if (w == D || w == A)
-                    de /= -2;
-                energy += de;
-                w = E;
-            }
-            //std::cerr << " de " << de << std::endl; 
-
-            //check for convergence
-            if (std::abs(de) < std::abs(err))
-                converged = true;
-
-            //make sure we don't go out of energy bounds
-            energy = std::min(energy, energy_upper);
-            energy = std::max(energy, energy_lower);
-        }
-
-        //multiply by sqrt(rgrid[]), required because of log grid:
-        int nan = -1;
-        for (size_t i = 0; i < wf.size(); i++)
-        {
-            if (wf[i] != wf[i] || std::abs(wf[i]) == std::numeric_limits<scalar>::infinity())
-                nan=i;
-            wf[i] *= std::sqrt(rgrid[i]);
-        }
-
-        //Check for and report NaNs:
-        if (nan != -1 )
-            std::cerr << "the wavefunction is NaN... at: " << nan << " n: " << n << ", l: "<< l << ", e: " << energy << " sqrt "<<std::endl;
-
-        //normalize!
-        norm = 0.0;
-        for (size_t i = 0; i < wf.size(); i++)
-        {
-            norm += wf[i] * wf[i] * rgrid[i] * dx;
-            if (wf[i] != wf[i] || std::abs(wf[i]) == std::numeric_limits<scalar>::infinity())
-                nan=i;
-        }
-
-        //check for nan's
-        if (nan != -1 )
-            std::cerr << "the wavefunction is NaN... at: " << nan << " n: " << n << ", l: "<< l << ", e: " << energy << " norm: " << norm << std::endl;
-
-        norm = std::sqrt(norm);
-        for (size_t i = 0; i < wf.size(); i++)
-        {
-            wf[i] /= norm;
-            if (wf[i] != wf[i] || std::abs(wf[i]) == std::numeric_limits<scalar>::infinity())
-                nan=i;
-        }
-        if (nan != -1 )
-            std::cerr << "the wavefunction is NaN... at: " << nan << " n: " << n << ", l: "<< l << ", e: " << energy << std::endl;
-        basis<scalar> out;
-        out.wf = wf;
-        out.energy = energy;
-
-        return out;
-
-    };
-
-    template <typename scalar>
-    basis<scalar> find_bound(const int n, const int l, const int j, const scalar dx, const std::vector<scalar> &rgrid, std::function< scalar (scalar, int, int) > pot, bool &converged, sae<scalar> atom)
-    {
-        scalar de = 10e-8;
-        scalar de2 = 10e-1;
-        scalar err = 10e-18;
-        scalar rescale, deriv;
-        scalar norm;
-
-        std::vector<scalar> f(rgrid.size());
-        std::vector<scalar> wf(rgrid.size());
-        std::vector<scalar> potential(rgrid.size());
-
-        //initialize to NaNs:
-        for(size_t i = 0; i < wf.size(); i++)
-            wf[i] = std::numeric_limits<scalar>::quiet_NaN();
-
-        scalar energy_upper = pot(rgrid[rgrid.size()-1], l, j);
-        scalar energy_lower=0;
-        scalar energy = 0;
-        for (size_t i = 1; i < rgrid.size(); i++)
-        {
-            energy_lower = std::min(energy_lower, (std::pow((static_cast<scalar>(l)+.5),2)/(2. * std::pow(rgrid[i],2)) + pot(rgrid[i], l, j)));
-        }
-        if (energy_lower < atom.gs_energy)
-        {
-            for (size_t i = 1; i < rgrid.size(); i++)
-            {
-                if (rgrid[i] > 1e-2)
-                    energy_lower = std::min(energy_lower, (std::pow((static_cast<scalar>(l)+.5),2)/(2. * std::pow(rgrid[i],2)) + pot(rgrid[i], l, j))); energy_lower = atom.gs_energy-1;
-            }
-            if (energy_lower < atom.gs_energy-10)
-                energy_lower = atom.gs_energy;
-        }
-
-        //if (energy_lower < -1e4)
-            //energy_lower = atom.gs_energy;
-        //if (std::abs(energy - atom.gs_energy) > 1)
-            //energy_lower = atom.gs_energy-1;
-        //energy = energy_lower;
-        energy = (energy_upper + energy_lower) / 2;
-
-        //write out potential:
-        //std::vector<scalar> potential(rgrid->size());
-        for (size_t i = 0; i < rgrid.size(); i++)
-        {
-            potential[i] = pot(rgrid[i], l, j);
-        }
-        std::stringstream ss;
-        ss << "potential_l_" << l << "_j_" << j << ".dat";
-        common::export_vector_ascii(ss.str(),potential);
-
-        int nodes;
-        int turnover = -1;
-        int iterations = -1;
-        converged = false;
-        int deriverror;
-
-        //std::cerr.precision(22);
-        while ( !converged )
-        {
-            iterations++;
-            std::cerr << std::scientific <<  "energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << energy << " de: " << de << " de2: " << de2 << " iterations: " << iterations << std::endl;
-
-            //initialize f for the energy we are using
-            f[0] = 1 + dx * dx / 12 * ( - std::pow((static_cast<scalar>(l) + .5), 2)
-                    - 2 * std::pow(rgrid[0],2) * (pot(rgrid[0], l, j) - energy));
-
-            //find the classic turnover point
-            for (size_t i = 1; i < f.size(); i++)
-            {
-                f[i] = dx * dx / 12 * ( - std::pow((static_cast<scalar>(l) + .5), 2)
-                        - 2 * std::pow(rgrid[i],2) * (pot(rgrid[i], l, j) - energy));
-                if (f[i] < 0 && f[i-1] - 1 >= 0 && rgrid[i] > 1e-2)
-                    turnover = i;
-                if (f[i] > 0 && f[i-1] - 1 <= 0 && rgrid[i] > 1e-2)
-                    turnover = i;
-                f[i] += 1;
-            }
-
-
-            if (turnover < 2 || turnover > static_cast<int>(rgrid.size()) - 9)
-            {
-                std::cerr << " turnover " << turnover;
-                if ( turnover > -1 )
-                    std:: cerr << " @r: " << rgrid[turnover] << std::endl;
-                if (turnover != -1)
+                std::vector< std::array<int,2> > wells;
+                std::array< int, 2 > w = {0,-1};
+                bool in_well = (f[0] - 1 < 0)? false : true;
+                std::cerr << "start in well? " << (in_well ? "true" : "false") << std::endl;
+                for (size_t i = 1; i < f.size(); i++)
                 {
-                    energy -= de2 + de;
-                    de2 /= 2;
+                    f[i] = dx * dx / 12 * ( - std::pow((static_cast<scalar>(state.l) + .5), 2)
+                            - 2 * std::pow(rgrid[i],2) * (pot(rgrid[i], state) - current.energy));
+
+                    if ( (f[i] < 0 && f[i-1] - 1 >= 0) ) //going out of well:
+                    {
+                        if (in_well) //I should be...
+                        {
+                            w[1] = i;
+                            wells.push_back(w);
+                            in_well = false;
+                        }
+                        else
+                            std::cerr << "I thought I was in well... but I'm not" << std::endl;
+                    }
+                    else if ( (f[i] > 0 && f[i-1] -1 <= 0) ) //going into a well
+                    {
+                        if (in_well)
+                        {
+                            std::cerr << "I thought I was out of a well, but I'm not" << std::endl;
+                        }
+                        if (!in_well)
+                        {
+                            w = std::array<int,2>{int(i), -1};
+                            in_well = true;
+                        }
+                    }
+                    f[i] += 1;
                 }
-                //std::cerr << "oops (" << iterations << ")" << std::endl;
-                if (iterations >= 1000)
+                if (in_well == true)
                 {
-                    break;
+                    w[1] = rgrid.size();
+                    wells.push_back(w);
                 }
-                continue;
-            }
-            std::cerr << " turnover " << turnover << " @r: " << rgrid[turnover] << std::endl;
 
-            //set the initial values
-            wf[0] = std::pow(rgrid[0],l+1) * (1. - 2. * rgrid[0] / (2. * (double)l + 2. )) / std::sqrt(rgrid[0]);
-            wf[1] = std::pow(rgrid[1],l+1) * (1. - 2. * rgrid[1] / (2. * (double)l + 2. )) / std::sqrt(rgrid[1]);
+                std::cerr << "wells: " << std::endl;
+                for (auto a: wells)
+                    std::cerr << a[0] << ", " << a[1] << std::endl;
+                //if (wells.size() == 0)
+                //{
+                    //w[1] = rgrid.size();
+                    //wells.push_back(w);
+                //}
 
-            //std::cerr << f[3] << " " << wf[1] << std::endl;
+                if (wells.size() >=2 && state.j == 2 * state.l - 1)
+                    messiness = wells[0][1];
+                else
+                    messiness = 10;
 
-            wf[wf.size()-1] = dx;
-            wf[wf.size()-2] = (12 - f[f.size()-1] * 10) * wf[wf.size()-1] / f[wf.size()-2];
-            
-            //std::cerr << wf[wf.size() - 1] << " " << wf[wf.size() - 2] << std::endl;
-            nodes = numerov(f.begin(), f.begin() + turnover + 1, wf.begin(), wf.begin() + turnover + 1);
+                w = *std::max_element(wells.begin(),
+                                 wells.end(), 
+                                 [](std::array< int, 2 > a, std::array< int, 2 > b) 
+                                            { return (a[1]-a[2] < b[1]-b[0]); } 
+                                );
+                current.turnover = w[1];
 
-            //std::cerr << "wf: " << wf[0] << " " << wf[3] << " " << wf[turnover] <<std::endl;
-            rescale = wf[turnover];
+                if (w[1] != -1 && w[1] < rgrid.size())
+                    std::cerr << " turnover: " << current.turnover << " r[turnover]: " << rgrid[current.turnover] << std::endl;
+                else
+                    std::cerr << " turnover: " << current.turnover << " wells.size() " << wells.size() << " wells: " << wells.front()[0] << std::endl;
 
-            numerov(f.rbegin(), f.rend() - turnover , wf.rbegin(), wf.rend() - turnover );
-            
-            //std::cerr << "wf: " << wf[turnover-2] << " " << wf[turnover-1] << " " << wf[turnover] <<std::endl;
-
-            rescale = wf[turnover]/rescale;
-
-            for (size_t i = turnover; i < wf.size(); i++)
-                wf[i] /= rescale;
-
-            //normalize!
-            norm = 0.0;
-            for (size_t i = 0; i < wf.size(); i++)
-                norm += wf[i] * wf[i] * rgrid[i] * rgrid[i] * dx;
-            norm = std::sqrt(norm);
-            for (size_t i = 0; i < wf.size(); i++)
-                wf[i] /= norm;
-
-            scalar cusp = (wf[turnover-1] * f[turnover-1] + 
-                    f[turnover+1] * wf[turnover+1] + 
-                    10 * f[turnover] * wf[turnover]) / 12;
-            scalar dfcusp = f[turnover] * (wf[turnover] / cusp - 1);
-            de = dfcusp * 12 * dx * std::pow(cusp,2);
-
-
-            //std::stringstream ss;
-            //ss << "test_" << iterations << ".dat";
-            //common::export_vector_ascii(ss.str(), wf);
-            if (nodes != n - l - 1 )
-            {
-                std::cerr << nodes << std::endl;
-                de2 /= 2;
-                if (nodes > n - l - 1)
-                    energy_upper = energy;
-                if (nodes < n - l - 1)
-                    energy_lower = energy;
-                energy = ( energy_upper + energy_lower )/2;
-                if (iterations >= 10000)
+                //The wavefunction should NOT have a classical turning point before this:
+                if (current.turnover <= messiness || current.turnover > (rgrid.size() - 2) )
                 {
-                    std::cerr << "failed because of iterations" << std::endl;
-                    break;
+                    if (current.turnover != -1 && current.turnover < 2)
+                    {
+                        history = current;
+                        current.energy_upper = current.energy;
+                        current.energy = (current.energy_upper + current.energy_lower)/2;
+                        current.nodes = -1;
+                        continue;
+                    }
+                    else if (current.turnover > rgrid.size() - 2)
+                    {
+                        std::cerr << "excited!" << std::endl;
+                        //current.excited = true;
+                        //This is now an excited state...
+                        //current.energy_upper += std::abs( current.energy - current.energy_lower );
+                    }
+                    else if (current.turnover == -1 || current.turnover <= messiness)
+                    {
+                        std::cerr << "the messiness is getting in the way" << std::endl;
+                        history = current;
+                        current.energy_lower = current.energy;
+                        current.energy = (current.energy_upper + current.energy_lower)/2;
+                        current.nodes = -1;
+                        continue;
+                    }
                 }
-                continue;
-            }
+                //Set the initial values:
 
-            deriv = (wf[wf.size()-1] - wf[wf.size()-2]) / dx;
-            //stderr.writeln("deriv: ",deriv);
-            if (abs(deriv) > 10e-5)
-            {
-                deriverror++;
-                if (deriverror >= 20)
+                //if the state is not a "problematic" state:
+                if (state.j != 2 * state.l - 1)
                 {
-                    std::cerr << "failed because of deriverror" << std::endl;
-                    break;
+                    wf[0] = std::pow(rgrid[0],state.l+1) * (1. - 2. * rgrid[0] / (2. * scalar(state.l) + 2. )) 
+                        / std::sqrt(rgrid[0]);
+                    wf[1] = std::pow(rgrid[1],state.l+1) * (1. - 2. * rgrid[1] / (2. * scalar(state.l) + 2. )) 
+                        / std::sqrt(rgrid[1]);
+                    current.nodes = numerov(f.begin(),  (f.begin() + current.turnover + 2 > f.end() ? f.end() : f.begin() + current.turnover + 2), 
+                                            wf.begin(), (wf.begin() + current.turnover + 2 > wf.end() ? wf.end() : wf.begin() + current.turnover + 2 ));
                 }
+                else //if the state is:
+                {
+                    wf[messiness] = std::pow(rgrid[messiness],state.l+1) * (1. - 2. * rgrid[messiness] / (2. * scalar(state.l) + 2. )) 
+                        / std::sqrt(rgrid[messiness]);
+                    wf[messiness+1] = std::pow(rgrid[messiness+1],state.l+1) * (1. - 2. * rgrid[messiness+1] / (2. * scalar(state.l) + 2. )) 
+                        / std::sqrt(rgrid[messiness+1]);
+                    //zero everything before our new start
+                    for (size_t i = 0; i < messiness; i++)
+                        wf[i] = 0;
+                    current.nodes = numerov(f.begin() + messiness,  (f.begin() + current.turnover + 2 > f.end() ? f.end() : f.begin() + current.turnover + 2), 
+                                            wf.begin()+ messiness, (wf.begin() + current.turnover + 2 > wf.end() ? wf.end() : wf.begin() + current.turnover + 2 ));
+                }
+
+                std::cerr << "nodes: " << current.nodes << std::endl;
+                //now we check the nodes and iterate:
+                if (current.nodes - (state.n - state.l - 1) >= 1 && !current.upper_converged)
+                {
+                    std::cerr << "we are too high in energy: " << std::endl;
+                    if (std::abs(current.de) < 1e-18)
+                    {
+                        current.energy -= std::abs(current.de);
+                        continue;
+                    }
+                    //we are too high in energy:
+                    if (history.nodes == current.nodes - 1)
+                    {
+                        auto t = current;
+                        current.energy_upper = current.energy;
+                        current.de = (current.energy_upper + 3 * history.energy)/4 - current.energy_upper; //be biased towards the history end
+                        current.energy += current.de;
+                        history = t;
+                        continue;
+                    }
+
+                    history = current;
+                    current.energy_upper = current.energy;
+                    //average the energy_upper and energy_lower and try again:
+                    current.de = (current.energy_upper + current.energy_lower)/2 - current.energy_upper;
+                    current.energy += current.de;
+                    continue;
+                }
+                else if (current.nodes - (state.n - state.l - 1) >= 1 && current.upper_converged)
+                {
+                    current.energy_lower = current.energy;
+                    current.energy = (current.energy_upper + current.energy_lower)/2;
+                    continue;
+                }
+                else if (current.nodes - (state.n - state.l - 1) == 0 && !current.upper_converged)
+                {
+                    std::cerr << "we have the right energy" << std::endl;
+                    //current.upper_converged is false, so we actually want to go back up:
+                    history = current;
+                    //difference between this and the last:
+                    //current.de = (current.energy + current.energy_upper)/2 - current.energy;
+
+                    //if the "turnover point" is at the end of the grid, look at the current.de.
+                    //we are now using that as our "end point":
+                    //if we are very close to the last upper limit that we had, we have converged
+                    //otherwise, add the de and bisect:
+                    if (std::abs(current.de) < 1e-18 && current.turnover > wf.size() - 2) //if we have converged for an excited state:
+                    {
+                        converged = true;
+                        std::cout << current.turnover << "\t";
+                        continue;
+                    }
+                    else if (std::abs(current.de) < 1e-10 && current.turnover < wf.size() - 2) //we have converged for a bound state, time to do more iterations:
+                    {
+                        std::cerr << "we have converged!";
+                        std::cerr << " de: " << current.de << std::endl;
+                        current.upper_converged = true;
+                        current.energy_upper = current.energy;
+                        //we need a starting de, this shouldn't be changed:
+                        current.de =std::abs( (current.energy_upper - current.energy_lower) / 2);
+                        //This will continue below:
+                    }
+                    else if (current.turnover > wf.size() - 2)
+                    {
+                        current.energy_lower = current.energy;
+                        current.de = (current.energy_upper + current.energy)/2 - current.energy;
+                        current.energy += current.de;
+                        continue;
+                    }
+                    else
+                    {
+                        current.de = (current.energy_upper + current.energy)/2 - current.energy;
+                        current.energy += current.de;
+                        //if (current.excited)
+                            //current.energy_lower = current.energy;
+                        continue;
+                    }
+                }
+                // if we are below (should only happen for lowest n for an l state):
+                else if (current.nodes - (state.n - state.l - 1) <= -1)
+                {
+                    std::cerr << "we are too low in energy: " << std::endl;
+                    if (current.turnover > wf.size() - 2) //we are probably looking at an excited state, and we can't get to higher energy because of the current upper bound.
+                    {
+                        //bump the current energy upper bound by the de:
+                        history = current;
+                        current.energy_lower = current.energy;
+                        current.energy = (current.energy_lower + current.energy_upper)/2;
+                        continue;
+                    }
+                    history = current;
+                    current.energy_lower = current.energy;
+                    current.energy = (current.energy_upper + current.energy_lower)/2;
+                    //if upper converged is true, then we have "moved too low", need to readjust the de as well:
+                    if (current.upper_converged)
+                        current.de = std::abs( (current.energy_upper - current.energy_lower)/2);
+
+                    continue;
+                }
+                //if the state is converged... (shouldn't get here otherwise
+                if (!current.upper_converged)
+                    std::cerr << "how did I get here?" << std::endl;
+
+                //start the end:
+                wf[wf.size()-1] = dx;
+                wf[wf.size()-2] = (12 - f[f.size()-1] * 10) * wf[wf.size()-1] / f[wf.size()-2];
+
+                //save the points around the matching point:
+                std::copy(wf.begin() + current.turnover - 1, wf.begin() + current.turnover + 2, fore.begin());
+                //and figure out the rescaling factor:
+                scalar rescale = wf[current.turnover];
+
+                //run backwards from the end:
+                numerov(f.rbegin(), f.rend() - current.turnover + 1 , wf.rbegin(), wf.rend() - current.turnover + 1 );
+                std::copy(wf.begin() + current.turnover - 1, wf.begin() + current.turnover + 2, back.begin());
+
+                //and make sure that the rescaling point is the same for both, and the point before it is from 
+                //the forward iteration:
+                wf[current.turnover-1] = fore[0];
+
+                //rescale:
+                rescale = wf[current.turnover]/rescale;
+                for (size_t i = current.turnover; i < wf.size(); i++)
+                    wf[i] /= rescale;
+                for (auto &a: back)
+                    a /= rescale;
+
+                //normalize:
+                scalar norm = 0;
+                for (size_t i = 0; i < wf.size(); i++)
+                    norm += wf[i] * wf[i] * rgrid[i] * rgrid[i] * dx;
+                norm = std::sqrt(norm);
+                for (auto &a: wf)
+                    a /= norm;
+                for (auto &a: fore)
+                    a /= norm;
+                for (auto &a: back)
+                    a /= norm;
+
+                //find the difference in the derivatives:
+                scalar forward_deriv1 = (fore[0] - fore[1]) /(2*dx);
+                scalar forward_deriv2 = (fore[1] - fore[2]) /(2*dx);
+                scalar backward_deriv1 = (back[0] - back[1]) /(2*dx);
+                scalar backward_deriv2 = (back[1] - back[2]) /(2*dx);
+                current.f = -(forward_deriv1 + forward_deriv2)/2 + (backward_deriv1 + backward_deriv2)/2;
+
+                //if the last iteration DIDN'T have the upper_converged, then we need to set the "history"
+                //to be the current iteration number:
+                if (history.upper_converged == false)
+                {
+                    history = current;
+                    //new energy will be halfway between the upper and lower:
+                    current.energy = (current.energy_upper + current.energy_lower)/2;
+                    //current.de = std::abs( (current.energy - current.energy_upper)/2 );
+                    continue;
+                }
+
+                //otherwise, we do our convergence check:
+                if (std::abs(current.f) < err || current.iteration > 600)
+                {
+                    converged = true;
+                    std::cout << current.turnover << "\t";
+                    continue;
+                }
+                //then iterate if we haven't converged:
+                else if (history.f * current.f > 0)
+                {
+                    history = current;
+                    current.energy_upper = current.energy;
+                    current.energy = (current.energy_lower + current.energy_upper) / 2;
+                    continue;
+                }
+                else
+                {
+                    current.energy_lower = current.energy;
+                    current.energy = (current.energy_lower + current.energy_upper) / 2;
+                    continue;
+                }
+
             }
+            result.wf = wf;
+            result.energy = current.energy;
+            return result;
+        };
 
-            //std::cerr << std::scientific <<  "energy_upper: " << energy_upper << " energy_lower: " << energy_lower << " energy " << energy << " de: " << de << " de2: " << de2 << std::endl ;
-            std::cerr << "nodes: " << nodes << " norm: " << norm << " rescale " << rescale << " cusp: " << cusp << " dfcusp " << dfcusp << " deriv " << deriv << std::endl;
-            if (de < 0 && de2 > 0)
-                de2 = .5 * std::abs(de2) * de / std::abs(de);
-            if (de > 0 && de2 < 0)
-                de2 = .5 * std::abs(de2) * de / std::abs(de);
+    template <typename scalar, typename write_type>
+        void find_basis_set( std::function< scalar (scalar, BasisID) > pot, 
+                             BasisParameters<scalar, write_type> *params, 
+                             sae<scalar> atom)
+        {
+            int rank, num;
+            MPI_Comm_rank(params->comm(), &rank);
+            MPI_Comm_size(params->comm(), &num);
 
-            if (de > 0.)
-                energy_lower = energy;
-            if (de < 0.)
-                energy_upper = energy;
+            //Make grid:
+            scalar xmin = std::log(params->rmin());
+            scalar xmax = std::log(params->rmax());
+            std::vector<scalar> xgrid(params->points());
+            for (size_t i = 0; i < xgrid.size(); i++)
+                xgrid[i] = xmin + i * (xmax-xmin)/params->points();
+            scalar dx = xgrid[1] - xgrid[0];
 
-            if (std::abs(de) > std::abs(de2) )
-                energy += de;
-            if (std::abs(de2) > std::abs(de) )
-                energy += de2;
-
-            //check for convergence
-            if (std::abs(de) < std::abs(err))
+            //get rgrid vector pointer from parameters and screw with it.
+            std::vector<scalar> *rgrid = params->grid();
+            for (size_t i = 0; i < rgrid->size(); i++)
             {
-                //std::cerr << "succeeded" << std::endl;
-                converged = true;
+                rgrid->at(i) = std::exp(xgrid[i]);
             }
-            if (iterations > 10000)
+
+            std::vector<BasisID> *energies = params->basis_prototype();
+
+            params->save_parameters();
+            basis<scalar> res;
+            BasisID tmp;
+
+            energies->resize(0);
+            //MPI stuff to split up workload:
+            bool converged = false;
+
+            if (rank==0) std::cout << "n\tl\tj\te" << std::endl;
+            std::cout << std::scientific;
+            for (int l = rank; l <= params->lmax(); l += num)
             {
-                std::cerr << "failed because of iterations" << std::endl;
-                break;
-            }
-
-            //make sure we don't go out of energy bounds
-            energy = std::min(energy, energy_upper);
-            energy = std::max(energy, energy_lower);
-        }
-
-        //multiply by sqrt(rgrid[]), required because of log grid:
-        int nan = -1;
-        for (size_t i = 0; i < wf.size(); i++)
-        {
-            if (wf[i] != wf[i] || std::abs(wf[i]) == std::numeric_limits<scalar>::infinity())
-                nan=i;
-            wf[i] *= std::sqrt(rgrid[i]);
-        }
-
-        //Check for and report NaNs:
-        if (nan != -1 )
-            std::cerr << "the wavefunction is NaN... at: " << nan << " n: " << n << ", l: "<< l << ", e: " << energy << " sqrt "<<std::endl;
-
-        //normalize!
-        norm = 0.0;
-        for (size_t i = 0; i < wf.size(); i++)
-        {
-            norm += wf[i] * wf[i] * rgrid[i] * dx;
-            if (wf[i] != wf[i] || std::abs(wf[i]) == std::numeric_limits<scalar>::infinity())
-                nan=i;
-        }
-
-        //check for nan's
-        if (nan != -1 )
-            std::cerr << "the wavefunction is NaN... at: " << nan << " n: " << n << ", l: "<< l << ", e: " << energy << " norm: " << norm << std::endl;
-
-        norm = std::sqrt(norm);
-        for (size_t i = 0; i < wf.size(); i++)
-        {
-            wf[i] /= norm;
-            if (wf[i] != wf[i] || std::abs(wf[i]) == std::numeric_limits<scalar>::infinity())
-                nan=i;
-        }
-        if (nan != -1 )
-            std::cerr << "the wavefunction is NaN... at: " << nan << " n: " << n << ", l: "<< l << ", e: " << energy << std::endl;
-        basis<scalar> out;
-        out.wf = wf;
-        out.energy = energy;
-
-        return out;
-    };
-
-    int this_l_excited_n = 1000;
-    int this_l = 1000;
-
-    template <typename scalar>
-    basis<scalar> find_basis(const int n, const int l, const int j, const scalar dx, const std::vector<scalar> &rgrid, std::function< scalar (scalar, int, int) > pot, sae<scalar> atom)
-    {
-        bool converged = false;
-        basis<scalar> result;
-        if (l != this_l)
-        {
-            this_l = l;
-            this_l_excited_n = 1000;
-        }
-        if (n < this_l_excited_n)
-        {
-            result = find_bound(n, l, j, dx, rgrid, pot, converged, atom);
-            if (converged == false)
-            {
-                this_l_excited_n = n;
-                //std::cout << "excited: ";
-                result = find_continuum(n, l, j, dx, rgrid, pot, converged);
-            }
-        }
-        else
-        {
-            //std::cout << "excited: " << std::endl;
-            result = find_continuum(n, l, j, dx, rgrid, pot, converged);
-        }
-
-        return result;
-    };
-
-    template<typename scalar, typename write_type>
-    void find_basis_set( std::function< scalar (scalar, int, int) > pot, BasisParameters<scalar, write_type> *params, sae<scalar> atom)
-    {
-        int rank;
-        int num;
-        MPI_Comm_rank(params->comm(), &rank);
-        MPI_Comm_size(params->comm(), &num);
-        //Make grid:
-        scalar xmin = std::log(params->rmin());
-        scalar xmax = std::log(params->rmax());
-
-        std::vector<scalar> xgrid(params->points());
-        for (size_t i = 0; i < xgrid.size(); i++)
-            xgrid[i] = xmin + i * (xmax-xmin)/params->points();
-
-        scalar dx = xgrid[1] - xgrid[0];
-
-        //get rgrid vector pointer from parameters and screw with it.
-        std::vector<scalar> *rgrid = params->grid();
-        for (size_t i = 0; i < rgrid->size(); i++)
-        {
-            rgrid->at(i) = std::exp(xgrid[i]);
-        }
-
-        //write out potential:
-        //std::vector<scalar> potential(rgrid->size());
-        //for (size_t i = 0; i < rgrid->size(); i++)
-        //{
-            //potential[i] = pot(rgrid->at(i), );
-        //}
-        //common::export_vector_ascii("potential.dat",potential);
-
-        //for (auto r: *rgrid)
-            //std::cout <<  pot(r) << ", " ;
-        //std::cout << std::endl;
-
-        //get energy vector pointer from parameters
-        std::vector<BasisID> *energies = params->basis_prototype();
-
-        params->save_parameters();
-        basis<scalar> res;
-        BasisID tmp;
-
-        energies->resize(0);
-        //MPI stuff to split up workload:
-
-        if (rank==0) std::cout << "n\tl\tj\te" << std::endl;
-        std::cout << std::scientific;
-
-        for (int l = rank; l <= params->lmax(); l += num)
+                //for each run through the "n's", start with an energy min of the gs,
+                if (l == 0)
+                    tmp.e = atom.gs_energy - 1;
+                else //or the l == 0 state energy we have already found
+                {
+                    tmp = *std::find_if(
+                            energies->begin(), 
+                            energies->end(), 
+                            [l](const BasisID &a) {return (a.n == l+1 && a.l == l-1 && a.j == 2 * a.l + 1); }
+                            );
+                    tmp.e = tmp.e*1.1;
+                }
                 for (int n = l+1; n <= params->nmax(); n++)
                 {
                     for (int j = ((l>0)? 2 * l - 1 : 1); j <= ((l>0)? 2*l+1 : 1 ); j+=2)
                     {
-                        std::cout << n << "\t" << l << "\t" << j << "\t";
-                        res = find_basis(n, l, j, dx, *rgrid, pot, atom);
+                        //tmp.e = -.159;
                         tmp.n = n;
                         tmp.j = j;
                         tmp.m = 0;
                         tmp.l = l;
-                        tmp.e = res.energy;
+                        std::cout << n << "\t" << l << "\t" << j << "\t";
+                        res = find_basis<scalar>( tmp, dx, *rgrid, pot, 1e-13);
+                        tmp.e = res.energy;     //the energy min for the next will be the correct energy for the last.
                         energies->push_back(tmp);
                         std::cout << res.energy << std::endl;
                         //we need to convert the wf to PetscReal, or PetscScalar...
+                        math::normalize(res.wf,*rgrid);
                         common::export_vector_binary(
                                 params->basis_function_filename(tmp),
                                 common::vector_type_change<scalar, write_type>(res.wf));
+                        std::cerr << n << "\t" << l << "\t" << j << "\t" << res.energy << std::endl;
+                        std::cerr << "=========================================" << std::endl;
+                        std::cerr << "=========================================" << std::endl;
+                        std::cerr << "=========================================" << std::endl;
+                        std::cerr << "=========================================" << std::endl;
                     }
                 }
-
-        //Need to combine the energy vectors... and ideally sort them...
-        for (auto a: *energies)
-            std::cout << a << std::endl;
-
-    };
-
+            }
+        };
 }

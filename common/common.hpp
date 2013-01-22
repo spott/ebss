@@ -23,7 +23,7 @@ struct BasisID {
     // j != 1,3 -> 0;
     PetscInt n,l,m,j;
     PetscScalar e;
-    bool operator<(const BasisID b)
+    bool operator<(const BasisID b) const
     {
         if (this->l < b.l)
             return true;
@@ -39,7 +39,7 @@ struct BasisID {
 };
 bool operator!=(const BasisID &a, const BasisID &b)
 {
-    if (a.l != b.l || a.n != b.n || a.m != b.m || a.e != b.e || a.j != b.j)
+    if (a.l != b.l || a.n != b.n || a.j != b.j || a.e != b.e || a.m != b.m )
         return true;
     else
         return false;
@@ -103,7 +103,7 @@ namespace common
         return v;
     }
 
-    std::string absolute_path(std::string rel_path)
+    std::string absolute_path(const std::string &rel_path)
     {
         if (rel_path[0] == '.')
         {
@@ -117,7 +117,7 @@ namespace common
             return rel_path;
     }
 
-    bool file_exists(std::string fname)
+    bool file_exists(const std::string &fname)
     {
         bool ret;
         std::ifstream f(fname);
@@ -131,10 +131,10 @@ namespace common
     }
 
     template<typename T>
-    T petsc_binary_read(std::string filename, MPI_Comm comm);
+    T petsc_binary_read(const std::string &filename, MPI_Comm comm);
 
     template<>
-    Vec petsc_binary_read<Vec>(std::string filename, MPI_Comm comm)
+    Vec petsc_binary_read<Vec>(const std::string &filename, MPI_Comm comm)
     {
         std::cerr << "importing " << filename << " into vector... " << std::endl;
         if (!file_exists(filename))
@@ -155,7 +155,7 @@ namespace common
     }
 
     template<>
-    Mat petsc_binary_read<Mat>(std::string filename, MPI_Comm comm)
+    Mat petsc_binary_read<Mat>(const std::string &filename, MPI_Comm comm)
     {
         std::cerr << "importing " << filename.c_str() << " into matrix... " << std::endl;
         if (!file_exists(filename))
@@ -175,7 +175,7 @@ namespace common
         return v;
     }
 
-    void petsc_binary_write(std::string filename, Mat v, MPI_Comm comm)
+    void petsc_binary_write(const std::string &filename, Mat v, MPI_Comm comm)
     {
         PetscViewer view;
         PetscViewerBinaryOpen(comm, filename.c_str(), FILE_MODE_WRITE, &view);
@@ -183,7 +183,7 @@ namespace common
         PetscViewerDestroy(&view);
     }
 
-    void petsc_binary_write(std::string filename, Vec v, MPI_Comm comm)
+    void petsc_binary_write(const std::string &filename, Vec v, MPI_Comm comm)
     {
         PetscViewer view;
         PetscViewerBinaryOpen(comm, filename.c_str(), FILE_MODE_WRITE, &view);
@@ -204,7 +204,7 @@ namespace common
         return out;
     }
     template <typename T1, typename T2>
-    std::vector<T2> vector_type_change(std::vector<T1> in)
+    std::vector<T2> vector_type_change(const std::vector<T1> &in)
     {
         std::vector<T2> out(in.size());
 
@@ -217,7 +217,7 @@ namespace common
     }
 
     template <>
-    std::vector<PetscReal> vector_type_change(std::vector<PetscScalar> in)
+    std::vector<PetscReal> vector_type_change(const std::vector<PetscScalar> &in)
     {
         std::vector<PetscReal> out(in.size());
 
@@ -231,7 +231,7 @@ namespace common
     /* Merge Vectors... (and sort?) 
      * sorting requires the > and < operators to be overloaded*/
     template <typename T>
-    std::vector<T> merge_vectors(std::vector<T> v1, std::vector<T> v2)
+    std::vector<T> merge_vectors(const std::vector<T> &v1, const std::vector<T> &v2)
     {
         std::vector<T> out( v1.size() + v2.size() );
 
@@ -249,7 +249,7 @@ namespace common
     }
 
     template <typename T>
-    void export_vector_binary(const std::string filename, const std::vector<T>& out)
+    void export_vector_binary(const std::string &filename, const std::vector<T>& out)
     {
         std::ios::pos_type size;
         std::ofstream file;
@@ -267,7 +267,7 @@ namespace common
     };
 
     template <typename T>
-    std::vector<T> import_vector_binary(const std::string filename)
+    std::vector<T> import_vector_binary(const std::string &filename)
     {
         std::ios::pos_type size;
         std::ifstream file;
@@ -300,7 +300,7 @@ namespace common
    };
 
     template <typename T>
-    void export_vector_ascii(const std::string filename, const std::vector<T>& out)
+    void export_vector_ascii(const std::string &filename, const std::vector<T>& out)
     {
         std::ios::pos_type size;
         std::ofstream file;
@@ -323,7 +323,7 @@ namespace common
     }
 
     template <typename T>
-    std::vector<T> import_vector_ascii(const std::string filename)
+    std::vector<T> import_vector_ascii(const std::string &filename)
     {
         char* buffer;
         std::vector<T> vec;
@@ -457,7 +457,7 @@ namespace common
    };
 
    template <typename T>
-   Mat populate_matrix(const Parameters params,
+   Mat populate_matrix(const Parameters &params,
                        std::function<bool (int,int)> test,
                        std::function<T (int,int)> find_value,
                        const unsigned int mat_size_m,

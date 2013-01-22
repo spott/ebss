@@ -32,7 +32,7 @@ int signum(T x) {
 }
 
 template <typename scalar>
-scalar CGCoefficient(BasisID init, BasisID fin)
+scalar CGCoefficient(const BasisID &init, const BasisID &fin)
 {
     scalar out = 0;
     out = gsl_sf_coupling_3j(init.l*2, 2, fin.l*2, 0, 0, 0);
@@ -45,7 +45,7 @@ scalar CGCoefficient(BasisID init, BasisID fin)
 
 
 template <typename scalar>
-scalar integrateSimpsonsRule(std::vector<scalar> psi1, std::vector<scalar> psi2, std::vector<scalar> grid)
+scalar integrateSimpsonsRule(const std::vector<scalar> &psi1, const std::vector<scalar> &psi2, const std::vector<scalar> &grid)
 {
     //check for correct size!
     if (psi1.size() != psi2.size() || psi1.size() != grid.size() )
@@ -105,7 +105,7 @@ scalar integrateSimpsonsRule(std::vector<scalar> psi1, std::vector<scalar> psi2,
 
 
 template <typename scalar>
-scalar integrateTrapezoidRule(std::vector<scalar> psi1, std::vector<scalar> psi2, std::vector<scalar> grid)
+scalar integrateTrapezoidRule(const std::vector<scalar> &psi1, const std::vector<scalar> &psi2, const std::vector<scalar> &grid)
 {
     //check for correct size!
     if (psi1.size() != psi2.size() || psi1.size() != grid.size() )
@@ -123,7 +123,7 @@ scalar integrateTrapezoidRule(std::vector<scalar> psi1, std::vector<scalar> psi2
 }
 
 template <typename scalar>
-scalar integrateGrid(std::vector<scalar> psi1, std::vector<scalar> psi2, std::vector<scalar> grid)
+scalar integrateGrid(const std::vector<scalar> &psi1, const std::vector<scalar> &psi2, const std::vector<scalar> &grid)
 {
     scalar b = integrateTrapezoidRule(psi1, psi2, grid);
     //scalar a = integrateSimpsonsRule(psi1, psi2, grid);
@@ -158,7 +158,7 @@ scalar normalize(std::vector<scalar> &wf, const std::vector<scalar> &grid)
 }
 
 
-inline std::complex<double> Gamma_Lanczos ( std::complex<double> z)
+inline std::complex<double> Gamma_Lanczos (std::complex<double> z)
 {
 
     std::complex<double> x,t;
