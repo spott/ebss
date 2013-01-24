@@ -41,8 +41,9 @@ public:
     PetscReal t_after() const;
     std::string laser_filename() const;
     PetscReal pulse_length() const;
-    PetscScalar envelope(PetscReal t, PetscReal t_start);
-    virtual PetscScalar efield(PetscReal t);
+    PetscScalar envelope(PetscReal t, PetscReal t_start) const;
+    virtual PetscScalar efield(const PetscReal t, const PetscReal phase) const;
+    virtual PetscScalar efield(const PetscReal t) const;
 
     virtual std::string print() const;
 
@@ -148,7 +149,7 @@ PetscReal LaserParameters::t_after() const { return t_after_; }
 PetscReal LaserParameters::pulse_length() const { return ((math::PI * 2 * cycles()) / frequency()); }
 std::string LaserParameters::laser_filename() const { return std::string(laser_filename_); }
 
-PetscScalar LaserParameters::envelope(PetscReal t, PetscReal t_start)
+PetscScalar LaserParameters::envelope(PetscReal t, PetscReal t_start) const
 {
     if (t < t_start || t > t_start + pulse_length())
         return 0;
@@ -157,16 +158,21 @@ PetscScalar LaserParameters::envelope(PetscReal t, PetscReal t_start)
     return efield;
 }
 
-
 PetscScalar 
-LaserParameters::efield(PetscReal t)
+LaserParameters::efield(PetscReal t, PetscReal phase) const
 {
     if (t * this->frequency()/(this->cycles() * 2) > math::PI || t < 0)
         return 0.0;
     PetscReal efield = std::sqrt(this->intensity());
     return efield 
         * std::pow( std::sin( this->frequency() * t / (this->cycles() * 2) ) ,2) 
-        * std::sin( this->frequency() * t + this->cep() );
+        * std::sin( this->frequency() * t + phase );
+}
+
+PetscScalar 
+LaserParameters::efield(PetscReal t) const
+{
+    return this->efield(t, this->cep() );
 }
 
 

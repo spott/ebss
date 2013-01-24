@@ -29,12 +29,12 @@ public:
     //call after parsing
     void get_parameters();
 
-    bool in_pulse(PetscReal t);
+    bool in_pulse(PetscReal t) const;
     std::vector<double> spacing() const;
     std::vector<double> phase() const;
-    virtual PetscScalar efield(PetscReal t);
-    PetscReal max_time();
-    PetscReal next_pulse_start(PetscReal t);
+    virtual PetscScalar efield(PetscReal t) const; 
+    PetscReal max_time() const;
+    PetscReal next_pulse_start(PetscReal t) const;
 
     void save_parameters() const;
     std::string print() const;
@@ -54,10 +54,10 @@ std::vector<double> PulsetrainParameters::spacing() const
     for(size_t i = 0; i < sau.size(); i++)
     {
         sau[i] = spacing_[i] / 0.024188843265; //translate to AU
-        tmp = std::floor( (total + sau[i]) * frequency() / (2 * math::PI) );
-        //std::cout << s_au[i] << ", " << tmp << std::endl;
-        sau[i] = (tmp * 2 * math::PI + pha[i]) / frequency() - total;
-        total += sau[i];
+        //tmp = std::floor( (total + sau[i]) * frequency() / (2 * math::PI) );
+        ////std::cout << s_au[i] << ", " << tmp << std::endl;
+        //sau[i] = (tmp * 2 * math::PI + pha[i]) / frequency() - total;
+        //total += sau[i];
     }
     //however, our spacing isn't exact:
     //divide the spacing by the period (multiply by the frequency?), drop the remainder, and
@@ -66,7 +66,7 @@ std::vector<double> PulsetrainParameters::spacing() const
     return sau;
 }
 
-bool PulsetrainParameters::in_pulse(PetscReal t)
+bool PulsetrainParameters::in_pulse(PetscReal t) const
 {
     double tot_time = 0;
     for (size_t i = 0; i < s_au.size(); i++)
@@ -78,7 +78,7 @@ bool PulsetrainParameters::in_pulse(PetscReal t)
     return true;
 }
 
-PetscReal PulsetrainParameters::next_pulse_start(PetscReal t)
+PetscReal PulsetrainParameters::next_pulse_start(PetscReal t) const
 {
     PetscReal start = 0;
     PetscReal total = 0;
@@ -91,7 +91,7 @@ PetscReal PulsetrainParameters::next_pulse_start(PetscReal t)
     return 0;
 }
 
-PetscReal PulsetrainParameters::max_time()
+PetscReal PulsetrainParameters::max_time() const
 {
     double tot;
     for (auto a: s_au)
@@ -108,23 +108,20 @@ std::vector<double> PulsetrainParameters::phase() const
         return std::vector<double>(spacing_.size(),0);
 }
 
-PetscScalar PulsetrainParameters::efield(PetscReal t)
+PetscScalar PulsetrainParameters::efield(PetscReal t) const
 {
     //find the start of the pulse:
     PetscReal total = 0;
-    std::vector<PetscReal> starts(s_au.size());
-    for (size_t i = 0; i < s_au.size(); i++)
-    {
-        total += s_au[i];
-        starts[i] = total;
-    }
-
+    std::vector<double> ph = phase();
     if (in_pulse(t))
     {
         PetscScalar efield = 0;
-        for(const auto &a : starts)
-            efield += std::sqrt(this->intensity()) * envelope(t, a);
-        efield *= std::sin( this->frequency() * t);
+        for (size_t i = 0; i < s_au.size(); i++)
+        {
+            efield += LaserParameters::efield(t - total, ph[i]);
+            total += s_au[i];
+        }
+        efield += LaserParameters::efield(t - total, ph.back());
         return efield;
     }
     else
