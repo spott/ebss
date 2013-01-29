@@ -191,13 +191,16 @@ namespace numerov
                 }
                 if (in_well == true)
                 {
-                    w[1] = rgrid.size();
+                    w[1] = rgrid.size() - 1;
                     wells.push_back(w);
                 }
 
                 std::cerr << "wells: " << std::endl;
                 for (auto a: wells)
+                {
                     std::cerr << a[0] << ", " << a[1] << std::endl;
+                    std::cerr << rgrid[a[0]] << ", " << rgrid[a[1]] << std::endl;
+                }
                 //if (wells.size() == 0)
                 //{
                     //w[1] = rgrid.size();
@@ -205,21 +208,30 @@ namespace numerov
                 //}
 
                 if (wells.size() >=2 && state.j == 2 * state.l - 1)
+                {
                     messiness = wells[0][1];
+                }
+                else if (wells.size() == 1 && state.j == 2 * state.l - 1)
+                {
+                    messiness = wells[0][1];
+                }
                 else
                     messiness = 10;
 
                 w = *std::max_element(wells.begin(),
                                  wells.end(), 
-                                 [](std::array< int, 2 > a, std::array< int, 2 > b) 
-                                            { return (a[1]-a[2] < b[1]-b[0]); } 
+                                 [=](std::array< int, 2 > a, std::array< int, 2 > b) 
+                                            { 
+                                                return ( (rgrid[a[1]] - rgrid[a[0]]) < (rgrid[b[1]]- rgrid[b[0]])); 
+                                            }
                                 );
+
                 current.turnover = w[1];
 
                 if (w[1] != -1 && w[1] < rgrid.size())
                     std::cerr << " turnover: " << current.turnover << " r[turnover]: " << rgrid[current.turnover] << std::endl;
                 else
-                    std::cerr << " turnover: " << current.turnover << " wells.size() " << wells.size() << " wells: " << wells.front()[0] << std::endl;
+                    std::cerr << " turnover: " << current.turnover << " wells.size() " << wells.size() << " wells: " << wells.front()[0] << ", " << wells.front()[1] << std::endl;
 
                 //The wavefunction should NOT have a classical turning point before this:
                 if (current.turnover <= messiness || current.turnover > (rgrid.size() - 2) )

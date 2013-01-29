@@ -7,6 +7,7 @@ typedef struct {
     HamiltonianParameters<PetscReal> *hparams;
     PulsetrainParameters *laser;
     AbsorberParameters *absorber;
+    DipoleParameters *dipole;
 } context;
 
 namespace cranknicholson
@@ -86,6 +87,7 @@ solve(Vec *wf, context* cntx, Mat *A)
     VecAssemblyEnd(prob);
 
     std::vector< std::array<PetscReal, 2> > efvec;
+    std::vector< std::array<PetscReal, 2> > dipole;
 
     while (t < maxtime)
     {
@@ -163,7 +165,10 @@ solve(Vec *wf, context* cntx, Mat *A)
             zero++;
         }
         if (!(step%100))
+        {
             efvec.push_back({ {t, ef.real()} });
+            dipole.push_back({ {t, cntx->dipole->find_dipole_moment(*(cntx->D), *wf) } } );
+        }
         if (!(step%100))
         {
             VecCopy(*wf, prob);
@@ -185,6 +190,7 @@ solve(Vec *wf, context* cntx, Mat *A)
     VecView(*wf,view);
 
     if (cntx->hparams->rank() == 0) common::export_vector_binary( cntx->laser->laser_filename() , efvec);
+    if (cntx->hparams->rank() == 0) common::export_vector_binary( cntx->dipole->dipole_filename() , dipole);
     KSPDestroy(&ksp);
     std::cerr << "leaving cranknicholson" << std::endl;
     return 0;

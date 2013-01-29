@@ -4,6 +4,7 @@
 #include<common/parameters/PulsetrainParameters.hpp>
 #include<common/parameters/StateParameters.hpp>
 #include<common/parameters/AbsorberParameters.hpp>
+#include<common/parameters/DipoleParameters.hpp>
 #include<common/common.hpp>
 #include<common/output.hpp>
 #include<propagate/cranknicholson.hpp>
@@ -51,6 +52,7 @@ main(int argc, const char ** argv)
     PulsetrainParameters *lparams = new PulsetrainParameters(argc, argv, MPI_COMM_WORLD);
     AbsorberParameters *aparams = new AbsorberParameters(argc, argv, MPI_COMM_WORLD);
     StateParameters *sparams = new StateParameters(argc, argv, MPI_COMM_WORLD);
+    DipoleParameters *dparams = new DipoleParameters(argc, argv, MPI_COMM_WORLD);
 
     auto empty_states_index  = sparams->empty_states_index( params->prototype() );
     if (params->rank() == 0)
@@ -59,12 +61,14 @@ main(int argc, const char ** argv)
         std::cout << lparams->print();
         std::cout << aparams->print();
         std::cout << sparams->print();
+        std::cout << dparams->print();
 
         common::export_vector_ascii(std::string("./prototype.csv"), params->prototype() );
         //params->save_parameters();
         lparams->save_parameters();
         aparams->save_parameters();
         sparams->save_parameters();
+        dparams->save_parameters();
     }
 
 
@@ -79,6 +83,7 @@ main(int argc, const char ** argv)
     cntx->hparams = params;
     cntx->laser = lparams;
     cntx->absorber = aparams;
+    cntx->dipole = dparams;
     cntx->H = &H;
     cntx->D = &D;
 
