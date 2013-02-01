@@ -148,7 +148,7 @@ namespace numerov
 
             bool converged = false;
 
-            while (!converged)
+            while (!converged && current.iteration < 1000)
             {
                 std::cerr << current << std::endl;
                 current.iteration++;
