@@ -89,7 +89,7 @@ run_template = """
 mkdir {directory}
 cd {directory}
 
-sem -j{proc} propagate \\
+sem -j{proc} `propagate \\
     -hamiltonian_config {hamiltonian} \\
     -laser_config {laser_defaults} \\
     -absorber_config {absorber_defaults} \\
@@ -97,7 +97,7 @@ sem -j{proc} propagate \\
     -pulsetrain_config {pulsetrain_defaults} \\
 {parameters}    -not_shared_tmp \\
     -log_summary \\
-    > ./stdout
+    > ./stdout`
 
 cd ../
 """
