@@ -68,6 +68,7 @@ que_template = """#!/bin/bash
 
 reuse .openmpi-1.6_gcc-4.7.1_torque-2.5.11_ib
 reuse GSL
+reuse Parallel
 
 cd /home/ansp6066/code/ebss/propagate/
 
