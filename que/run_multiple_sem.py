@@ -87,9 +87,8 @@ cd $PBS_O_WORKDIR
 
 run_template = """
 mkdir {directory}
-cd {directory}
 
-sem -j{proc} `propagate \\
+sem -j{proc} --files cd {directory} ";" propagate \\
     -hamiltonian_config {hamiltonian} \\
     -laser_config {laser_defaults} \\
     -absorber_config {absorber_defaults} \\
@@ -98,9 +97,6 @@ sem -j{proc} `propagate \\
     -dipole_filename ./dipole.dat \\
 {parameters}    -not_shared_tmp \\
     -log_summary \\
-    > ./stdout`
-
-cd ../
 """
 
 #make tensor product list:
@@ -127,6 +123,7 @@ for p in parameter_sets:
         directory += i[0][1:] + "_" + i[1] + "_"
         paramstring += "    " + i[0] + " " + i[1] + " \\\n"
     qftext += run_template.format(
+        jobname = args.jobname_prefix + "propagate",
         directory = directory,
         proc = args.nodes * args.ppn,
         hamiltonian = argdict["hamiltonian_config"],
@@ -136,6 +133,7 @@ for p in parameter_sets:
         pulsetrain_defaults = argdict["pulsetrain_defaults"],
         parameters = paramstring)
 
+qftext += "\nsem --wait"
 print(qftext)
 
 exit(0)
