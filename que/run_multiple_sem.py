@@ -95,6 +95,7 @@ sem -j{proc} `propagate \\
     -absorber_config {absorber_defaults} \\
     -state_config {state_defaults} \\
     -pulsetrain_config {pulsetrain_defaults} \\
+    -dipole_filename ./dipole.dat \\
 {parameters}    -not_shared_tmp \\
     -log_summary \\
     > ./stdout`
