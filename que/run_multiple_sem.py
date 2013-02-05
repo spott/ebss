@@ -54,6 +54,7 @@ argdict["laser_defaults"] = os.path.abspath(argdict["laser_defaults"])
 argdict["absorber_defaults"] = os.path.abspath(argdict["absorber_defaults"])
 argdict["state_defaults"] = os.path.abspath(argdict["state_defaults"])
 argdict["pulsetrain_defaults"] = os.path.abspath(argdict["pulsetrain_defaults"])
+argdict["jobname_prefix"] = argdict["jobname_prefix"]+''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(4))
 
 #print(argdict)
 que_template = """#!/bin/bash
@@ -88,7 +89,7 @@ cd $PBS_O_WORKDIR
 run_template = """
 mkdir {directory}
 
-sem -j{proc} --files cd {directory} ";" propagate \\
+sem --id $PBS_JOBID -j{proc} --files cd {directory} ";" propagate \\
     -hamiltonian_config {hamiltonian} \\
     -laser_config {laser_defaults} \\
     -absorber_config {absorber_defaults} \\
@@ -111,7 +112,7 @@ parameter_sets = itertools.product(*parameters)
 
 #make the que text:
 qftext = que_template.format(
-    jobname = args.jobname_prefix + "propagate",
+    jobname = argdict["jobname_prefix"],
     time = args.time,
     nodes = args.nodes,
     ppn = args.ppn)
@@ -123,7 +124,7 @@ for p in parameter_sets:
         directory += i[0][1:] + "_" + i[1] + "_"
         paramstring += "    " + i[0] + " " + i[1] + " \\\n"
     qftext += run_template.format(
-        jobname = args.jobname_prefix + "propagate",
+        key = argdict["jobname_prefix"],
         directory = directory,
         proc = args.nodes * args.ppn,
         hamiltonian = argdict["hamiltonian_config"],
@@ -133,7 +134,7 @@ for p in parameter_sets:
         pulsetrain_defaults = argdict["pulsetrain_defaults"],
         parameters = paramstring)
 
-qftext += "\nsem --wait"
+qftext += "\nsem --id $PBS_JOBID --wait"
 print(qftext)
 
 exit(0)
