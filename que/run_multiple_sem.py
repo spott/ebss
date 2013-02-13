@@ -8,7 +8,21 @@ import subprocess
 import stat
 import re
 import time
+import random
+import string
 
+#def grouper(n, l):
+        #return [l[j:j+n] for j in range(0, len(l), n)]
+
+def grouper(n, iterable):
+    i = iter(iterable)
+    piece = list(itertools.islice(i, n))
+    while piece:
+        yield piece
+        piece = list(itertools.islice(i, n))
+#def grouper(n, iterable, padvalue=None):
+    #"""grouper(3, 'abcdefg', 'x') --> ('a','b','c'), ('d','e','f'), ('g','x','x')"""
+    #return itertools.izip(*[itertools.chain(iterable, itertools.repeat(padvalue, n-1))]*n)
 
 parser = argparse.ArgumentParser(description='Run a number of different jobs with a set of common configs, but small differences')
 
@@ -54,13 +68,14 @@ argdict["laser_defaults"] = os.path.abspath(argdict["laser_defaults"])
 argdict["absorber_defaults"] = os.path.abspath(argdict["absorber_defaults"])
 argdict["state_defaults"] = os.path.abspath(argdict["state_defaults"])
 argdict["pulsetrain_defaults"] = os.path.abspath(argdict["pulsetrain_defaults"])
+argdict["jobname_prefix"] = "propagate" #argdict["jobname_prefix"]+''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(4))
 
 #print(argdict)
 que_template = """#!/bin/bash
 
 #PBS -N {jobname}
 #PBS -l walltime={time}
-#PBS -l nodes={nodes}:ppn={ppn}
+#PBS -l nodes=1:ppn={ppn}
 #PBS -m abe
 #PBS -M andrew.spott@gmail.com
 
@@ -72,8 +87,8 @@ reuse Parallel
 
 cd /home/ansp6066/code/ebss/propagate/
 
-make clean
-make all
+#make clean
+#make all
 
 echo "
 
@@ -88,13 +103,15 @@ cd $PBS_O_WORKDIR
 run_template = """
 mkdir {directory}
 
-sem -j{proc} --files cd {directory} ";" propagate \\
+sem --id $PBS_JOBID -j{proc} --files cd {directory} ";" propagate \\
     -hamiltonian_config {hamiltonian} \\
     -laser_config {laser_defaults} \\
     -absorber_config {absorber_defaults} \\
     -state_config {state_defaults} \\
     -pulsetrain_config {pulsetrain_defaults} \\
+    -dipole_filename ./dipole.dat \\
 {parameters}    -not_shared_tmp \\
+    -viewer_binary_skip_info \\
     -log_summary \\
 """
 
@@ -108,32 +125,37 @@ for p in argdict["param_list"]:
 
 parameter_sets = itertools.product(*parameters)
 
+filenum = 0
 #make the que text:
-qftext = que_template.format(
-    jobname = args.jobname_prefix + "propagate",
-    time = args.time,
-    nodes = args.nodes,
-    ppn = args.ppn)
+pss = grouper(args.nodes * args.ppn, parameter_sets)
+for a in pss:
+    qftext = que_template.format(
+            jobname = argdict["jobname_prefix"],
+            time = args.time,
+            nodes = args.nodes,
+            ppn = args.ppn)
 
-for p in parameter_sets:
-    directory = ""
-    paramstring = ""
-    for i in p:
-        directory += i[0][1:] + "_" + i[1] + "_"
-        paramstring += "    " + i[0] + " " + i[1] + " \\\n"
-    qftext += run_template.format(
-        jobname = args.jobname_prefix + "propagate",
-        directory = directory,
-        proc = args.nodes * args.ppn,
-        hamiltonian = argdict["hamiltonian_config"],
-        laser_defaults = argdict["laser_defaults"],
-        absorber_defaults = argdict["absorber_defaults"],
-        state_defaults = argdict["state_defaults"],
-        pulsetrain_defaults = argdict["pulsetrain_defaults"],
-        parameters = paramstring)
+    for p in a:
+        directory = ""
+        paramstring = ""
+        for i in p:
+            directory += i[0][1:] + "_" + i[1] + "_"
+            paramstring += "    " + i[0] + " " + i[1] + " \\\n"
+        qftext += run_template.format(
+                key = argdict["jobname_prefix"],
+                directory = directory,
+                proc = args.ppn,
+                hamiltonian = argdict["hamiltonian_config"],
+                laser_defaults = argdict["laser_defaults"],
+                absorber_defaults = argdict["absorber_defaults"],
+                state_defaults = argdict["state_defaults"],
+                pulsetrain_defaults = argdict["pulsetrain_defaults"],
+                parameters = paramstring)
 
-qftext += "\nsem --wait"
-print(qftext)
+    qftext += "\nsem --id $PBS_JOBID --wait"
+    qf = file("que" + str(filenum),'w')
+    qf.write(qftext)
+    filenum += 1
 
 exit(0)
 

@@ -105,17 +105,17 @@ for p in argdict["param_list"]:
 parameter_sets = itertools.product(*parameters)
 
 #compile the code:
-try:
-    dir = os.getcwd()
-    os.chdir("/home/ansp6066/code/ebss/propagate/")
-    out = subprocess.check_output(["make","clean"])
-    out += subprocess.check_output(["make","all"])
-    print(out)
-    os.chdir(dir)
-except subprocess.CalledProcessError:
-    print("make returned an error")
-    exit()
-
+#try:
+#    dir = os.getcwd()
+#    os.chdir("/home/ansp6066/code/ebss/propagate/")
+#    out = subprocess.check_output(["make","clean"])
+#    out += subprocess.check_output(["make","all"])
+#    print(out)
+#    os.chdir(dir)
+#except subprocess.CalledProcessError:
+#    print("make returned an error")
+#    exit()
+#
 
 
 for p in parameter_sets:
