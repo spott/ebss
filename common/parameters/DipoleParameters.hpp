@@ -21,7 +21,6 @@ public:
         opt.parse(argc, argv);
 
         get_parameters();
-
     };
 
     DipoleParameters(MPI_Comm comm): Parameters(comm){
@@ -111,6 +110,9 @@ std::string DipoleParameters::print() const
 {
     std::ostringstream out;
     out << "dipole_filename: " << dipole_filename_ << std::endl;
+    file << "dipole_after_filename " << after_filename_ << std::endl;
+    file << "dipole_dt " << dt_ << std::endl;
+    file << "dipole_t_after " << t_after_ << std::endl;
     return out.str();
 }
 void DipoleParameters::save_parameters() const
@@ -118,6 +120,9 @@ void DipoleParameters::save_parameters() const
     std::ofstream file;
     file.open(std::string("./Dipole.config"));
     file << "-dipole_filename " << dipole_filename_ << std::endl;
+    file << "-dipole_after_filename " << after_filename_ << std::endl;
+    file << "-dipole_dt " << dt_ << std::endl;
+    file << "-dipole_t_after " << t_after_ << std::endl;
     file.close();
 }
 
