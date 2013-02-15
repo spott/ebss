@@ -32,6 +32,7 @@ public:
     void get_parameters();
 
     const std::string dipole_filename() const {return dipole_filename_; };
+    const std::string after_filename() const {return after_filename_; };
 
     PetscReal find_dipole_moment(Mat& dipole, Vec& psi);
 
@@ -39,11 +40,17 @@ public:
 
     void save_parameters() const;
 
+    PetscReal dt() const { return dt_ / 0.0241888432652; }; //change the fs to A.U.
+    PetscReal t_after() const { return t_after_ / 0.0241888432652; }; //ditto
+
 protected:
     ez::ezOptionParser opt;
     void register_parameters();
     bool findDipole;
     std::string dipole_filename_;
+    std::string after_filename_;
+    PetscReal dt_;
+    PetscReal t_after_;
     Vec tmp;
 
 };
@@ -93,6 +100,10 @@ void DipoleParameters::get_parameters()
 
     dipole_filename_ = common::absolute_path(dipole_filename_);
 
+    opt.get("-dipole_dt")->getDouble(dt_);
+    opt.get("-dipole_t_after")->getDouble(t_after_);
+    opt.get("-dipole_after_filename")->getString(after_filename_); 
+
     tmp = PETSC_NULL;
 }
 
@@ -126,12 +137,36 @@ void DipoleParameters::register_parameters()
             "--usage" // Flag token.
            );
     opt.add(
+            ".1",
+            1,
+            1,
+            0,
+            "dt after (in fs)",
+            std::string(prefix).append("dt\0").c_str()
+           );
+    opt.add(
+            "10000",
+            1,
+            1,
+            0,
+            "t after (in fs)",
+            std::string(prefix).append("t_after\0").c_str()
+           );
+    opt.add(
             "Dipole.dat",
             0,
             1,
             0,
             "dipole filename",
             std::string(prefix).append("filename\0").c_str()
+           );
+    opt.add(
+            "after.dat",
+            0,
+            1,
+            0,
+            "after the pulses filename for the dipole",
+            std::string(prefix).append("after_filename\0").c_str()
            );
     opt.add(
             "",

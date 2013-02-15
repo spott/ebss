@@ -41,6 +41,34 @@ scalar CGCoefficient(const BasisID &init, const BasisID &fin)
     return out;
 }
 
+void FieldFreePropagate(Vec *H, Vec *wf, PetscReal dt) //propagate forward in time
+{
+    PetscReal norm1;
+    VecNorm(*wf,NORM_2 ,&norm1);
+    std::cout << "before: " << norm1-1 << std::endl;
+
+    //copy H:
+    Vec tmp;
+    VecDuplicate(*H, &tmp);
+    VecCopy(*H, tmp);
+
+    //scale by -I:
+    VecScale(tmp, std::complex<double>(0,-dt));
+
+    //exponentiate:
+    VecExp(tmp);
+
+    //pointwise mult:
+    VecPointwiseMult(*wf, *wf, tmp);
+
+    PetscReal norm2;
+    VecNorm(*wf,NORM_2 ,&norm2);
+    std::cout << "after: " << norm2-1 << " difference: " << norm1 - norm2 <<  std::endl;
+
+
+    VecDestroy(&tmp);
+}
+
 //I should split this into different methods, 
 
 

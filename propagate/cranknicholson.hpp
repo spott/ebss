@@ -1,4 +1,5 @@
 #pragma once
+
 #include<array>
 
 typedef struct {
@@ -12,34 +13,6 @@ typedef struct {
 
 namespace cranknicholson
 {
-
-void FieldFreePropagate(Vec *H, Vec *wf, PetscReal dt) //propagate forward in time
-{
-    PetscReal norm1;
-    VecNorm(*wf,NORM_2 ,&norm1);
-    std::cout << "before: " << norm1-1 << std::endl;
-    //copy H:
-    Vec tmp;
-    VecDuplicate(*H, &tmp);
-    VecCopy(*H, tmp);
-
-    //scale by -I:
-    VecScale(tmp, std::complex<double>(0,-dt));
-
-    //exponentiate:
-    VecExp(tmp);
-
-
-    //pointwise mult:
-    VecPointwiseMult(*wf, *wf, tmp);
-
-    PetscReal norm2;
-    VecNorm(*wf,NORM_2 ,&norm2);
-    std::cout << "after: " << norm2-1 << " difference: " << norm1 - norm2 <<  std::endl;
-
-
-    VecDestroy(&tmp);
-}
 
 PetscErrorCode
 solve(Vec *wf, context* cntx, Mat *A)
@@ -133,7 +106,7 @@ solve(Vec *wf, context* cntx, Mat *A)
             std::cout << "analytically propagating the pulse: ";
             PetscReal dt = cntx->laser->next_pulse_start(t) - t; //the difference between then and now.
             std::cout << dt <<  std::endl;
-            FieldFreePropagate((cntx->H), wf, dt); //propagate forward in time
+            math::FieldFreePropagate((cntx->H), wf, dt); //propagate forward in time
             t = cntx->laser->next_pulse_start(t);
             ef = cntx->laser->efield(t);
             //write out the next zero:
@@ -188,9 +161,42 @@ solve(Vec *wf, context* cntx, Mat *A)
     PetscViewerASCIIOpen(cntx->hparams->comm(),file_name.c_str(),&view);
     PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
     VecView(*wf,view);
+    if (cntx->hparams->rank() == 0) 
+    {
+        try {
+            common::export_vector_binary( cntx->laser->laser_filename() , efvec);
+        } catch (...) {
+            std::cerr << "couldn't open the efvec file, oops... it won't be written to disk" << std::endl;
+        }
 
-    if (cntx->hparams->rank() == 0) common::export_vector_binary( cntx->laser->laser_filename() , efvec);
-    if (cntx->hparams->rank() == 0) common::export_vector_binary( cntx->dipole->dipole_filename() , dipole);
+        try {
+            common::export_vector_binary( cntx->dipole->dipole_filename() , dipole);
+        } catch (...) {
+            std::cerr << "couldn't open the dipole file, oops... it won't be written to disk" << std::endl;
+        }
+    }
+    //After the propagation through diffeq, we need to do the propagation after the fact to find the dipole 
+    //moment over time.  
+
+    std::vector< std::array< PetscReal, 2 > > after_dipole;
+    while ( t <= cntx->dipole->t_after() )
+    {
+        VecCopy(*wf, tmp);
+        math::FieldFreePropagate(cntx->H, &tmp, t);
+        after_dipole.push_back( {{ t,  cntx->dipole->find_dipole_moment(*(cntx->D), tmp) }} );
+        t += cntx->dipole->dt();
+    }
+
+    if (cntx->hparams->rank() == 0) 
+    {
+        try {
+            common::export_vector_binary( cntx->dipole->after_filename() , after_dipole);
+        } catch (...) {
+            std::cerr << "couldn't open the after_dipole file, oops... it won't be written to disk... NOOO!!" << std::endl;
+        }
+    }
+
+
     KSPDestroy(&ksp);
     std::cerr << "leaving cranknicholson" << std::endl;
     return 0;

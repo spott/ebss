@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 //stl
+#include<array>
 #include<iostream>
 #include<fstream>
 #include<vector>
