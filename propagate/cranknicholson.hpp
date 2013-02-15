@@ -158,8 +158,7 @@ solve(Vec *wf, context* cntx, Mat *A)
         }
     }
     file_name = std::string("./wf_final.dat");
-    PetscViewerASCIIOpen(cntx->hparams->comm(),file_name.c_str(),&view);
-    PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
+    PetscViewerBinaryOpen(cntx->hparams->comm(),file_name.c_str(),FILE_MODE_WRITE,&view);
     VecView(*wf,view);
     if (cntx->hparams->rank() == 0) 
     {
