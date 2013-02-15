@@ -39,6 +39,8 @@ parser.add_argument('-state_defaults', default="./State.config",
                       help='The config file with all the defaults for the state')
 parser.add_argument('-pulsetrain_defaults', default="./Pulsetrain.config",
                       help='The config file with all the defaults for the pulsetrain')
+parser.add_argument('-dipole_defaults', default="./Dipole.config",
+                      help='The config file with all the defaults for the pulsetrain')
 
 #PBS stuff:
 parser.add_argument('-ppn', type=int, default=12,
@@ -109,7 +111,7 @@ sem --id $PBS_JOBID -j{proc} --files cd {directory} ";" propagate \\
     -absorber_config {absorber_defaults} \\
     -state_config {state_defaults} \\
     -pulsetrain_config {pulsetrain_defaults} \\
-    -dipole_filename ./dipole.dat \\
+    -dipole_config {dipole_defaults} \\
 {parameters}    -not_shared_tmp \\
     -viewer_binary_skip_info \\
     -log_summary \\
@@ -150,6 +152,7 @@ for a in pss:
                 absorber_defaults = argdict["absorber_defaults"],
                 state_defaults = argdict["state_defaults"],
                 pulsetrain_defaults = argdict["pulsetrain_defaults"],
+                dipole_defaults = argdict["dipole_defaults"],
                 parameters = paramstring)
 
     qftext += "\nsem --id $PBS_JOBID --wait"
