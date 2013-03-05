@@ -70,6 +70,7 @@ argdict["laser_defaults"] = os.path.abspath(argdict["laser_defaults"])
 argdict["absorber_defaults"] = os.path.abspath(argdict["absorber_defaults"])
 argdict["state_defaults"] = os.path.abspath(argdict["state_defaults"])
 argdict["pulsetrain_defaults"] = os.path.abspath(argdict["pulsetrain_defaults"])
+argdict["dipole_defaults"] = os.path.abspath(argdict["dipole_defaults"])
 argdict["jobname_prefix"] = "propagate" #argdict["jobname_prefix"]+''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(4))
 
 #print(argdict)
