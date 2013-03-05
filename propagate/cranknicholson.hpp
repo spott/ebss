@@ -175,10 +175,11 @@ solve(Vec *wf, context* cntx, Mat *A)
         }
     }
     //After the propagation through diffeq, we need to do the propagation after the fact to find the dipole 
-    //moment over time.  
+    //moment over time.
+    
 
     std::vector< std::array< PetscReal, 2 > > after_dipole;
-    while ( t <= cntx->dipole->t_after() )
+    while ( t <= (cntx->dipole->t_after() + maxtime ))
     {
         VecCopy(*wf, tmp);
         math::FieldFreePropagate(cntx->H, &tmp, t);
