@@ -179,7 +179,7 @@ solve(Vec *wf, context* cntx, Mat *A)
     
 
     std::vector< std::array< PetscReal, 2 > > after_dipole;
-    while ( t <= (cntx->dipole->t_after() + maxtime ))
+    while ( (t - maxtime) <= cntx->dipole->t_after() )
     {
         VecCopy(*wf, tmp);
         math::FieldFreePropagate(cntx->H, &tmp, t);

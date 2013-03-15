@@ -115,7 +115,8 @@ sem --id $PBS_JOBID -j{proc} --files cd {directory} ";" propagate \\
     -dipole_config {dipole_defaults} \\
 {parameters}    -not_shared_tmp \\
     -viewer_binary_skip_info \\
-    -log_summary \\
+    -log_summary ";" \\
+    cd ../ ";" tar -zcf {directory}.tar.bz2 {directory}/ \\
 """
 
 #make tensor product list:

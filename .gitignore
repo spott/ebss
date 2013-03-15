@@ -2,3 +2,4 @@
 bin/*
 *.swo
 tmp/*
+makefile.include
