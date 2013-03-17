@@ -90,13 +90,12 @@ void DipoleParameters::get_parameters()
         }
     }
     if (opt.isSet("-dipole_filename"))
-    {
-        opt.get("-dipole_filename")->getString(dipole_filename_);
         findDipole = true;
-    }
     else
+
         findDipole = false;
 
+    opt.get("-dipole_filename")->getString(dipole_filename_);
     dipole_filename_ = common::absolute_path(dipole_filename_);
 
     opt.get("-dipole_dt")->getDouble(dt_);
