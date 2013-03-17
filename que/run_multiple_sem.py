@@ -76,6 +76,7 @@ argdict["jobname_prefix"] = "propagate" #argdict["jobname_prefix"]+''.join(rando
 #print(argdict)
 que_template = """#!/bin/bash
 
+#PBS -A UCB00000170
 #PBS -N {jobname}
 #PBS -l walltime={time}
 #PBS -l nodes=1:ppn={ppn}
@@ -116,7 +117,8 @@ sem --id $PBS_JOBID -j{proc} --files cd {directory} ";" propagate \\
 {parameters}    -not_shared_tmp \\
     -viewer_binary_skip_info \\
     -log_summary ";" \\
-    cd ../ ";" tar -zcf {directory}.tar.bz2 {directory}/ \\
+    cd ../ ";" tar -zcf {directory}.tar.gz {directory}/ "&&"\\
+    rm -rf {directory}/ ";"
 """
 
 #make tensor product list:

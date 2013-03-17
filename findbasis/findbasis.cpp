@@ -17,7 +17,7 @@ T hydrogen_pot(T r)
 
 
 template <typename T>
-T parameterized_pot(T r, const sae<T> &atom)
+T parameterized_pot(T r, const sae<T> &atom, const BasisID &state)
 {
     T a = 0;
     for( auto p: atom.params )
@@ -31,7 +31,7 @@ T parameterized_pot(T r, const sae<T> &atom)
 template <typename T>
 T parameterized_finestructure_pot(const T r, const sae<T> &atom, const BasisID &state)
 {
-    T a = parameterized_pot(r, atom);
+    T a = parameterized_pot(r, atom, state);
 
     T b = 0;
     for( auto p: atom.params )
@@ -41,6 +41,31 @@ T parameterized_finestructure_pot(const T r, const sae<T> &atom, const BasisID &
     b *= T( (T(state.j)/2.) * (T(state.j)/2. + 1.) - T(state.l) * (T(state.l)+1.) - 3./4. );
     b *= 1. / (4. * math::C * math::C * r);
     return a + b;
+}
+
+template <typename T>
+std::function< T (const T, BasisID) >  memoized_pot(const sae<T> &atom)
+{
+    BasisID state;
+    auto cache = std::make_shared<std::unordered_map< T, T> >();
+    auto func = std::bind(parameterized_pot<T>, std::placeholders::_1, std::cref(atom), std::placeholders::_2);
+    return ( [state, cache, func](const T r, BasisID s) mutable {
+            if (s != state)
+            {
+                cache->clear();
+                state = s;
+                (*cache)[r] = func(r, s);
+                return (*cache)[r];
+            }
+            else
+            {
+                if (cache->find(r) == cache->end())
+                {
+                    (*cache)[r] = func(r, state);
+                }
+                return (*cache)[r];
+            }
+        });
 }
 
 template <typename T>
@@ -122,6 +147,8 @@ int main(int argc, const char **argv)
 
     //call function to find all the energy states here:
     if (params->atom() == "hydrogen")
+        numerov::find_basis_set<scalar>( (memoized_pot<scalar>(hydrogen)), params, hydrogen);
+    if (params->atom() == "hydrogen-fs")
         numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(hydrogen)), params, hydrogen);
     if (params->atom() == "neon")
         numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(neon)), params, neon);
