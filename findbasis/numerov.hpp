@@ -141,14 +141,17 @@ namespace numerov
             current.energy = (10 * current.energy_upper + current.energy_lower)/11;
 
             //Then we screw things up:
-            current.energy_upper = 2;
+            if (current.energy_upper - current.energy_lower < 1.)
+                current.energy_upper = current.energy_lower + 1.;
+            else
+                current.energy_upper = 2;
             current.de = 1e-3; //we don't want to converge to quickly
             std::cerr << state << std::endl;
             std::cerr << "energy_upper: " << current.energy_upper << " energy_lower: " << current.energy_lower << " energy: " << current.energy << std::endl;
 
             bool converged = false;
 
-            while (!converged && current.iteration < 1000)
+            while (!converged && current.iteration < 5000)
             {
                 std::cerr << current << std::endl;
                 current.iteration++;
