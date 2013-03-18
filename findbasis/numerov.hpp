@@ -136,7 +136,7 @@ namespace numerov
             current.energy_lower = std::max(scalar(state.e.real()), current.energy_lower);
 
             if (current.energy_upper < current.energy_lower)
-                current.energy_upper = 2;
+                current.energy_upper = current.energy_lower+1;
             //The energy guess is an average of the lowest and the highest, but biased towards the highest:
             current.energy = (10 * current.energy_upper + current.energy_lower)/11;
 
