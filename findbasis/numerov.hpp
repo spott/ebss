@@ -143,8 +143,9 @@ namespace numerov
             //Then we screw things up:
             if (current.energy_upper - current.energy_lower < 1.)
                 current.energy_upper = current.energy_lower + 1.;
-            else
-                current.energy_upper = 2;
+            //else if (current.energy_upper - current.energy_lower > 1.)
+                //current.energy_upper = 2;
+                
             current.de = 1e-3; //we don't want to converge to quickly
             std::cerr << state << std::endl;
             std::cerr << "energy_upper: " << current.energy_upper << " energy_lower: " << current.energy_lower << " energy: " << current.energy << std::endl;
