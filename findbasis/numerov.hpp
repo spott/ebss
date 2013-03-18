@@ -136,13 +136,13 @@ namespace numerov
             current.energy_lower = std::max(scalar(state.e.real()), current.energy_lower);
 
             if (current.energy_upper < current.energy_lower)
-                current.energy_upper = current.energy_lower+1;
+                current.energy_upper = current.energy_lower + .5;
             //The energy guess is an average of the lowest and the highest, but biased towards the highest:
-            current.energy = (10 * current.energy_upper + current.energy_lower)/11;
+            current.energy = (5 * current.energy_upper + current.energy_lower)/11;
 
             //Then we screw things up:
             if (current.energy_upper - current.energy_lower < 1.)
-                current.energy_upper = current.energy_lower + 1.;
+                current.energy_upper = current.energy_lower + .5;
             //else if (current.energy_upper - current.energy_lower > 1.)
                 //current.energy_upper = 2;
                 
@@ -217,7 +217,10 @@ namespace numerov
                 }
                 else if (wells.size() == 1 && state.j == 2 * state.l - 1)
                 {
-                    messiness = wells[0][1];
+                    if ( rgrid[ wells[0][1] ] < 1. )
+                        messiness = wells[0][1];
+                    else
+                        messiness = wells[0][0]/2;
                 }
                 else
                     messiness = 10;
