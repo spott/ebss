@@ -9,20 +9,7 @@
 #include<common/common.hpp>
 #include<limits>
 #include<common/math.hpp>
-
-template <typename T>
-struct sae_param {
-    int p;
-    T c, beta;
-};
-
-template <typename T>
-struct sae {
-    std::vector < sae_param<T> > params;
-    int Z;
-    int N;
-    T gs_energy;
-};
+#include<findbasis/single_active_electron.hpp>
 
 namespace numerov
 {
@@ -133,6 +120,8 @@ namespace numerov
                         );
             }
             //but the lowest the energy can get is the ground state or the last energy level.
+            //std::cerr << " energy_lower guess: " << current.energy_lower << std::endl;
+            //std::cerr << " gs_energy guess: " << state.e.real() << std::endl;
             current.energy_lower = std::max(scalar(state.e.real()), current.energy_lower);
 
             if (current.energy_upper < current.energy_lower)
@@ -480,31 +469,31 @@ namespace numerov
 
     template <typename scalar, typename write_type>
         void find_basis_set( std::function< scalar (scalar, BasisID) > pot, 
-                             BasisParameters<scalar, write_type> *params, 
+                             BasisParameters<scalar, write_type>& params, 
                              sae<scalar> atom)
         {
             int rank, num;
-            MPI_Comm_rank(params->comm(), &rank);
-            MPI_Comm_size(params->comm(), &num);
+            MPI_Comm_rank(params.comm(), &rank);
+            MPI_Comm_size(params.comm(), &num);
 
             //Make grid:
-            scalar xmin = std::log(params->rmin());
-            scalar xmax = std::log(params->rmax());
-            std::vector<scalar> xgrid(params->points());
+            scalar xmin = std::log(params.rmin());
+            scalar xmax = std::log(params.rmax());
+            std::vector<scalar> xgrid(params.points());
             for (size_t i = 0; i < xgrid.size(); i++)
-                xgrid[i] = xmin + i * (xmax-xmin)/params->points();
+                xgrid[i] = xmin + i * (xmax-xmin)/params.points();
             scalar dx = xgrid[1] - xgrid[0];
 
             //get rgrid vector pointer from parameters and screw with it.
-            std::vector<scalar> *rgrid = params->grid();
+            std::vector<scalar> *rgrid = params.grid();
             for (size_t i = 0; i < rgrid->size(); i++)
             {
                 rgrid->at(i) = std::exp(xgrid[i]);
             }
 
-            std::vector<BasisID> *energies = params->basis_prototype();
+            std::vector<BasisID> *energies = params.basis_prototype();
 
-            params->save_parameters();
+            params.save_parameters();
             basis<scalar> res;
             BasisID tmp;
 
@@ -514,7 +503,7 @@ namespace numerov
 
             if (rank==0) std::cout << "n\tl\tj\te" << std::endl;
             std::cout << std::scientific;
-            for (int l = rank; l <= params->lmax(); l += num)
+            for (int l = rank; l <= params.lmax(); l += num)
             {
                 //for each run through the "n's", start with an energy min of the gs,
                 if (l == 0)
@@ -528,7 +517,7 @@ namespace numerov
                             );
                     tmp.e -= std::abs(tmp.e)*.2;
                 }
-                for (int n = l+1; n <= params->nmax(); n++)
+                for (int n = l+1; n <= params.nmax(); n++)
                 {
                     for (int j = ((l>0)? 2 * l - 1 : 1); j <= ((l>0)? 2*l+1 : 1 ); j+=2)
                     {
@@ -545,7 +534,7 @@ namespace numerov
                         //we need to convert the wf to PetscReal, or PetscScalar...
                         math::normalize(res.wf,*rgrid);
                         common::export_vector_binary(
-                                params->basis_function_filename(tmp),
+                                params.basis_function_filename(tmp),
                                 common::vector_type_change<scalar, write_type>(res.wf));
                         std::cerr << n << "\t" << l << "\t" << j << "\t" << res.energy << std::endl;
                         std::cerr << "=========================================" << std::endl;

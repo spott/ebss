@@ -1,97 +1,14 @@
 #include<common/parameters/BasisParameters.hpp>
+#include<findbasis/single_active_electron.hpp>
 #include<findbasis/numerov.hpp>
-//#include<findbasis/finite_difference.hpp>
+#include<findbasis/finite_difference.hpp>
 //#include<common/special/bspline.hpp>
-#include<common/math.hpp>
+//#include<common/math.hpp>
 #include<functional>
-#include<unordered_map>
 
 #include<slepc.h>
 
 
-template <typename T>
-T hydrogen_pot(T r)
-{
-   return -1./r;
-}
-
-
-template <typename T>
-T parameterized_pot(T r, const sae<T> &atom, const BasisID &state)
-{
-    T a = 0;
-    for( auto p: atom.params )
-        a += p.c * std::pow(r, p.p) * std::exp(- p.beta * r);
-    a *= (atom.N-1);
-    a += 1 - atom.N + atom.Z;
-    a *= -1/r;
-   return a;
-}
-
-template <typename T>
-T parameterized_finestructure_pot(const T r, const sae<T> &atom, const BasisID &state)
-{
-    T a = parameterized_pot(r, atom, state);
-
-    T b = 0;
-    for( auto p: atom.params )
-        b += p.c * std::pow(r, p.p-2) * std::exp(- p.beta * r) * (1. - p.p + r * p.beta);
-    b *= T(atom.N-1);
-    b += 1./(r*r);
-    b *= T( (T(state.j)/2.) * (T(state.j)/2. + 1.) - T(state.l) * (T(state.l)+1.) - 3./4. );
-    b *= 1. / (4. * math::C * math::C * r);
-    return a + b;
-}
-
-template <typename T>
-std::function< T (const T, BasisID) >  memoized_pot(const sae<T> &atom)
-{
-    BasisID state;
-    auto cache = std::make_shared<std::unordered_map< T, T> >();
-    auto func = std::bind(parameterized_pot<T>, std::placeholders::_1, std::cref(atom), std::placeholders::_2);
-    return ( [state, cache, func](const T r, BasisID s) mutable {
-            if (s != state)
-            {
-                cache->clear();
-                state = s;
-                (*cache)[r] = func(r, s);
-                return (*cache)[r];
-            }
-            else
-            {
-                if (cache->find(r) == cache->end())
-                {
-                    (*cache)[r] = func(r, state);
-                }
-                return (*cache)[r];
-            }
-        });
-}
-
-template <typename T>
-std::function< T (const T, BasisID) >  memoized_finestructure_pot(const sae<T> &atom)
-{
-    BasisID state;
-    auto cache = std::make_shared<std::unordered_map< T, T> >();
-    auto func = std::bind(parameterized_finestructure_pot<T>, std::placeholders::_1, std::cref(atom), std::placeholders::_2);
-    return ( [state, cache, func](const T r, BasisID s) mutable {
-            if (s != state)
-            {
-                cache->clear();
-                state = s;
-                (*cache)[r] = func(r, s);
-                return (*cache)[r];
-            }
-            else
-            {
-                if (cache->find(r) == cache->end())
-                {
-                    (*cache)[r] = func(r, state);
-                }
-                return (*cache)[r];
-            }
-        });
-}
 
 typedef long double scalar;
 int main(int argc, const char **argv)
@@ -106,12 +23,20 @@ int main(int argc, const char **argv)
 
     SlepcInitialize(&ac, &av, PETSC_NULL, "FindBasis - Find a numerical basis");
 
-    BasisParameters<scalar> *params = new BasisParameters<scalar>(argc, argv, PETSC_COMM_WORLD);
+    BasisParameters<scalar> params(argc, argv, PETSC_COMM_WORLD);
 
     // print out the parameters
-    if (params->rank() == 0) 
-        std::cout << params->print();
+    if (params.rank() == 0) 
+        std::cout << params.print();
 
+    std::vector< sae_param<scalar> > argon_params{
+        {0, -0.14865117, 1.69045518},
+        {0, 1.14865117, 2.48113492},
+        {1, -2.01010923, 83.81780982},
+        {1, -0.01998004, 0.57781500},
+        {2, -20.01846287, 14.79181994},
+        {2, 0.53596000, 1.83863745}};
+    sae<scalar> argon = {argon_params, 18, 18, -114.45726722};
 
     std::vector< sae_param<scalar> > neon_params{
         {0, .46087879, 4.68014471},
@@ -146,25 +71,27 @@ int main(int argc, const char **argv)
 
 
     //call function to find all the energy states here:
-    if (params->atom() == "hydrogen")
+    if (params.atom() == "hydrogen")
         numerov::find_basis_set<scalar>( (memoized_pot<scalar>(hydrogen)), params, hydrogen);
-    if (params->atom() == "hydrogen-fs")
-        numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(hydrogen)), params, hydrogen);
-    if (params->atom() == "neon")
+    else if (params.atom() == "hydrogen-fs")
+        finite_difference::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(hydrogen)), params, hydrogen);
+    else if (params.atom() == "argon-fs")
+        numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(argon)), params, argon);
+    else if (params.atom() == "neon")
         numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(neon)), params, neon);
-    else if (params->atom() == "rubidium")
+    else if (params.atom() == "rubidium")
         numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(rubidium)), params, rubidium);
-    else if (params->atom() == "potassium")
+    else if (params.atom() == "potassium")
         numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(potassium)), params, potassium);
 
     //numerov::find_basis_set<scalar>( 
     //std::bind(parameterized_finestructure_pot<scalar>, std::placeholders::_1, std::cref(hydrogen), std::placeholders::_2)
     //,params, hydrogen);
     //write out parameters:
-    params->save_parameters();
+    params.save_parameters();
 
     //delete the params...
-    delete params;
+    //delete params;
     SlepcFinalize();
     return 0;
 }
