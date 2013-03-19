@@ -137,7 +137,7 @@ solve(Vec *wf, context* cntx, Mat *A)
             VecView(*wf, view);
             zero++;
         }
-        if (!(step%100))
+        if (!(step%10))
         {
             efvec.push_back({ {t, ef.real()} });
             dipole.push_back({ {t, cntx->dipole->find_dipole_moment(*(cntx->D), *wf) } } );
