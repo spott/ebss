@@ -524,9 +524,9 @@ namespace numerov
                     tmp = *std::find_if(
                             energies->begin(), 
                             energies->end(), 
-                            [l](const BasisID &a) {return (a.n == l+1 && a.l == l-1 && a.j == 2 * a.l + 1); }
+                            [l](const BasisID &a) {return (a.n == l && a.l == l-1 && a.j == 2 * a.l + 1); }
                             );
-                    tmp.e = tmp.e*1.1;
+                    tmp.e -= std::abs(tmp.e)*.2;
                 }
                 for (int n = l+1; n <= params->nmax(); n++)
                 {
