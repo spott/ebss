@@ -59,8 +59,9 @@ solve(Vec *wf, context* cntx, Mat *A)
     VecAssemblyBegin(prob);
     VecAssemblyEnd(prob);
 
-    std::vector< std::array<PetscReal, 2> > efvec;
-    std::vector< std::array<PetscReal, 2> > dipole;
+    std::vector< PetscReal > efvec;
+    std::vector< PetscReal > dipole;
+    std::vector< PetscReal > time;
 
     while (t < maxtime)
     {
@@ -139,8 +140,9 @@ solve(Vec *wf, context* cntx, Mat *A)
         }
         if (!(step%10))
         {
-            efvec.push_back({ {t, ef.real()} });
-            dipole.push_back({ {t, cntx->dipole->find_dipole_moment(*(cntx->D), *wf) } } );
+            time.push_back( t );
+            efvec.push_back( ef.real() );
+            dipole.push_back( cntx->dipole->find_dipole_moment(*(cntx->D), *wf) );
         }
         if (!(step%100))
         {
@@ -160,8 +162,14 @@ solve(Vec *wf, context* cntx, Mat *A)
     file_name = std::string("./wf_final.dat");
     PetscViewerBinaryOpen(cntx->hparams->comm(),file_name.c_str(),FILE_MODE_WRITE,&view);
     VecView(*wf,view);
+
     if (cntx->hparams->rank() == 0) 
     {
+        try {
+            common::export_vector_binary( "time.dat" , time );
+        } catch (...) {
+            std::cerr << "couldn't open the time file, oops... it won't be written to disk" << std::endl;
+        }
         try {
             common::export_vector_binary( cntx->laser->laser_filename() , efvec);
         } catch (...) {
@@ -174,16 +182,20 @@ solve(Vec *wf, context* cntx, Mat *A)
             std::cerr << "couldn't open the dipole file, oops... it won't be written to disk" << std::endl;
         }
     }
+
+
     //After the propagation through diffeq, we need to do the propagation after the fact to find the dipole 
     //moment over time.
     
 
-    std::vector< std::array< PetscReal, 2 > > after_dipole;
+    std::vector< PetscReal > after_dipole;
+    std::vector< PetscReal > after_time;
     while ( (t - maxtime) <= cntx->dipole->t_after() )
     {
         VecCopy(*wf, tmp);
         math::FieldFreePropagate(cntx->H, &tmp, t);
-        after_dipole.push_back( {{ t,  cntx->dipole->find_dipole_moment(*(cntx->D), tmp) }} );
+        after_time.push_back( t );
+        after_dipole.push_back(  cntx->dipole->find_dipole_moment(*(cntx->D), tmp) );
         t += cntx->dipole->dt();
     }
 
@@ -194,8 +206,34 @@ solve(Vec *wf, context* cntx, Mat *A)
         } catch (...) {
             std::cerr << "couldn't open the after_dipole file, oops... it won't be written to disk... NOOO!!" << std::endl;
         }
+        
+        try {
+            common::export_vector_binary( "after_time.dat" , after_time );
+        } catch (...) {
+            std::cerr << "couldn't open the after_time file, oops... it won't be written to disk... NOOO!!" << std::endl;
+        }
     }
 
+    //fourier transform and output the dipole timeseries:
+    if (cntx->hparams->rank() == 0)
+    {
+        try {
+            //this modifies the old vectors!  warning!
+            common::export_vector_binary( 
+                    cntx->dipole->dipole_filename()
+                        .substr(0, cntx->dipole->dipole_filename().size() - 3)
+                            .append("_fourier.dat") , 
+                    math::fourier( math::window::hann_window(dipole ) ) );
+            common::export_vector_binary( 
+                    cntx->dipole->after_filename()
+                        .substr(0, cntx->dipole->after_filename().size() - 3)
+                            .append("_fourier.dat") , 
+                    math::fourier( math::window::hann_window(after_dipole ) ) );
+
+        } catch (...) {
+            std::cerr << "couldn't write out the dipole_fourier files.. :( " << std::endl;
+        }
+    }
 
     KSPDestroy(&ksp);
     std::cerr << "leaving cranknicholson" << std::endl;

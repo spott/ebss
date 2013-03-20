@@ -3,6 +3,11 @@
 #include<common/parameters/Parameters.hpp>
 #include<common/common.hpp>
 
+//fftw3:
+extern "C" {
+#include <fftw3.h>
+}
+
 //stl:
 #include<complex>
 #include<vector>
@@ -10,6 +15,7 @@
 
 //gsl:
 #include<gsl/gsl_sf_coupling.h>
+
 
 namespace math{
 //Constants:
@@ -42,11 +48,40 @@ scalar CGCoefficient(const BasisID &init, const BasisID &fin)
     return out;
 }
 
+template <typename scalar>
+std::array< scalar, 3 > GCCoefficients( const BasisID &init, const BasisID &fin)
+{
+    std::array< scalar, 3 > out = {0,0,0};
+    //x:
+    out[0] = gsl_sf_coupling_3j(init.l*2, 2, fin.l*2, init.m*2, -2, -fin.m*2);
+    out[0] -= gsl_sf_coupling_3j(init.l*2, 2, fin.l*2, init.m*2, 2, -fin.m*2);
+
+    out[0] *= gsl_sf_coupling_3j(init.l*2, 2, fin.l*2, 0, 0, 0);
+	out[0] *= std::sqrt(( 2 * init.l +1 ) * ( 2 * fin.l +1 ) / 2);
+    if ( fin.m%2 == 1 )
+        out[0] *= -1;
+
+    //y:
+    out[1] = gsl_sf_coupling_3j(init.l*2, 2, fin.l*2, init.m*2, -2, -fin.m*2);
+    out[1] += gsl_sf_coupling_3j(init.l*2, 2, fin.l*2, init.m*2, 2, -fin.m*2);
+
+    out[1] *= gsl_sf_coupling_3j(init.l*2, 2, fin.l*2, 0, 0, 0);
+	out[1] *= std::complex<scalar>(0, std::sqrt(( 2 * init.l +1 ) * ( 2 * fin.l +1 ) / 2));
+    if ( fin.m%2 == 1 )
+        out[1] *= -1;
+
+    //z:
+    out[2] = gsl_sf_coupling_3j(init.l*2, 2, fin.l*2, 0, 0, 0);
+    out[2] *= gsl_sf_coupling_3j(init.l*2, 2, fin.l*2, init.m*2, 0, -fin.m*2);
+	out[2] *= std::sqrt(( 2 * init.l +1 ) * ( 2 * fin.l +1 ) );
+
+    return out;
+}
+
 void FieldFreePropagate(Vec *H, Vec *wf, PetscReal dt) //propagate forward in time
 {
     PetscReal norm1;
     VecNorm(*wf,NORM_2 ,&norm1);
-    std::cout << "before: " << norm1-1 << std::endl;
 
     //copy H:
     Vec tmp;
@@ -64,7 +99,11 @@ void FieldFreePropagate(Vec *H, Vec *wf, PetscReal dt) //propagate forward in ti
 
     PetscReal norm2;
     VecNorm(*wf,NORM_2 ,&norm2);
-    std::cout << "after: " << norm2-1 << " difference: " << norm1 - norm2 <<  std::endl;
+    if ( std::abs(norm1 - norm2) / norm1 > 10e-8)
+    {
+        std::cerr << "before: " << norm1-1 << std::endl;
+        std::cerr << "after: " << norm2-1 << " difference: " << norm1 - norm2 <<  std::endl;
+    }
 
 
     VecDestroy(&tmp);
@@ -217,4 +256,36 @@ inline std::complex<double> Gamma_Lanczos (std::complex<double> z)
     }
 
 }
+
+//fourier
+std::vector< std::complex<double> > fourier(std::vector< double >&& time_series )
+{
+    std::vector< std::complex<double> > out( (time_series.size()) );
+    fftw_plan p = fftw_plan_dft_r2c_1d( time_series.size(), 
+                                        time_series.data(), 
+                                        reinterpret_cast< double(*)[2] >(out.data()), 
+                                        FFTW_ESTIMATE);
+    fftw_execute(p);
+    fftw_destroy_plan(p);
+    return out;
+}
+
+//windowing functions:
+
+namespace window
+{
+
+    template <typename T>
+    std::vector< T > hann_window( std::vector< T >& input )
+    {
+        //std::vector< T > out( ( input.size() ) );
+        for (size_t i = 0; i < input.size(); ++i)
+            input[i] *= .5 * (1 - std::cos( 2 * PI * i / (input.size() - 1) ) );
+
+        return input;
+    }
+
+}
+
+
 }

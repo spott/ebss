@@ -268,6 +268,39 @@ namespace common
     };
 
     template <typename T>
+    T* import_binary_to_buffer(const std::string& filename, T* buffer)
+    {
+        std::ios::pos_type size;
+        std::ifstream file;
+        file.open(filename.c_str(), std::ios::binary | std::ios::in | std::ios::ate);
+
+        if (file.is_open())
+        {
+            size = file.tellg();
+            if (size != 0)
+            {
+                file.seekg(0, std::ios::beg);
+
+                file.read((char*)buffer , size);
+                file.close();
+            }
+            else
+            {
+                std::cerr << "file is empty!: " << filename << std::endl;
+                throw new std::exception();
+            }
+        }
+        else
+        {
+            std::cerr << "error opening file: " << filename << std::endl;
+            throw new std::exception();
+        }
+
+        return buffer;
+    }
+
+
+    template <typename T>
     std::vector<T> import_vector_binary(const std::string &filename)
     {
         std::ios::pos_type size;
