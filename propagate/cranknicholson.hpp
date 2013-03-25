@@ -71,7 +71,7 @@ solve(Vec *wf, context* cntx, Mat *A)
         MatCopy(*( cntx->D ), *A , SAME_NONZERO_PATTERN);   // A = D
 
 		//ef-forward:
-		PetscReal eff = cntx->laser->efield( t+ cntx->laser->dt() );
+		PetscScalar eff = cntx->laser->efield( t+ cntx->laser->dt() );
         //This has different 't's on both sides:
         MatScale(*A, (ef + eff)/2.  );                                   // A = ef(t) * D
         MatDiagonalSet(*A, *(cntx->H), INSERT_VALUES);      // A = ef(t) * D + H_0
@@ -90,11 +90,11 @@ solve(Vec *wf, context* cntx, Mat *A)
         {
             PetscReal n = 0;
             PetscReal n2 = 0;
-            VecNorm(prob,NORM_2,&n);
+            VecNorm(*wf,NORM_2,&n);
             VecPointwiseMult(*wf, *wf, abs);
-            VecNorm(prob,NORM_2,&n2);
+            VecNorm(*wf,NORM_2,&n2);
             norm_lost += n2-n;
-            if (cntx->hparams->rank() == 0) std::cout << "lost " << n2-n << " norm, total = " << norm_lost << std::endl;
+	        //if (cntx->hparams->rank() == 0) std::cout << "lost " << n2-n << " norm, total = " << norm_lost << std::endl;
         }
 
         //look at the next point
@@ -166,7 +166,7 @@ solve(Vec *wf, context* cntx, Mat *A)
             VecLog(prob);
             //VecView(prob, PETSC_VIEWER_DRAW_WORLD);
             if (cntx->hparams->rank() == 0)
-                std::cout << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << std::endl;
+                std::cout << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << " norm lost to absorbers: " <<  norm_lost << std::endl;
             //if (norm-1 > 10e-5 && cntx->hparams->rank() == 0)
                 //std::cerr << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << std::endl;
         }
