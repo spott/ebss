@@ -36,6 +36,22 @@ public:
             }
         }
 
+        //std::string ctemp;
+        if ( opt.isSet("-hamiltonian_nofs") )
+        {
+            fs = false;
+            std::cout << "no finestructure! "<< std::endl;
+        }
+        else
+            fs = true;
+        //opt.get("-hamiltonian_components")->getString(ctemp);
+        //if ( ctemp.find('x') != std::string::npos )
+            //x = true;
+        //if ( ctemp.find('y') != std::string::npos )
+            //y = true;
+        //if ( ctemp.find('z') != std::string::npos )
+            //z = true;
+
         opt.get("-hamiltonian_nmax")->getInt(nmax_);
         opt.get("-hamiltonian_lmax")->getInt(lmax_);
         opt.get("-hamiltonian_mmax")->getInt(mmax_);
@@ -66,7 +82,7 @@ public:
         }
 
         //Initialize the prototype file:
-        if (this->mmax() == 0 && this->nmax() == this->basis_->nmax() && this->lmax() == this->basis_->lmax())
+        if (this->mmax() == 0 && this->nmax() == this->basis_->nmax() && this->lmax() == this->basis_->lmax() && fs )
         {
             this->prototype_.resize(0);
             for(auto i: *(this->basis_->basis_prototype()))
@@ -74,7 +90,7 @@ public:
             //std::copy(this->basis_->basis_prototype()->begin(), this->basis_->basis_prototype()->end(), this->prototype_);
             this->prototype_.shrink_to_fit();
         }
-        else
+        else if (fs)
         {
             BasisID temp;
             for(int l = 0; l <= this->lmax(); l++)
@@ -110,7 +126,43 @@ public:
             }
             this->prototype_.shrink_to_fit();
         }
-    };
+        else
+        {
+            std::cout << " The basis isn't using a finestructure! " << std::endl;
+            BasisID temp;
+            for(int l = 0; l <= this->lmax(); l++)
+            {
+                int j = 2 * l - 1 < 0 ? 2 * l + 1 : 2 * l - 1 ;
+                for(int m = -( l <= this->mmax() ? l : this->mmax() ); m <= ( l <= this->mmax() ? l : this->mmax() ); m++)
+                {
+                    for (int n = 1; n <= this->nmax(); n++)
+                    {
+                        if (n > l)
+                        {
+                            temp.n = n;
+                            temp.l = l;
+                            temp.j = j;
+                            auto el = std::find_if(this->basis_->basis_prototype()->begin(), 
+                                    this->basis_->basis_prototype()->end(),
+                                    [temp](BasisID a)->bool
+                                    { return (a.n == temp.n && a.l == temp.l && a.j == temp.j);});
+                            if ( el != this->basis_->basis_prototype()->end())
+                                temp.e = el->e;
+                            else
+                            {
+                                std::cout << "The energy wasn't in the basis prototype... I don't know what it is." << std::endl;
+                                throw(std::exception());
+                            }
+                            temp.m = m;
+                            this->prototype_.push_back(temp);
+                        }
+                    }
+                }
+            }
+            this->prototype_.shrink_to_fit();
+        }
+    }
+
 
     HamiltonianParameters(MPI_Comm comm, std::string fname): Parameters(comm)
     {
@@ -134,6 +186,7 @@ public:
     std::vector<BasisID> prototype() const { return prototype_; };
 
     std::string print() const;
+    bool with_fs() const { return fs; }
 
     void save_parameters();
     void init_from_file(std::string filename);
@@ -142,6 +195,7 @@ private:
     BasisParameters<write_type_, write_type_> *basis_;
     std::vector<BasisID> prototype_;
 
+    bool fs;
     void register_parameters();
     ez::ezOptionParser opt;
     int nmax_;
@@ -316,6 +370,14 @@ void HamiltonianParameters<write_type_>::register_parameters()
             0,
             "folder for hamiltonian",
             std::string(prefix).append("folder\0").c_str()
+           );
+    opt.add(
+            "",
+            0,
+            0,
+            0,
+            "the basis doesn't have a finestructure",
+            std::string(prefix).append("nofs\0").c_str()
            );
     opt.add(
             "",
