@@ -68,13 +68,15 @@ solve(Vec *wf, context* cntx, Mat *A)
 
         MatCopy(*( cntx->D ), *A , SAME_NONZERO_PATTERN);   // A = D
 
+		//ef-forward:
+		PetscReal eff = cntx->laser->efield( t+ cntx->laser->dt() );
         //This has different 't's on both sides:
-        MatScale(*A, ef);                                   // A = ef(t) * D
+        MatScale(*A, (ef + eff)/2.  );                                   // A = ef(t) * D
         MatDiagonalSet(*A, *(cntx->H), INSERT_VALUES);      // A = ef(t) * D + H_0
         MatScale(*A, cn_factor);                            // A = - i * .5 * dt [ ef(t) * D + H_0 ]
         MatShift(*A, std::complex<double>(1,0));            // A = - i * .5 * dt [ ef(t) * D + H_0 ] + 1
         MatMult(*A, *wf, tmp);                              // A u_n = tmp
-        MatAXPY(*A, cn_factor * (cntx->laser->efield(t+cntx->laser->dt()) - ef), *( cntx->D ), SAME_NONZERO_PATTERN);
+       	//MatAXPY(*A, cn_factor * (cntx->laser->efield(t+cntx->laser->dt()) - ef), *( cntx->D ), SAME_NONZERO_PATTERN);
         MatScale(*A, std::complex<double>(-1,0));           // A = i * .5 dt [ef(t+dt) * D + H_0 ] - 1
         MatShift(*A, std::complex<double>(2,0));            // A = i * .5 dt [ef(t+dt) * D + H_0 ] + 1
 
@@ -152,7 +154,7 @@ solve(Vec *wf, context* cntx, Mat *A)
             VecPointwiseMult(prob, prob, prob);
             VecShift(prob, 1e-20);
             VecLog(prob);
-            VecView(prob, PETSC_VIEWER_DRAW_WORLD);
+            //VecView(prob, PETSC_VIEWER_DRAW_WORLD);
             if (cntx->hparams->rank() == 0)
                 std::cout << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << std::endl;
             //if (norm-1 > 10e-5 && cntx->hparams->rank() == 0)
