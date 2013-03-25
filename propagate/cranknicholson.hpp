@@ -47,8 +47,8 @@ solve(Vec *wf, context* cntx, Mat *A)
     Vec abs;
     VecDuplicate(*wf, &abs);
     cntx->absorber->absorb(&abs, cntx->hparams);
-    if (cntx->absorber->type() == "cx_rot" || cntx->absorber->type() == "cx_scale")
-        VecPointwiseMult(*(cntx->H), *(cntx->H), abs);
+    //if (cntx->absorber->type() == "cx_rot" || cntx->absorber->type() == "cx_scale")
+        //VecPointwiseMult(*(cntx->H), *(cntx->H), abs);
 
     std::string file_name = std::string("./absorber.dat");
     PetscViewerASCIIOpen(cntx->hparams->comm(),file_name.c_str(),&view);
@@ -62,6 +62,8 @@ solve(Vec *wf, context* cntx, Mat *A)
     std::vector< PetscReal > efvec;
     std::vector< PetscReal > dipole;
     std::vector< PetscReal > time;
+    
+    PetscReal norm_lost = 0;
 
     while (t < maxtime)
     {
@@ -83,7 +85,15 @@ solve(Vec *wf, context* cntx, Mat *A)
         KSPSolve(ksp, tmp, *wf);
 
         if (cntx->absorber->type() == "cosine")
+        {
+            PetscReal n = 0;
+            PetscReal n2 = 0;
+            VecNorm(prob,NORM_2,&n);
             VecPointwiseMult(*wf, *wf, abs);
+            VecNorm(prob,NORM_2,&n2);
+            norm_lost += n2-n;
+            if (cntx->hparams->rank() == 0) std::cout << "lost " << n2-n << " norm, total = " << norm_lost << std::endl;
+        }
 
         //look at the next point
         t += cntx->laser->dt();
