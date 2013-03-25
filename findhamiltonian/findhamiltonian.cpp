@@ -55,10 +55,11 @@ int main(int argc, const char ** argv)
                 *grid);
         PetscScalar angular = math::CGCoefficient<PetscScalar>(prototype[i],prototype[j]);
         //we are only considering spin up electrons.  so m_j always == +1/2 (since m_l is always 0)
-        angular *= std::sqrt ( 
-                (prototype[i].l + (prototype[i].j - 2 * prototype[i].l) * .5 * .5 + .5) * 
-                (prototype[j].l + (prototype[j].j - 2 * prototype[j].l) * .5 * .5 + .5) / 
-                ((2. * prototype[i].l + 1) * (2. * prototype[j].l + 1)));
+        if (params->with_fs())
+            angular *= std::sqrt ( 
+                    (prototype[i].l + (prototype[i].j - 2 * prototype[i].l) * .5 * .5 + .5) * 
+                    (prototype[j].l + (prototype[j].j - 2 * prototype[j].l) * .5 * .5 + .5) / 
+                    ((2. * prototype[i].l + 1) * (2. * prototype[j].l + 1)));
        return radial * angular;
     };
 
