@@ -39,6 +39,7 @@ public:
     void save_parameters() const;
     std::string print() const;
 protected:
+    bool single_pulse;
     void register_parameters();
     std::vector<double> spacing_;
     std::vector<double> phase_;
@@ -110,6 +111,8 @@ std::vector<double> PulsetrainParameters::phase() const
 
 PetscScalar PulsetrainParameters::efield(PetscReal t) const
 {
+    if (single_pulse)
+        return LaserParameters::efield(t);
     //find the start of the pulse:
     PetscReal total = 0;
     std::vector<double> ph = phase();
@@ -151,6 +154,11 @@ void PulsetrainParameters::get_parameters()
             throw std::exception();
         }
     }
+
+    if (opt.isSet("-pulsetrain_single_pulse"))
+        single_pulse = true;
+    else
+        single_pulse = false;
 
     opt.get("-pulsetrain_spacing")->getDoubles(spacing_);
     opt.get("-pulsetrain_phase")->getDoubles(phase_);
@@ -233,6 +241,14 @@ void PulsetrainParameters::register_parameters()
             ',',
             "absolute phase of each pulse",
             std::string(prefix).append("phase\0").c_str()
+           );
+    opt.add(
+            "",
+            0,
+            1,
+            ',',
+            "should we treat this as a 'single pulse'",
+            std::string(prefix).append("single_pulse\0").c_str()
            );
     opt.add(
             "./efield.dat",

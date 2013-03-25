@@ -127,7 +127,7 @@ void LaserParameters::save_parameters() const
     file << "-laser_dt " << dt_ << std::endl;
     file << "-laser_dt_after " << dt_after_ << std::endl;
     file << "-laser_t_after " << t_after_ << std::endl;
-    file << "-laser_laser_filename " << laser_filename_ << std::endl;
+    file << "-laser_filename " << laser_filename_ << std::endl;
     file.close();
 }
 
@@ -140,7 +140,8 @@ PetscReal LaserParameters::frequency() const
         return energy_;
 }
 PetscReal LaserParameters::intensity() const
-{ return intensity_/3.5094452e16; }
+{ return intensity_/(3.5094452e16); }
+//{ return intensity_/3.5101e+16; }
 PetscReal LaserParameters::cep() const { return cep_; }
 PetscReal LaserParameters::cycles() const { return cycles_; }
 PetscReal LaserParameters::dt() const { return dt_; }
@@ -163,10 +164,10 @@ LaserParameters::efield(PetscReal t, PetscReal phase) const
 {
     if (t * this->frequency()/(this->cycles() * 2) > math::PI || t < 0)
         return 0.0;
-    PetscReal efield = std::sqrt(this->intensity());
-    return efield 
-        * std::pow( std::sin( this->frequency() * t / (this->cycles() * 2) ) ,2) 
-        * std::sin( this->frequency() * t + phase );
+    PetscReal efield = std::sqrt( this->intensity() );
+    return std::complex<double>(efield 
+        * std::pow( std::sin( this->frequency() * t / (this->cycles() * 2) ) , 2) 
+        * std::sin( this->frequency() * t + phase ));
 }
 
 PetscScalar 
