@@ -33,9 +33,11 @@ int main(int argc, const char ** argv)
     auto prototype = params->prototype();
 
     std::function<bool (int, int)> dipole_selection_rules = [prototype](int i, int j) {
-        return (// since j is multiplied by 2, need to have a 2 between them.
-                (std::abs(prototype[i].j - prototype[j].j) == 2) || prototype[i].j == prototype[j].j || i == j 
-               );
+                if (params->with_fs())
+                    // since j is multiplied by 2, need to have a 2 between them.
+                    return ((std::abs(prototype[i].j - prototype[j].j) == 2) || prototype[i].j == prototype[j].j || i == j );
+                else
+                    return ((std::abs(prototype[i].l - prototype[j].l == 1) || i == j );
     };
 
     std::function<PetscScalar (int, int)> findvalue = [prototype,params,grid](int i, int j)->PetscScalar{
