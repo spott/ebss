@@ -462,6 +462,12 @@ namespace numerov
                 }
 
             }
+
+            for (size_t i = 0; i < wf.size(); i++)
+            {
+                wf[i] *= std::sqrt( rgrid[i] );
+            }
+
             result.wf = wf;
             result.energy = current.energy;
             return result;
