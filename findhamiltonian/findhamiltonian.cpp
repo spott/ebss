@@ -32,12 +32,12 @@ int main(int argc, const char ** argv)
     std::vector<PetscReal> *grid = params->basis_parameters()->grid();
     auto prototype = params->prototype();
 
-    std::function<bool (int, int)> dipole_selection_rules = [prototype](int i, int j) {
+    std::function<bool (int, int)> dipole_selection_rules = [prototype,params](int i, int j) {
                 if (params->with_fs())
                     // since j is multiplied by 2, need to have a 2 between them.
                     return ((std::abs(prototype[i].j - prototype[j].j) == 2) || prototype[i].j == prototype[j].j || i == j );
                 else
-                    return ((std::abs(prototype[i].l - prototype[j].l == 1) || i == j );
+                    return ((std::abs(prototype[i].l - prototype[j].l) == 1) || i == j );
     };
 
     std::function<PetscScalar (int, int)> findvalue = [prototype,params,grid](int i, int j)->PetscScalar{
