@@ -74,14 +74,14 @@ int main(int argc, const char **argv)
     if (params.atom() == "hydrogen")
         numerov::find_basis_set<scalar>( (memoized_pot<scalar>(hydrogen)), params, hydrogen);
     else if (params.atom() == "hydrogen-fs")
-        finite_difference::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(hydrogen)), params, hydrogen);
+        numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(hydrogen)), params, hydrogen);
     else if (params.atom() == "argon-fs")
         numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(argon)), params, argon);
-    else if (params.atom() == "neon")
+    else if (params.atom() == "neon-fs")
         numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(neon)), params, neon);
-    else if (params.atom() == "rubidium")
+    else if (params.atom() == "rubidium-fs")
         numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(rubidium)), params, rubidium);
-    else if (params.atom() == "potassium")
+    else if (params.atom() == "potassium-fs")
         numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(potassium)), params, potassium);
 
     //numerov::find_basis_set<scalar>( 

@@ -44,11 +44,11 @@ int main(int argc, const char ** argv)
         if (i == j)
             return 0.0;
 		std::vector<PetscReal> a = common::import_vector_binary<PetscReal>(params->basis_parameters()->basis_function_filename(prototype[i]));
-		math::normalize(a,*grid);
+		//math::normalize(a,*grid);
 		//std::cout << "a norm: " << 
 		//std::cout << " after: " << math::normalize(a,*grid);
 		std::vector<PetscReal> b = common::import_vector_binary<PetscReal>(params->basis_parameters()->basis_function_filename(prototype[j]));
-		math::normalize(b,*grid);
+		//math::normalize(b,*grid);
 		//std::cout << " b norm: " << 
 		//std::cout << " after: " << math::normalize(a,*grid) << std::endl;
         PetscScalar radial = math::integrateGrid(

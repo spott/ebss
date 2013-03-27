@@ -107,17 +107,17 @@ main(int argc, const char ** argv)
     MatAssemblyBegin(D, MAT_FINAL_ASSEMBLY);
     VecAssemblyEnd(H);
     MatAssemblyEnd(D, MAT_FINAL_ASSEMBLY);
-    std::cout << output::red << "H: " << std::endl;
-    VecView(H, PETSC_VIEWER_STDOUT_WORLD);
-    std::cout << output::reset <<std::endl;
+    //std::cout << output::red << "H: " << std::endl;
+    //VecView(H, PETSC_VIEWER_STDOUT_WORLD);
+    //std::cout << output::reset <<std::endl;
     MatSetOption(D,MAT_KEEP_NONZERO_PATTERN,PETSC_TRUE);
 
     //Setup the wavefunction:
     MatGetVecs(D, &wf, PETSC_NULL);
     sparams->initial_vector(&wf, params->prototype());
-    std::cout << output::blue << "WF: " << std::endl;
-    VecView(wf, PETSC_VIEWER_STDOUT_WORLD);
-    std::cout << output::reset <<std::endl;
+    //std::cout << output::blue << "WF: " << std::endl;
+    //VecView(wf, PETSC_VIEWER_STDOUT_WORLD);
+    //std::cout << output::reset <<std::endl;
 
 
     //Copy the non-zero pattern from D to A (the matrix we use in our solver)
@@ -127,11 +127,11 @@ main(int argc, const char ** argv)
     MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
 
     //list where the eigenvalues are:
-    Vec gg = common::eigen_balls(D);
-    std::string file_name = std::string("./balls.dat");
-    PetscViewerASCIIOpen(MPI_COMM_WORLD,file_name.c_str(),&view);
-    PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
-    VecView(gg,view);
+    //Vec gg = common::eigen_balls(D);
+    //std::string file_name = std::string("./balls.dat");
+    //PetscViewerASCIIOpen(MPI_COMM_WORLD,file_name.c_str(),&view);
+    //PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
+    //VecView(gg,view);
 
     //Propagate:
 

@@ -233,12 +233,12 @@ solve(Vec *wf, context* cntx, Mat *A)
             //this modifies the old vectors!  warning!
             common::export_vector_binary( 
                     cntx->dipole->dipole_filename()
-                        .substr(0, cntx->dipole->dipole_filename().size() - 3)
+                        .substr(0, cntx->dipole->dipole_filename().size() - 4)
                             .append("_fourier.dat") , 
                     math::fourier( math::window::hann_window(dipole ) ) );
             common::export_vector_binary( 
                     cntx->dipole->after_filename()
-                        .substr(0, cntx->dipole->after_filename().size() - 3)
+                        .substr(0, cntx->dipole->after_filename().size() - 4)
                             .append("_fourier.dat") , 
                     math::fourier( math::window::hann_window(after_dipole ) ) );
 
