@@ -503,7 +503,10 @@ namespace numerov
                 std::cerr << "=========================================" << std::endl;
                 std::cerr << "=========================================" << std::endl;
                 if ( tmp.n == tmp.l+2 && tmp.j == ((tmp.l>0)? 2 * tmp.l - 1 : 1))
+                {
+                    std::cout << std::this_thread::get_id() << "sending future" << std::endl;
                     future_guess.set_value( tmp );
+                }
             }
         }
         return energies;
@@ -571,6 +574,7 @@ namespace numerov
                     {
                         std::cout << "[0] waiting for future" << std::endl;
                         tmp.e = f_loop.get().e;
+                        std::cout << "[0] got future" << std::endl;
                     }
                     else
                         break;
