@@ -1,13 +1,17 @@
 #pragma once
 
+//stl
 #include<vector>
 #include<forward_list>
 #include<array>
 #include<iterator>
 #include<cmath>
 #include<iostream>
-#include<common/common.hpp>
 #include<limits>
+#include<future>
+
+//ebss
+#include<common/common.hpp>
 #include<common/math.hpp>
 #include<findbasis/single_active_electron.hpp>
 
@@ -473,6 +477,38 @@ namespace numerov
             return result;
         };
 
+    template< typename scalar, typename write_type >
+    std::vector<BasisID> n_loop( std::promise<BasisID>& future_guess, BasisID tmp, const std::vector<scalar>& rgrid, const BasisParameters<scalar, write_type>& params, const std::function< scalar (scalar, BasisID)>& pot, scalar dx)
+    {
+        std::vector<BasisID> energies(0);
+        basis<scalar> res;
+
+        for (tmp.n = tmp.l+1; tmp.n <= params.nmax(); tmp.n++)
+        {
+            for (tmp.j = ((tmp.l>0)? 2 * tmp.l - 1 : 1); tmp.j <= ((tmp.l>0)? 2*tmp.l+1 : 1 ); tmp.j+=2)
+            {
+                std::cout << tmp << ", ";
+                res = find_basis<scalar>( tmp, dx, rgrid, pot, 1e-13);
+                tmp.e = res.energy;     //the energy min for the next will be the correct energy for the last.
+                energies.push_back(tmp);
+                std::cout << ",\t" << res.energy << std::endl;
+                //we need to convert the wf to PetscReal, or PetscScalar...
+                math::normalize(res.wf,rgrid);
+                common::export_vector_binary(
+                        params.basis_function_filename(tmp),
+                        common::vector_type_change<scalar, write_type>(res.wf));
+                std::cerr << tmp << std::endl;
+                std::cerr << "=========================================" << std::endl;
+                std::cerr << "=========================================" << std::endl;
+                std::cerr << "=========================================" << std::endl;
+                std::cerr << "=========================================" << std::endl;
+                if ( tmp.n == tmp.l+2 && tmp.j == ((tmp.l>0)? 2 * tmp.l - 1 : 1))
+                    future_guess.set_value( tmp );
+            }
+        }
+        return energies;
+    }
+
     template <typename scalar, typename write_type>
         void find_basis_set( std::function< scalar (scalar, BasisID) > pot, 
                              BasisParameters<scalar, write_type>& params, 
@@ -502,53 +538,90 @@ namespace numerov
             params.save_parameters();
             basis<scalar> res;
             BasisID tmp;
+            tmp.n = 1; tmp.l = 0; tmp.m = 0; tmp.j = 1; tmp.e = atom.gs_energy - 1;
+
+            //concurrency and promises:
+            int num_threads = std::thread::hardware_concurrency();
+            //std::promise<BasisID> p;
+            //std::future<BasisID> f = p.get_future();
+            //auto f2 = std::async( n_loop<scalar, write_type>, std::ref(p), tmp, std::cref(*rgrid), std::cref(params), std::cref(pot), dx );
 
             energies->resize(0);
-            //MPI stuff to split up workload:
-            bool converged = false;
+            //*energies = std::move( f2.get() );
+
 
             if (rank==0) std::cout << "n\tl\tj\te" << std::endl;
             std::cout << std::scientific;
-            for (int l = rank; l <= params.lmax(); l += num)
+
+            //std::cout << f.get() << std::endl;
+
+            //tmp.e = f.get().e;
+            for (size_t l = 0; l <= params.lmax(); l += num_threads) //we will do some loop unrolling to make things simpler:
             {
+                std::vector< std::future< std::vector< BasisID > > > futures_que( num_threads );
                 //for each run through the "n's", start with an energy min of the gs,
-                if (l == 0)
-                    tmp.e = atom.gs_energy - 1;
-                else //or the l == 0 state energy we have already found
+                for (size_t i = 0; i < ( l + num_threads > params.lmax()?params.lmax() - l + 1:num_threads) ; i++)
                 {
-                    tmp = *std::find_if(
-                            energies->begin(), 
-                            energies->end(), 
-                            [l](const BasisID &a) {return (a.n == l && a.l == l-1 && a.j == 2 * a.l + 1); }
-                            );
-                    tmp.e -= std::abs(tmp.e)*.2;
+                    std::promise<BasisID> p_loop;
+                    std::future<BasisID> f_loop = p_loop.get_future();
+                    tmp.l = l + i;
+                    futures_que[i] = std::async(std::launch::async, n_loop<scalar, write_type>, std::ref(p_loop), tmp, std::cref(*rgrid), std::cref(params), std::cref(pot), dx );
+                    if ( tmp.l < params.nmax() )
+                        tmp.e = f_loop.get().e;
+                    else
+                        break;
                 }
-                for (int n = l+1; n <= params.nmax(); n++)
+                std::cout << " after " << std::endl;
+                for (auto& a: futures_que)
                 {
-                    for (int j = ((l>0)? 2 * l - 1 : 1); j <= ((l>0)? 2*l+1 : 1 ); j+=2)
-                    {
-                        //tmp.e = -.159;
-                        tmp.n = n;
-                        tmp.j = j;
-                        tmp.m = 0;
-                        tmp.l = l;
-                        std::cout << n << "\t" << l << "\t" << j << "\t";
-                        res = find_basis<scalar>( tmp, dx, *rgrid, pot, 1e-13);
-                        tmp.e = res.energy;     //the energy min for the next will be the correct energy for the last.
-                        energies->push_back(tmp);
-                        std::cout << res.energy << std::endl;
-                        //we need to convert the wf to PetscReal, or PetscScalar...
-                        math::normalize(res.wf,*rgrid);
-                        common::export_vector_binary(
-                                params.basis_function_filename(tmp),
-                                common::vector_type_change<scalar, write_type>(res.wf));
-                        std::cerr << n << "\t" << l << "\t" << j << "\t" << res.energy << std::endl;
-                        std::cerr << "=========================================" << std::endl;
-                        std::cerr << "=========================================" << std::endl;
-                        std::cerr << "=========================================" << std::endl;
-                        std::cerr << "=========================================" << std::endl;
-                    }
+                    std::vector< BasisID > b;
+                    if (a.valid())
+                        b = a.get();
+                    else
+                        continue;
+                    std::cout << " got future " << std::endl;
+                    energies->insert(energies->end(), b.begin(), b.end());
                 }
             }
+            std::sort(energies->begin(), energies->end());
+            for (auto& a: *energies)
+                std::cout << a << std::endl;
         };
 }
+
+// We want to paralize this:
+// we need:
+// * a threadsafe "energies" container
+// * a threadpool (so we aren't using more cores than we have)
+// * a different way of structuring the for loop:  we want to start a number of "l" threads.  but only after we have already started the "l-1" thread
+//
+//int num_threads = std::thread::hardware_concurrency();
+//std::vector< std::future< std::vector<BasisID> > > futures_que{ num_threads };
+//std::promise< BasisID > p;
+//tmp.e = atom.gs_energy - 1;
+//f = p.get_future();
+//futures_que[i] = n_loop( f, tmp, rgrid, params, pot, dx );
+
+
+//for (size_t l = 1; l <= params.lmax(); l += num_threads) //we will do some loop unrolling to make things simpler:
+//{
+    ////for each run through the "n's", start with an energy min of the gs,
+    //std::future<BasisID> f;
+    //for (size_t i = 0; i < num_threads; i++ )
+    //{
+        //tmp.l = l + i;
+        //if (l + i == 0)
+        //{
+            //tmp.e = atom.gs_energy - 1;
+            //f = p.get_future();
+            //futures_que[i] = n_loop( f, tmp, rgrid, params, pot, dx );
+        //}
+        //else //or the l == l-1 state energy we have already found
+        //{
+            
+        //}
+    //}
+
+    
+//};
+

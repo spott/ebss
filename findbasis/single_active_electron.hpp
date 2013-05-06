@@ -22,7 +22,7 @@ struct sae {
 };
 
 template <typename T>
-T parameterized_pot(T r, const sae<T> &atom, const BasisID &state)
+T parameterized_pot(const T r, const sae<T> &atom, const BasisID &state)
 {
     T a = 0;
     for( auto p: atom.params )
@@ -52,24 +52,25 @@ template <typename T>
 std::function< T (const T, BasisID) >  memoized_pot(const sae<T> &atom)
 {
     BasisID state;
-    auto cache = std::make_shared<std::unordered_map< T, T> >();
+    //auto cache = std::make_shared<std::unordered_map< T, T> >();
     auto func = std::bind(parameterized_pot<T>, std::placeholders::_1, std::cref(atom), std::placeholders::_2);
-    return ( [state, cache, func](const T r, BasisID s) mutable {
-            if (s != state)
-            {
-                cache->clear();
-                state = s;
-                (*cache)[r] = func(r, s);
-                return (*cache)[r];
-            }
-            else
-            {
-                if (cache->find(r) == cache->end())
-                {
-                    (*cache)[r] = func(r, state);
-                }
-                return (*cache)[r];
-            }
+    return ( [state, /*cache,*/ func](const T r, BasisID s) mutable {
+            return func(r, state);
+            //if (s != state)
+            //{
+                //cache->clear();
+                //state = s;
+                //(*cache)[r] = func(r, s);
+                //return (*cache)[r];
+            //}
+            //else
+            //{
+                //if (cache->find(r) == cache->end())
+                //{
+                    //(*cache)[r] = func(r, state);
+                //}
+                //return (*cache)[r];
+            //}
         });
 }
 
@@ -77,23 +78,25 @@ template <typename T>
 std::function< T (const T, BasisID) >  memoized_finestructure_pot(const sae<T> &atom)
 {
     BasisID state;
-    auto cache = std::make_shared<std::unordered_map< T, T> >();
+    //auto cache = std::make_shared<std::unordered_map< T, T> >();
     auto func = std::bind(parameterized_finestructure_pot<T>, std::placeholders::_1, std::cref(atom), std::placeholders::_2);
-    return ( [state, cache, func](const T r, BasisID s) mutable {
-            if (s != state)
-            {
-                cache->clear();
-                state = s;
-                (*cache)[r] = func(r, s);
-                return (*cache)[r];
-            }
-            else
-            {
-                if (cache->find(r) == cache->end())
-                {
-                    (*cache)[r] = func(r, state);
-                }
-                return (*cache)[r];
-            }
-        });
+    return func;
+    //return ( [state, [>cache,<] func](const T r, BasisID s) mutable {
+            //return func(r, state);
+            //if (s != state)
+            //{
+                //cache->clear();
+                //state = s;
+                //(*cache)[r] = func(r, s);
+                //return (*cache)[r];
+            //}
+            //else
+            //{
+                //if (cache->find(r) == cache->end())
+                //{
+                    //(*cache)[r] = func(r, state);
+                //}
+                //return (*cache)[r];
+            //}
+        //});
 }
