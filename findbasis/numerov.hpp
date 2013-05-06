@@ -550,6 +550,7 @@ namespace numerov
             //*energies = std::move( f2.get() );
 
 
+            std::cout << "Number of threads: " << num_threads << std::endl;
             if (rank==0) std::cout << "n\tl\tj\te" << std::endl;
             std::cout << std::scientific;
 
@@ -567,7 +568,10 @@ namespace numerov
                     tmp.l = l + i;
                     futures_que[i] = std::async(std::launch::async, n_loop<scalar, write_type>, std::ref(p_loop), tmp, std::cref(*rgrid), std::cref(params), std::cref(pot), dx );
                     if ( tmp.l < params.nmax() )
+                    {
+                        std::cout << "[0] waiting for future" << std::endl;
                         tmp.e = f_loop.get().e;
+                    }
                     else
                         break;
                 }
