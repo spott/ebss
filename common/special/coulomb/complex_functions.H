@@ -1,4 +1,6 @@
+#pragma once
 #include<complex>
+#include<iostream>
 
 #define SIGN(a) (((a) < 0) ? (-1) : (1))
 // Infinite norm of a complex number.
@@ -181,11 +183,11 @@ inline bool operator != (const unsigned int n,const std::complex<double> &z)
 
 std::complex<double> expm1 (const std::complex<double> &z)
 {
-  const double x = real (z),y = imag (z);
+  const double x = std::real (z),y = std::imag (z);
 
-  if ((abs (x) >= 1.0) || (abs (y) >= 1.0)) return (exp (z) - 1.0);
+  if ((std::abs (x) >= 1.0) || (std::abs (y) >= 1.0)) return (std::exp (z) - 1.0);
 
-  const double expm1_x = expm1 (x),exp_x = 1.0 + expm1_x,sin_y_over_two = sin (0.5*y),sin_y = sin (y);
+  const double expm1_x = expm1 (x),exp_x = 1.0 + expm1_x,sin_y_over_two = std::sin (0.5*y),sin_y = std::sin (y);
 
   return std::complex<double> (expm1_x - 2.0*exp_x*sin_y_over_two*sin_y_over_two,exp_x*sin_y);
 }
@@ -202,15 +204,15 @@ std::complex<double> expm1 (const std::complex<double> &z)
 
 std::complex<double> log1p (const std::complex<double> &z)
 {
-  const double x = real (z),y = imag (z); 
+  const double x = std::real (z),y = std::imag (z); 
 
-  const double xp1 = 1.0 + x,abs_x = abs (x), abs_y = abs (y);
+  const double xp1 = 1.0 + x,abs_x = std::abs (x), abs_y = std::abs (y);
 
-  if ((abs_x >= 1.0) || (abs_y >= 1.0)) return log (1.0 + z);
+  if ((abs_x >= 1.0) || (abs_y >= 1.0)) return std::log (1.0 + z);
  
   const double y_over_xp1 = y/xp1;
 
-  return std::complex<double> (log1p (x) + 0.5*log1p (y_over_xp1*y_over_xp1),atan2 (y,xp1));
+  return std::complex<double> (log1p (x) + 0.5*log1p (y_over_xp1*y_over_xp1), std::atan2 (y,xp1));
 }
 
 
@@ -239,11 +241,11 @@ std::complex<double> log1p (const std::complex<double> &z)
 
 std::complex<double> log_Gamma (const std::complex<double> &z)
 {
-  if (!isfinite (z)) std::cout<<"z is not finite in log_Gamma."<<std::endl, abort ();
+  if (!isfinite (z)) std::cout<<"z is not finite in log_Gamma."<<std::endl, std::abort ();
 
   const double x = std::real (z),y = std::imag (z);
 
-  if ((z == rint (x)) && (x <= 0)) std::cout<<"z is negative integer in log_Gamma."<<std::endl, abort ();
+  if ((z == rint (x)) && (x <= 0)) std::cout<<"z is negative integer in log_Gamma."<<std::endl, std::abort ();
 
   if (x > 0.0)
   {
@@ -261,7 +263,7 @@ std::complex<double> log_Gamma (const std::complex<double> &z)
     for (int i = 1 ; i < 7 ; i++) sum += c[i]/(z + i);
     sum *= sqrt_2Pi;
 
-    const std::complex<double> log_Gamma_z = log (sum) - log (z) + z_p_0p5*log (z_p_5p5) - z_p_5p5;
+    const std::complex<double> log_Gamma_z = std::log (sum) - std::log (z) + z_p_0p5*std::log (z_p_5p5) - z_p_5p5;
 
     return log_Gamma_z;
   }
@@ -270,13 +272,13 @@ std::complex<double> log_Gamma (const std::complex<double> &z)
     const int n = (x < rint (x)) ? (static_cast<int> (rint (x)) - 1) : (static_cast<int> (rint (x)));
     const double log_Pi = 1.1447298858494002;
     const std::complex<double> log_const(-M_LN2,M_PI_2),i_Pi(0.0,M_PI);
-    const std::complex<double> eps = z - n,log_sin_Pi_z = (y > 110) ? (-i_Pi*z + log_const) : (log (sin (M_PI*eps)) - i_Pi*n);
+    const std::complex<double> eps = z - n,log_sin_Pi_z = (y > 110) ? (-i_Pi*z + log_const) : (std::log (std::sin (M_PI*eps)) - i_Pi*n);
     const std::complex<double> log_Gamma_z = log_Pi - log_sin_Pi_z - log_Gamma (1.0 - z);
     
     return log_Gamma_z;
   }
   else
-    return conj (log_Gamma (conj (z)));
+    return std::conj (log_Gamma (std::conj (z)));
 }
 
 
@@ -297,11 +299,11 @@ std::complex<double> log_Gamma (const std::complex<double> &z)
 
 std::complex<double> sigma_l_calc (const std::complex<double> &l,const std::complex<double> &eta)
 {
-  const std::complex<double> Ieta(-imag (eta),real (eta)),one_over_two_I(0,-0.5);
+  const std::complex<double> Ieta(-std::imag (eta),std::real (eta)),one_over_two_I(0,-0.5);
   const std::complex<double> arg_plus = 1.0 + l + Ieta, arg_minus = 1.0 + l - Ieta;
 
-  if ((rint (real (arg_plus)) == arg_plus) && (rint (real (arg_plus)) <= 0.0)) return 0.0;
-  if ((rint (real (arg_minus)) == arg_minus) && (rint (real (arg_minus)) <= 0.0)) return 0.0;
+  if ((rint (std::real (arg_plus)) == arg_plus) && (rint (std::real (arg_plus)) <= 0.0)) return 0.0;
+  if ((rint (std::real (arg_minus)) == arg_minus) && (rint (std::real (arg_minus)) <= 0.0)) return 0.0;
 
   const std::complex<double> log_Gamma_plus = log_Gamma (arg_plus),log_Gamma_minus = log_Gamma (arg_minus);  
   const std::complex<double> sigma_l = (log_Gamma_plus - log_Gamma_minus)*one_over_two_I;
@@ -331,11 +333,11 @@ std::complex<double> sigma_l_calc (const std::complex<double> &l,const std::comp
 
 std::complex<double> log_Cl_eta_calc (const std::complex<double> &l,const std::complex<double> &eta)
 {
-  const std::complex<double> Ieta(-imag (eta),real (eta));
+  const std::complex<double> Ieta(-std::imag (eta),std::real (eta));
   const std::complex<double> arg_plus = 1.0 + l + Ieta, arg_minus = 1.0 + l - Ieta; 
 
-  if ((rint (real (arg_plus)) == arg_plus) && (rint (real (arg_plus)) <= 0.0)) return 0.0;
-  if ((rint (real (arg_minus)) == arg_minus) && (rint (real (arg_minus)) <= 0.0)) return 0.0;
+  if ((rint (std::real (arg_plus)) == arg_plus) && (rint (std::real (arg_plus)) <= 0.0)) return 0.0;
+  if ((rint (std::real (arg_minus)) == arg_minus) && (rint (std::real (arg_minus)) <= 0.0)) return 0.0;
 
   const std::complex<double> log_Gamma_plus = log_Gamma (arg_plus),log_Gamma_minus = log_Gamma (arg_minus),log_Gamma_2l_plus_2 = log_Gamma (2.0*l + 2.0);
   const std::complex<double> log_Cl_eta = l*M_LN2 - M_PI_2*eta + 0.5*(log_Gamma_plus + log_Gamma_minus) - log_Gamma_2l_plus_2;
@@ -371,21 +373,21 @@ std::complex<double> log_Cl_eta_calc (const std::complex<double> &l,const std::c
 
 std::complex<double> log_cut_constant_AS_calc (const int omega,const std::complex<double> &l,const std::complex<double> &eta)
 {
-  const std::complex<double> Ieta(-imag (eta),real (eta));
-  const double l_int = rint (real (l)), Ieta_int = rint (real (Ieta));
+  const std::complex<double> Ieta(-std::imag (eta),std::real (eta));
+  const double l_int = rint (std::real (l)), Ieta_int = rint (std::real (Ieta));
   const std::complex<double> eps = (Ieta - Ieta_int) - omega*(l - l_int);
 
   const std::complex<double> two_I_Pi(0,2.0*M_PI),two_I_Pi_eps = two_I_Pi*eps;
 
   if (real (two_I_Pi_eps) > -0.1)
   {
-    const std::complex<double> log_cut_constant = log (expm1 (-two_I_Pi_eps)) + two_I_Pi_eps;
+    const std::complex<double> log_cut_constant = std::log (expm1 (-two_I_Pi_eps)) + two_I_Pi_eps;
 
     return log_cut_constant;
   }
   else
   {
-    const std::complex<double> log_cut_constant = log1p (-exp (two_I_Pi_eps));
+    const std::complex<double> log_cut_constant = log1p (-std::exp (two_I_Pi_eps));
 
     return log_cut_constant;
   }
@@ -425,13 +427,13 @@ std::complex<double> log_cut_constant_AS_calc (const int omega,const std::comple
 
 std::complex<double> log_cut_constant_CFa_calc (const bool is_it_normalized,const int omega,const std::complex<double> &l,const std::complex<double> &eta)
 {
-  const std::complex<double> Ieta(-imag (eta),real (eta));
-  const double l_int = rint (real (l)), Ieta_int = rint (real (Ieta));
+  const std::complex<double> Ieta(-std::imag (eta),std::real (eta));
+  const double l_int = rint (std::real (l)), Ieta_int = rint (std::real (Ieta));
   const std::complex<double> eps = omega*(l - l_int) - (Ieta - Ieta_int);
   const std::complex<double> log_norm = (!is_it_normalized) ? (2.0*log_Cl_eta_calc (l,eta)) : (0.0);
   const std::complex<double> two_I_Pi(0,2.0*M_PI),two_I_Pi_eps = two_I_Pi*eps,log_two_I_omega(M_LN2,omega*M_PI_2);
 
-  if (real (two_I_Pi_eps) < 0.1)
+  if (std::real (two_I_Pi_eps) < 0.1)
   {
     const std::complex<double> log_cut_constant = log_two_I_omega + log (expm1 (two_I_Pi_eps)) + log_norm;
 
@@ -439,7 +441,7 @@ std::complex<double> log_cut_constant_CFa_calc (const bool is_it_normalized,cons
   }
   else
   {
-    const std::complex<double> log_cut_constant = log_two_I_omega + log1p (-exp (-two_I_Pi_eps)) + two_I_Pi_eps + log_norm;
+    const std::complex<double> log_cut_constant = log_two_I_omega + log1p (-std::exp (-two_I_Pi_eps)) + two_I_Pi_eps + log_norm;
 
     return log_cut_constant; 
   }
@@ -478,8 +480,8 @@ std::complex<double> log_cut_constant_CFa_calc (const bool is_it_normalized,cons
 
 std::complex<double> log_cut_constant_CFb_calc (const bool is_it_normalized,const int omega,const std::complex<double> &l,const std::complex<double> &eta)
 {
-  const std::complex<double> Ieta(-imag (eta),real (eta));
-  const double l_int = rint (real (l)), Ieta_int = rint (real (Ieta));
+  const std::complex<double> Ieta(-std::imag (eta),std::real (eta));
+  const double l_int = rint (std::real (l)), Ieta_int = rint (std::real (Ieta));
   const std::complex<double> eps = omega*(l - l_int) + (Ieta - Ieta_int);
   const std::complex<double> log_norm = (!is_it_normalized) ? (2.0*log_Cl_eta_calc (l,eta)) : (0.0);
   const std::complex<double> two_I_Pi(0,2.0*M_PI),log_two_I_omega(M_LN2,omega*M_PI_2),log_cut_constant = log_two_I_omega - two_I_Pi*eps + log_norm;
@@ -519,9 +521,9 @@ std::complex<double> log_cut_constant_CFb_calc (const bool is_it_normalized,cons
 
 std::complex<double> sin_chi_calc (const std::complex<double> &l,const std::complex<double> &eta)
 {
-  if (rint (real (2.0*l)) == 2.0*l) return 0.0;
+  if (rint (std::real (2.0*l)) == 2.0*l) return 0.0;
 
-  const std::complex<double> sin_chi = -(2*l+1)*exp (log_Cl_eta_calc (l,eta) + log_Cl_eta_calc (-l-1,eta));
+  const std::complex<double> sin_chi = -(2*l+1)*std::exp (log_Cl_eta_calc (l,eta) + log_Cl_eta_calc (-l-1,eta));
   
   return sin_chi;
 }
@@ -559,9 +561,9 @@ std::complex<double> exp_I_omega_chi_calc (const int omega,const std::complex<do
   const std::complex<double> I_omega(0,omega),sin_chi = sin_chi_calc (l,eta);
   const std::complex<double> chi = sigma_l_calc (l,eta) - sigma_l_calc (-l-1,eta) - (l+0.5)*M_PI;
 
-  if (abs (sin_chi) > 0.5)
+  if (std::abs (sin_chi) > 0.5)
   {
-    const std::complex<double> exp_I_omega_chi = exp (I_omega*chi);
+    const std::complex<double> exp_I_omega_chi = std::exp (I_omega*chi);
 
     return exp_I_omega_chi;
   }

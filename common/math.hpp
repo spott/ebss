@@ -2,6 +2,9 @@
 //ebss
 #include<common/parameters/Parameters.hpp>
 #include<common/common.hpp>
+#include<common/special/coulomb/complex_functions.H>
+#include<common/special/coulomb/cwfcomp.cpp>
+//#include<common/special/coulomb/test_rec_rel.>
 
 //fftw3:
 extern "C" {
@@ -15,6 +18,7 @@ extern "C" {
 
 //gsl:
 #include<gsl/gsl_sf_coupling.h>
+#include<gsl/gsl_sf_coulomb.h>
 
 
 namespace math{
@@ -109,9 +113,8 @@ void FieldFreePropagate(Vec *H, Vec *wf, PetscReal dt) //propagate forward in ti
     VecDestroy(&tmp);
 }
 
+
 //I should split this into different methods, 
-
-
 template <typename scalar>
 scalar integrateSimpsonsRule(const std::vector<scalar> &psi1, const std::vector<scalar> &psi2, const std::vector<scalar> &grid)
 {
@@ -171,13 +174,38 @@ scalar integrateSimpsonsRule(const std::vector<scalar> &psi1, const std::vector<
     return result;
 }
 
+template <typename scalar, typename Func >
+scalar integrateTrapezoidRule(const std::vector<scalar> &psi1, const std::vector<scalar> &psi2, const std::vector<scalar> &grid, Func f)
+{
+    if (psi1.size() != psi2.size() || psi1.size() != grid.size() )
+        throw (std::length_error( "integrateTrapezoidRule: the sizes are not the same" ));
+    
+    //grid[0] at the beginning is the dr, we assume that the [-1] value is zero for the grid
+    scalar result = f(grid[0]) * psi1[0] * psi2[0] * grid[0] / 2;
+
+    for (size_t i = 1; i < grid.size(); i++)
+    {
+        //if (result != result || result == std::numeric_limits<scalar>::infinity() )
+        //{
+            //std::cerr << i-1 << " " << grid[i-1] << ", " << psi1[i-1] << ", " << psi2[i-1] << ", " << f(grid[i-1]) << std::endl;
+            //throw(std::out_of_range( "integrateTrapezoidRule: results in NaN: " ));
+        //}
+
+        result += (psi1[i] * f(grid[i]) * psi2[i] + psi1[i-1] * f(grid[i-1]) * psi2[i-1]) * (grid[i] - grid[i-1]) / 2;
+    }
+
+    if (result != result || result == std::numeric_limits<scalar>::infinity() )
+        throw(std::out_of_range( "integrateTrapezoidRule: results in NaN" ));
+
+    return result;
+}
 
 template <typename scalar>
 scalar integrateTrapezoidRule(const std::vector<scalar> &psi1, const std::vector<scalar> &psi2, const std::vector<scalar> &grid)
 {
     //check for correct size!
     if (psi1.size() != psi2.size() || psi1.size() != grid.size() )
-        throw (std::exception());
+        throw (std::length_error( "integrateTrapezoidRule: the sizes are not the same" ));
 
     scalar result = psi1[0] * psi2[0] * grid[0] * grid[0] / 2;
 
@@ -185,7 +213,7 @@ scalar integrateTrapezoidRule(const std::vector<scalar> &psi1, const std::vector
         result += (psi1[i] * grid[i] * psi2[i] + psi1[i-1] * grid[i-1] * psi2[i-1]) * (grid[i] - grid[i-1]) / 2;
 
     if (result != result || result == std::numeric_limits<scalar>::infinity() )
-        throw(std::exception());
+        throw(std::out_of_range( "integrateTrapezoidRule: results in NaN" ));
 
     return result;
 }
@@ -204,27 +232,56 @@ scalar integrateGrid(const std::vector<scalar> &psi1, const std::vector<scalar> 
 template<typename scalar>
 scalar normalize(std::vector<scalar> &wf, const std::vector<scalar> &grid)
 {
-	//auto wf = *wavefunction;
-	scalar norm = wf[0] * wf[0] * grid[0] / 2; //the first point is always zero...
-	scalar tmp1 = norm;
-	scalar tmp2 = 0;
-	for (size_t i = 1; i < grid.size(); i++)
-	{
-		tmp2 = wf[i] * wf[i] * (grid[i]-grid[i-1]) / 2;
-		norm += tmp2 + tmp1;
-		tmp1 = tmp2;
-	}
-
-    if (norm != norm || norm == std::numeric_limits<scalar>::infinity() )
-        throw(std::exception());
+    std::function< scalar (scalar) > f = [](scalar r){ return 1.;};
+    scalar norm = integrateTrapezoidRule(wf, wf, grid, f );
 	norm = std::sqrt(norm);
-	for (size_t i = 0; i < grid.size(); i++)
-	{
-		wf[i] /= norm;
-	}
+    for ( auto& a : wf )
+        a /= norm;
 	return norm;
 }
 
+std::vector< double > coulomb_wave_function(kBasisID a, const std::vector<double>& grid)
+{
+    std::vector< double > cv;
+    cv.reserve(grid.size());
+    std::complex<double> F, dF;
+
+    Coulomb_wave_functions cwf(true, a.l, -1./a.k);
+    for (auto r: grid)
+    {
+        cwf.F_dF( a.k * r, F, dF);
+        cv.push_back(F.real());
+    }
+    return cv;
+}
+size_t factorial(size_t n)
+{
+    return n * factorial(n-1);
+};
+
+std::vector<double> gsl_coulomb_wave_function(kBasisID a, const std::vector<double>& grid)
+{
+    int Z = 1;
+    std::vector<double> cv;
+    cv.reserve(grid.size());
+    double* val = new double[1];
+
+    for (auto& r : grid)
+    {
+        double exp;
+        //we should really calculate more than just the one l, but not right now.
+        gsl_sf_coulomb_wave_F_array ( a.l, 0, - 1./a.k, a.k * r, val, &exp );
+        if (*val != *val || *val == std::numeric_limits<double>::infinity() )
+        {
+            std::cerr << a << ": " << val << ", " << r << std::endl;
+            throw(std::out_of_range( "gsl_coulomb_wave_function: results in NaN" ));
+        }
+        cv.push_back(*val);
+    }
+    normalize(cv, grid); //we want to normalize to 1
+    delete[] val;
+    return cv;
+}
 
 inline std::complex<double> Gamma_Lanczos (std::complex<double> z)
 {

@@ -34,13 +34,16 @@ main (int argc, const char* argv[])
         std::cout << a << ", ";
     std::cout << std::endl;
 
-    std::vector< std::array< double, 2 > > ef;
+    std::vector< double > ef;
+    std::vector< double > time;
     while (t < maxtime)
     {
-        ef.push_back({ { t , p.efield(t).real() } });
+        ef.push_back( p.efield(t).real() );
+        time.push_back( t );
         //std::cerr << t << ", " << ef.back() << std::endl;
         t += p.dt();
     }
     common::export_vector_binary("efield.dat", ef);
+    common::export_vector_binary("time.dat", time);
 
 }

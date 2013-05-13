@@ -571,7 +571,7 @@ namespace numerov
                     std::future<BasisID> f_loop = p_loop.get_future();
                     tmp.l = l + i;
                     futures_que[i] = std::async(std::launch::async, n_loop<scalar, write_type>, std::ref(p_loop), tmp, std::cref(*rgrid), std::cref(params), std::cref(pot), dx );
-                    if ( tmp.l < params.nmax() )
+                    if ( tmp.l < params.nmax() - 1 )
                     {
                         std::cout << "[0] waiting for future" << std::endl;
                         tmp.e = f_loop.get().e;

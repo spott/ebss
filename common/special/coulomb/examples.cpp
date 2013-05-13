@@ -3,31 +3,33 @@
 #include <string>
 #include <complex>
 
-using namespace std;
+//using namespace std;
 
-#define SIGN(a) (((a) < 0) ? (-1) : (1))
+//#define SIGN(a) (((a) < 0) ? (-1) : (1))
 
-const double precision = 1E-10,sqrt_precision = 1E-5;
+//const double precision = 1E-10,sqrt_precision = 1E-5;
 
 #include "complex_functions.H"
 #include "cwfcomp.cpp"
 #include "test_rec_rel.cpp"
 
+
 int main (void)
 {
-  string is_it_normalized_str;
-  cin>>is_it_normalized_str;
+    using namespace std;
+    std::string is_it_normalized_str;
+    std::cin>>is_it_normalized_str;
 
   const bool is_it_normalized = (is_it_normalized_str == "true") ? (true) : (false);
   
   complex<double> l,eta;
-  cin>>l>>eta;
+  std::cin>>l>>eta;
 
   double R;
-  cin>>R;
+  std::cin>>R;
 
   int Nz,Nl;
-  cin>>Nz>>Nl;
+  std::cin>>Nz>>Nl;
 
   const double step = 2.0/static_cast<double> (Nz);
  

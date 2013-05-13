@@ -181,9 +181,9 @@ public:
     void write_energy_eigenvalues();
     Vec read_energy_eigenvalues();
     std::string prototype_filename() const;
-    BasisParameters<write_type_, write_type_>* basis_parameters() { return basis_; };
+    BasisParameters<write_type_, write_type_>* basis_parameters() const { return basis_; };
 
-    std::vector<BasisID> prototype() const { return prototype_; };
+    std::vector<BasisID>& prototype() { return prototype_; };
 
     std::string print() const;
     bool with_fs() const { return fs; }

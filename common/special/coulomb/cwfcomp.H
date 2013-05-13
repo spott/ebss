@@ -1,4 +1,6 @@
-#include<common/coulomb/complex_functions.H>
+#pragma once
+
+#include<common/special/coulomb/complex_functions.H>
 
 const double precision = 1E-10,sqrt_precision = 1E-5;
 

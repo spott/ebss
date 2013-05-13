@@ -12,7 +12,20 @@
 #include<sstream>
 #include<string>
 #include<iostream>
+#include<unordered_map>
+#include<memory>
+#include<functional>
 
+template <typename ReturnType, typename Arg>
+std::function<ReturnType (Arg)> memoize(std::function<ReturnType (Arg)> func)
+{
+    std::unordered_map<Arg, ReturnType> cache;
+    return ([=](Arg t) mutable  {
+            if (cache.find(t) == cache.end())
+                cache[t] = func(t);
+            return cache[t];
+    });
+}
 
 int main(int argc, const char ** argv)
 {
@@ -40,20 +53,33 @@ int main(int argc, const char ** argv)
                     return ((std::abs(prototype[i].l - prototype[j].l) == 1) || i == j );
     };
 
-    std::function<PetscScalar (int, int)> findvalue = [prototype,params,grid](int i, int j)->PetscScalar{
+    std::function< std::shared_ptr<std::vector<double> > ( BasisID ) > import_wf = 
+        [&params](BasisID a) -> std::shared_ptr<std::vector<double> > {
+        std::shared_ptr< std::vector<double> > b(
+            new std::vector<double>(std::move(
+                common::import_vector_binary<double>(
+                    params->basis_parameters()->basis_function_filename(a)
+                    )
+                    )
+                    )); 
+        return b;
+    };
+    import_wf = memoize(import_wf);
+
+    std::function<PetscScalar (int, int)> findvalue = [&prototype,&params,&grid,&import_wf](int i, int j)->PetscScalar{
         if (i == j)
             return 0.0;
-		std::vector<PetscReal> a = common::import_vector_binary<PetscReal>(params->basis_parameters()->basis_function_filename(prototype[i]));
+		auto a = import_wf(prototype[i]);
 		//math::normalize(a,*grid);
 		//std::cout << "a norm: " << 
 		//std::cout << " after: " << math::normalize(a,*grid);
-		std::vector<PetscReal> b = common::import_vector_binary<PetscReal>(params->basis_parameters()->basis_function_filename(prototype[j]));
+		auto b = import_wf(prototype[j]);
 		//math::normalize(b,*grid);
 		//std::cout << " b norm: " << 
 		//std::cout << " after: " << math::normalize(a,*grid) << std::endl;
         PetscScalar radial = math::integrateGrid(
-                a,
-                b,
+                *a,
+                *b,
                 *grid);
         PetscScalar angular = math::CGCoefficient<PetscScalar>(prototype[i],prototype[j]);
         //we are only considering spin up electrons.  so m_j always == +1/2 (since m_l is always 0)

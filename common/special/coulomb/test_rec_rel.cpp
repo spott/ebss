@@ -1,3 +1,9 @@
+//#pragma once
+
+#include<common/special/coulomb/cwfcomp.H>
+#include<complex>
+#include<iostream>
+
 // Calculation of a Wronskian testing the quality of calculated Coulomb wave functions at a given z.
 // -------------------------------------------------------------------------------------------------
 //
@@ -26,17 +32,17 @@
 // inf_norm_W_diff : test associated to  F[l], H[omega,l], F[l+1] and H[omega,l+1] (see above).
 // inf_norm_W_der_diff :  test associated to  F[l], H[omega,l], F[l+1], H[omega,l+1] and their derivative (see above).
 
-double Wronskian_test (const complex<double> &z,
+double Wronskian_test (const std::complex<double> &z,
 		       class Coulomb_wave_functions &cwf_l,
 		       class Coulomb_wave_functions &cwf_lp1)
 {
   const bool is_it_normalized = cwf_l.is_it_normalized;
-  const complex<double> l = cwf_l.l, eta = cwf_l.eta;
+  const std::complex<double> l = cwf_l.l, eta = cwf_l.eta;
 
   if ((cwf_lp1.is_it_normalized != is_it_normalized) || (cwf_lp1.l != l + 1) || (cwf_lp1.eta != eta)) 
-    cout<<"Parameters of cwf_l and cwf_lp1 are not correct."<<endl, exit (1);
+    std::cout<<"Parameters of cwf_l and cwf_lp1 are not correct."<<std::endl, std::exit (1);
 
-  complex<double> Fl,dFl,Flp1,dFlp1,Hp_l,dHp_l,Hm_l,dHm_l;
+  std::complex<double> Fl,dFl,Flp1,dFlp1,Hp_l,dHp_l,Hm_l,dHm_l;
 
   cwf_l.F_dF (z,Fl,dFl);
   cwf_lp1.F_dF (z,Flp1,dFlp1);
@@ -44,28 +50,28 @@ double Wronskian_test (const complex<double> &z,
   cwf_l.H_dH (1,z,Hp_l,dHp_l);
   cwf_l.H_dH (-1,z,Hm_l,dHm_l);
 
-  const int omega = (abs (Hp_l) <= abs (Hm_l)) ? (1) : (-1);
-  const complex<double> H_omega_l = (omega == 1) ? (Hp_l) : (Hm_l), dH_omega_l = (omega == 1) ? (dHp_l) : (dHm_l);
+  const int omega = (std::abs (Hp_l) <= std::abs (Hm_l)) ? (1) : (-1);
+  const std::complex<double> H_omega_l = (omega == 1) ? (Hp_l) : (Hm_l), dH_omega_l = (omega == 1) ? (dHp_l) : (dHm_l);
 
-  complex<double> H_omega_lp1,dH_omega_lp1;
+  std::complex<double> H_omega_lp1,dH_omega_lp1;
   cwf_lp1.H_dH (omega,z,H_omega_lp1,dH_omega_lp1);
 
-  const complex<double> Cl_eta_ratio = exp (log_Cl_eta_calc (l,eta) - log_Cl_eta_calc (l+1,eta)), F_ratio =  Flp1/Fl, H_omega_ratio = H_omega_lp1/H_omega_l;
+  const std::complex<double> Cl_eta_ratio = std::exp (log_Cl_eta_calc (l,eta) - log_Cl_eta_calc (l+1,eta)), F_ratio =  Flp1/Fl, H_omega_ratio = H_omega_lp1/H_omega_l;
 
   if (is_it_normalized)
   {
     const double inf_norm_W_diff = inf_norm (H_omega_ratio - F_ratio - Cl_eta_ratio/(H_omega_l*Fl*(2*l + 3)));
     const double inf_norm_W_der_diff = inf_norm ((dFl/Fl)*H_omega_ratio + dH_omega_lp1/H_omega_l - dFlp1/Fl - (dH_omega_l/H_omega_l)*F_ratio);
 
-    return max (inf_norm_W_diff,inf_norm_W_der_diff);
+    return std::max (inf_norm_W_diff,inf_norm_W_der_diff);
   }
   else
   {
-    const complex<double> Cl_eta_ratio_inv_square = 1.0/(Cl_eta_ratio*Cl_eta_ratio), Fl_log_der = dFl/Fl, H_omega_l_log_der = dH_omega_l/H_omega_l;
+    const std::complex<double> Cl_eta_ratio_inv_square = 1.0/(Cl_eta_ratio*Cl_eta_ratio), Fl_log_der = dFl/Fl, H_omega_l_log_der = dH_omega_l/H_omega_l;
     const double inf_norm_W_diff = inf_norm (H_omega_ratio - F_ratio*Cl_eta_ratio_inv_square - 1.0/(H_omega_l*Fl*(2*l + 3)));
     const double inf_norm_W_der_diff = inf_norm (Fl_log_der*H_omega_ratio+dH_omega_lp1/H_omega_l - (dFlp1/Fl+H_omega_l_log_der*F_ratio)*Cl_eta_ratio_inv_square);
 
-    return max (inf_norm_W_diff,inf_norm_W_der_diff);
+    return std::max (inf_norm_W_diff,inf_norm_W_der_diff);
   }
 }
 
@@ -141,35 +147,35 @@ double Wronskian_test (const complex<double> &z,
 // Sl,Rl : Sl = S[l] = l/z + eta/l and Rl = R[l] = R_tab[il], for l = l_deb+il and il in [1:Nl-1]. 
 // Slp1,Rlp1 : Slp1 = S[l+1] = (l+1)/z + eta/(l+1) and Rlp+1 = R[l+1] = R_tab[il+1], for l = l_deb+il and il in [0:Nl-2].
 
-void F_dF_l_tables_rec_rel_helper (const int Nl,const int Nz,const complex<double> z_tab[],const complex<double> R_tab[],
+void F_dF_l_tables_rec_rel_helper (const int Nl,const int Nz,const std::complex<double> z_tab[],const std::complex<double> R_tab[],
 				   class Coulomb_wave_functions &cwf_l_deb,
 				   class Coulomb_wave_functions &cwf_l_end,
-				   complex<double> *const *const F_tab,complex<double> *const *const dF_tab,int il_turn_tab[])
+				   std::complex<double> *const *const F_tab,std::complex<double> *const *const dF_tab,int il_turn_tab[])
 {
   const bool is_it_normalized = cwf_l_deb.is_it_normalized;
-  const complex<double> l_deb = cwf_l_deb.l,eta = cwf_l_deb.eta;
+  const std::complex<double> l_deb = cwf_l_deb.l,eta = cwf_l_deb.eta;
 
   for (int iz = 0 ; iz < Nz ; iz++)
   { 
     int &il_turn = il_turn_tab[iz];
     il_turn = -1;
 
-    const complex<double> z = z_tab[iz];
-    complex<double> *const Fz_tab = F_tab[iz], *const dFz_tab = dF_tab[iz];
+    const std::complex<double> z = z_tab[iz];
+    std::complex<double> *const Fz_tab = F_tab[iz], *const dFz_tab = dF_tab[iz];
 
     cwf_l_end.F_dF (z,Fz_tab[Nl-1],dFz_tab[Nl-1]);
 
     for (int il = Nl-2 ; il >= 0 ; il--)
     {
-      const complex<double> l = l_deb+il,Slp1 = (l+1)/z + eta/(l+1),Rlp1 = R_tab[il+1],Flp1 = Fz_tab[il+1],dFlp1 = dFz_tab[il+1];
-      complex<double> &Fl = Fz_tab[il],&dFl = dFz_tab[il];
+      const std::complex<double> l = l_deb+il,Slp1 = (l+1)/z + eta/(l+1),Rlp1 = R_tab[il+1],Flp1 = Fz_tab[il+1],dFlp1 = dFz_tab[il+1];
+      std::complex<double> &Fl = Fz_tab[il],&dFl = dFz_tab[il];
 
       Fl = (is_it_normalized) ? ((dFlp1 + Slp1*Flp1)/Rlp1) : ((dFlp1 + Slp1*Flp1)/(2*l+3));
       dFl = (is_it_normalized) ? (Slp1*Fl - Rlp1*Flp1) : (Slp1*Fl - (Rlp1*Rlp1/(2*l + 3))*Flp1);
 
-      if (is_it_normalized && (abs (Fl) < abs (Flp1))) 
+      if (is_it_normalized && (std::abs (Fl) < std::abs (Flp1))) 
 	il_turn = il, il = -1;
-      else if (!is_it_normalized && (abs (Fl) < abs (Flp1*Rlp1/(2*l+3)))) 
+      else if (!is_it_normalized && (std::abs (Fl) < std::abs (Flp1*Rlp1/(2*l+3)))) 
 	il_turn = il, il = -1;
     }
     
@@ -178,8 +184,8 @@ void F_dF_l_tables_rec_rel_helper (const int Nl,const int Nz,const complex<doubl
       cwf_l_deb.F_dF (z,Fz_tab[0],dFz_tab[0]);
       for (int il = 1 ; il <= il_turn ; il++)
       {
-	const complex<double> l = l_deb+il,Sl = l/z + eta/l,Rl = R_tab[il],Flm1 = Fz_tab[il-1],dFlm1 = dFz_tab[il-1];
-	complex<double> &Fl = Fz_tab[il],&dFl = dFz_tab[il];
+	const std::complex<double> l = l_deb+il,Sl = l/z + eta/l,Rl = R_tab[il],Flm1 = Fz_tab[il-1],dFlm1 = dFz_tab[il-1];
+	std::complex<double> &Fl = Fz_tab[il],&dFl = dFz_tab[il];
 
 	Fl = (is_it_normalized) ? ((Sl*Flm1 - dFlm1)/Rl) : ((Sl*Flm1 - dFlm1)*(2*l+1)/(Rl*Rl));
 	dFl = (is_it_normalized) ? (Rl*Flm1 - Sl*Fl) : ((2*l+1)*Flm1 - Sl*Fl);
@@ -228,49 +234,49 @@ void F_dF_l_tables_rec_rel_helper (const int Nl,const int Nz,const complex<doubl
 //                              H_factor is 2.i.omega for standard normalization and 2.i.omega.(C(l,eta)^2) for non-standard normalization.
 // G_factor_turn : same as G_factor for l = l_turn.
 
-void cwf_l_tables_rec_rel_helper (const int Nl,const complex<double> R_tab[],class Coulomb_wave_functions *const cwf_l_tab[],
-				  const complex<double> &z,const int il_turn,
-				  const complex<double> Fz_tab[],const complex<double> dFz_tab[],
-				  complex<double> Hp_z_tab[],complex<double> dHp_z_tab[],
-				  complex<double> Hm_z_tab[],complex<double> dHm_z_tab[],
-				  complex<double> Gz_tab[],complex<double> dGz_tab[])
+void cwf_l_tables_rec_rel_helper (const int Nl,const std::complex<double> R_tab[],class Coulomb_wave_functions *const cwf_l_tab[],
+				  const std::complex<double> &z,const int il_turn,
+				  const std::complex<double> Fz_tab[],const std::complex<double> dFz_tab[],
+				  std::complex<double> Hp_z_tab[],std::complex<double> dHp_z_tab[],
+				  std::complex<double> Hm_z_tab[],std::complex<double> dHm_z_tab[],
+				  std::complex<double> Gz_tab[],std::complex<double> dGz_tab[])
 {
   const bool is_it_normalized = cwf_l_tab[0]->is_it_normalized;
-  const complex<double> l_deb = cwf_l_tab[0]->l, eta = cwf_l_tab[0]->eta;
+  const std::complex<double> l_deb = cwf_l_tab[0]->l, eta = cwf_l_tab[0]->eta;
 
   cwf_l_tab[il_turn]->F_dF_init (z,Fz_tab[il_turn],dFz_tab[il_turn]);
   cwf_l_tab[il_turn]->H_dH (1,z,Hp_z_tab[il_turn],dHp_z_tab[il_turn]);
   cwf_l_tab[il_turn]->H_dH (-1,z,Hm_z_tab[il_turn],dHm_z_tab[il_turn]);
 
-  const int omega = (abs (Hp_z_tab[il_turn]) <= abs (Hm_z_tab[il_turn])) ? (1) : (-1);
-  complex<double> *const Hz_omega_tab = (omega == 1) ? (Hp_z_tab) : (Hm_z_tab),*const dHz_omega_tab = (omega == 1) ? (dHp_z_tab) : (dHm_z_tab);
-  complex<double> *const Hz_m_omega_tab = (omega == 1) ? (Hm_z_tab) : (Hp_z_tab),*const dHz_m_omega_tab = (omega == 1) ? (dHm_z_tab) : (dHp_z_tab);
+  const int omega = (std::abs (Hp_z_tab[il_turn]) <= std::abs (Hm_z_tab[il_turn])) ? (1) : (-1);
+  std::complex<double> *const Hz_omega_tab = (omega == 1) ? (Hp_z_tab) : (Hm_z_tab),*const dHz_omega_tab = (omega == 1) ? (dHp_z_tab) : (dHm_z_tab);
+  std::complex<double> *const Hz_m_omega_tab = (omega == 1) ? (Hm_z_tab) : (Hp_z_tab),*const dHz_m_omega_tab = (omega == 1) ? (dHm_z_tab) : (dHp_z_tab);
   
-  const complex<double> I_omega(0,omega),G_factor_turn = (!is_it_normalized) ? (I_omega*exp (2.0*log_Cl_eta_calc (l_deb + il_turn,eta))) : (I_omega);
+  const std::complex<double> I_omega(0,omega),G_factor_turn = (!is_it_normalized) ? (I_omega*std::exp (2.0*log_Cl_eta_calc (l_deb + il_turn,eta))) : (I_omega);
   Gz_tab[il_turn] = Hz_omega_tab[il_turn] - G_factor_turn*Fz_tab[il_turn], dGz_tab[il_turn] = dHz_omega_tab[il_turn] - G_factor_turn*dFz_tab[il_turn];
 
   for (int il = il_turn-1 ; il >=0 ; il--)
   {
-    const complex<double> l = l_deb+il,Slp1 = (l+1)/z + eta/(l+1),Rlp1 = R_tab[il+1],H_omega_lp1 = Hz_omega_tab[il+1],dH_omega_lp1 = dHz_omega_tab[il+1];
-    complex<double> &H_omega_l = Hz_omega_tab[il],&dH_omega_l = dHz_omega_tab[il];
+    const std::complex<double> l = l_deb+il,Slp1 = (l+1)/z + eta/(l+1),Rlp1 = R_tab[il+1],H_omega_lp1 = Hz_omega_tab[il+1],dH_omega_lp1 = dHz_omega_tab[il+1];
+    std::complex<double> &H_omega_l = Hz_omega_tab[il],&dH_omega_l = dHz_omega_tab[il];
     H_omega_l = (is_it_normalized) ? ((dH_omega_lp1 + Slp1*H_omega_lp1)/Rlp1) : ((dH_omega_lp1 + Slp1*H_omega_lp1)*(2*l+3)/(Rlp1*Rlp1));
     dH_omega_l = (is_it_normalized) ? (Slp1*H_omega_l - Rlp1*H_omega_lp1) : (Slp1*H_omega_l - (2*l + 3)*H_omega_lp1);
 
-    const complex<double> G_factor = (!is_it_normalized) ? (I_omega*exp (2.0*log_Cl_eta_calc (l,eta))) : (I_omega),H_factor = 2*G_factor;
-    const complex<double> Fl = Fz_tab[il],dFl = dFz_tab[il];
+    const std::complex<double> G_factor = (!is_it_normalized) ? (I_omega*exp (2.0*log_Cl_eta_calc (l,eta))) : (I_omega),H_factor = 2*G_factor;
+    const std::complex<double> Fl = Fz_tab[il],dFl = dFz_tab[il];
     Hz_m_omega_tab[il] = H_omega_l - Fl*H_factor, dHz_m_omega_tab[il] = dH_omega_l - dFl*H_factor;
     Gz_tab[il] = H_omega_l - G_factor*Fl, dGz_tab[il] = dH_omega_l - G_factor*dFl;
   }
 
   for (int il = il_turn+1 ; il < Nl ; il++)
   {
-    const complex<double> l = l_deb+il,Sl = l/z + eta/l,Rl = R_tab[il],H_omega_lm1 = Hz_omega_tab[il-1],dH_omega_lm1 = dHz_omega_tab[il-1];
-    complex<double> &H_omega_l = Hz_omega_tab[il],&dH_omega_l = dHz_omega_tab[il];
+    const std::complex<double> l = l_deb+il,Sl = l/z + eta/l,Rl = R_tab[il],H_omega_lm1 = Hz_omega_tab[il-1],dH_omega_lm1 = dHz_omega_tab[il-1];
+    std::complex<double> &H_omega_l = Hz_omega_tab[il],&dH_omega_l = dHz_omega_tab[il];
     H_omega_l = (is_it_normalized) ? ((Sl*H_omega_lm1 - dH_omega_lm1)/Rl) : ((Sl*H_omega_lm1 - dH_omega_lm1)/(2*l+1));
     dH_omega_l = (is_it_normalized) ? (Rl*H_omega_lm1 - Sl*H_omega_l) : (((Rl*Rl)/(2*l+1))*H_omega_lm1 - Sl*H_omega_l);
 
-    const complex<double> G_factor = (!is_it_normalized) ? (I_omega*exp (2.0*log_Cl_eta_calc (l,eta))) : (I_omega),H_factor = 2*G_factor;
-    const complex<double> Fl = Fz_tab[il],dFl = dFz_tab[il];
+    const std::complex<double> G_factor = (!is_it_normalized) ? (I_omega*exp (2.0*log_Cl_eta_calc (l,eta))) : (I_omega),H_factor = 2*G_factor;
+    const std::complex<double> Fl = Fz_tab[il],dFl = dFz_tab[il];
     Hz_m_omega_tab[il] = H_omega_l - Fl*H_factor, dHz_m_omega_tab[il] = dH_omega_l - dFl*H_factor;
     Gz_tab[il] = H_omega_l - G_factor*Fl, dGz_tab[il] = dH_omega_l - G_factor*dFl;
   }
@@ -303,24 +309,24 @@ void cwf_l_tables_rec_rel_helper (const int Nl,const complex<double> R_tab[],cla
 // il_turn : l_turn = l_deb + il_turn if there is a turning l point for fixed z (see above). If there is none, l_turn = l_deb by definition.
 // Fz_tab,dFz_tab : tables of F,F' values for a fixed z and varying l.
 
-void cwf_l_tables_recurrence_relations (const complex<double> &l_deb,const int Nl,const complex<double> &eta,const bool is_it_normalized,
-					const int Nz,const complex<double> z_tab[],
-					complex<double> *const *const F_tab,complex<double> *const *const dF_tab,
-					complex<double> *const *const G_tab,complex<double> *const *const dG_tab,
-					complex<double> *const *const Hp_tab,complex<double> *const *const dHp_tab,
-					complex<double> *const *const Hm_tab,complex<double> *const *const dHm_tab)
+void cwf_l_tables_recurrence_relations (const std::complex<double> &l_deb,const int Nl,const std::complex<double> &eta,const bool is_it_normalized,
+					const int Nz,const std::complex<double> z_tab[],
+					std::complex<double> *const *const F_tab,std::complex<double> *const *const dF_tab,
+					std::complex<double> *const *const G_tab,std::complex<double> *const *const dG_tab,
+					std::complex<double> *const *const Hp_tab,std::complex<double> *const *const dHp_tab,
+					std::complex<double> *const *const Hm_tab,std::complex<double> *const *const dHm_tab)
 {  
-  const complex<double> Ieta(-imag (eta),real (eta)), l_deb_p1_p_Ieta = 1+l_deb+Ieta, l_deb_p1_m_Ieta = 1+l_deb-Ieta;
-  if ((l_deb == rint (real (l_deb))) && (real (l_deb) < 0)) cout<<"l_deb cannot be a negative integer."<<endl, exit (1);
-  if ((l_deb_p1_p_Ieta == rint (real (l_deb_p1_p_Ieta))) && (real (l_deb_p1_p_Ieta) < 0)) cout<<"1+l_deb+i.eta cannot be a negative integer."<<endl, exit (1);
-  if ((l_deb_p1_m_Ieta == rint (real (l_deb_p1_m_Ieta))) && (real (l_deb_p1_m_Ieta) < 0)) cout<<"1+l_deb-i.eta cannot be a negative integer."<<endl, exit (1);
+  const std::complex<double> Ieta(-std::imag (eta),std::real (eta)), l_deb_p1_p_Ieta = 1+l_deb+Ieta, l_deb_p1_m_Ieta = 1+l_deb-Ieta;
+  if ((l_deb == rint (std::real (l_deb))) && (std::real (l_deb) < 0)) std::cout<<"l_deb cannot be a negative integer."<<std::endl, std::exit (1);
+  if ((l_deb_p1_p_Ieta == rint (std::real (l_deb_p1_p_Ieta))) && (std::real (l_deb_p1_p_Ieta) < 0)) std::cout<<"1+l_deb+i.eta cannot be a negative integer."<<std::endl, std::exit (1);
+  if ((l_deb_p1_m_Ieta == rint (std::real (l_deb_p1_m_Ieta))) && (std::real (l_deb_p1_m_Ieta) < 0)) std::cout<<"1+l_deb-i.eta cannot be a negative integer."<<std::endl, std::exit (1);
 
-  complex<double> *const R_tab = new complex<double> [Nl];
+  std::complex<double> *const R_tab = new std::complex<double> [Nl];
   class Coulomb_wave_functions **cwf_l_tab = new class Coulomb_wave_functions * [Nl];
 
   for (int il = 0 ; il < Nl ; il++)
   {
-    const complex<double> l = l_deb+il;
+    const std::complex<double> l = l_deb+il;
     if (il > 0) R_tab[il] = (2*l + 1)*exp (log_Cl_eta_calc (l,eta) - log_Cl_eta_calc (l-1,eta));
     cwf_l_tab[il] = new class Coulomb_wave_functions (is_it_normalized,l,eta);
   }
@@ -331,7 +337,7 @@ void cwf_l_tables_recurrence_relations (const complex<double> &l_deb,const int N
   for (int iz = 0 ; iz < Nz ; iz++)
   { 
     const int il_turn = (il_turn_tab[iz] == -1) ? (0) : (il_turn_tab[iz]);
-    const complex<double> *const Fz_tab = F_tab[iz],*const dFz_tab = dF_tab[iz];
+    const std::complex<double> *const Fz_tab = F_tab[iz],*const dFz_tab = dF_tab[iz];
     cwf_l_tables_rec_rel_helper (Nl,R_tab,cwf_l_tab,z_tab[iz],il_turn,Fz_tab,dFz_tab,Hp_tab[iz],dHp_tab[iz],Hm_tab[iz],dHm_tab[iz],G_tab[iz],dG_tab[iz]);
   }
 
@@ -366,17 +372,17 @@ void cwf_l_tables_recurrence_relations (const complex<double> &l_deb,const int N
 // Hp_tab,dHp_tab : table of values of H+(l,eta,z) and H+'(l,eta,z). H+(l,eta,z) = Hp_tab[il], H+'(l,eta,z) = dHp_tab[il].
 // Hm_tab,dHm_tab : table of values of H-(l,eta,z) and H-'(l,eta,z). H-(l,eta,z) = Hm_tab[il], H-'(l,eta,z) = dHm_tab[il].
 
-void cwf_l_tables_recurrence_relations (const complex<double> &l_deb,const int Nl,const complex<double> &eta,const bool is_it_normalized,
-					const complex<double> z,
-					complex<double> *const F_tab,complex<double> *const dF_tab,
-					complex<double> *const G_tab,complex<double> *const dG_tab,
-					complex<double> *const Hp_tab,complex<double> *const dHp_tab,
-					complex<double> *const Hm_tab,complex<double> *const dHm_tab)
+void cwf_l_tables_recurrence_relations (const std::complex<double> &l_deb,const int Nl,const std::complex<double> &eta,const bool is_it_normalized,
+					const std::complex<double> z,
+					std::complex<double> *const F_tab,std::complex<double> *const dF_tab,
+					std::complex<double> *const G_tab,std::complex<double> *const dG_tab,
+					std::complex<double> *const Hp_tab,std::complex<double> *const dHp_tab,
+					std::complex<double> *const Hm_tab,std::complex<double> *const dHm_tab)
 {
-  const complex<double> Ieta(-imag (eta),real (eta)), l_deb_p1_p_Ieta = 1+l_deb+Ieta, l_deb_p1_m_Ieta = 1+l_deb-Ieta;
-  if ((l_deb == rint (real (l_deb))) && (real (l_deb) < 0)) cout<<"l_deb cannot be a negative integer."<<endl, exit (1);
-  if ((l_deb_p1_p_Ieta == rint (real (l_deb_p1_p_Ieta))) && (real (l_deb_p1_p_Ieta) < 0)) cout<<"1+l_deb+i.eta cannot be a negative integer."<<endl, exit (1);
-  if ((l_deb_p1_m_Ieta == rint (real (l_deb_p1_m_Ieta))) && (real (l_deb_p1_m_Ieta) < 0)) cout<<"1+l_deb-i.eta cannot be a negative integer."<<endl, exit (1);
+  const std::complex<double> Ieta(-std::imag (eta),std::real (eta)), l_deb_p1_p_Ieta = 1+l_deb+Ieta, l_deb_p1_m_Ieta = 1+l_deb-Ieta;
+  if ((l_deb == rint (std::real (l_deb))) && (std::real (l_deb) < 0)) std::cout<<"l_deb cannot be a negative integer."<<std::endl, std::exit (1);
+  if ((l_deb_p1_p_Ieta == rint (std::real (l_deb_p1_p_Ieta))) && (std::real (l_deb_p1_p_Ieta) < 0)) std::cout<<"1+l_deb+i.eta cannot be a negative integer."<<std::endl, std::exit (1);
+  if ((l_deb_p1_m_Ieta == rint (std::real (l_deb_p1_m_Ieta))) && (std::real (l_deb_p1_m_Ieta) < 0)) std::cout<<"1+l_deb-i.eta cannot be a negative integer."<<std::endl, std::exit (1);
 
   cwf_l_tables_recurrence_relations (l_deb,Nl,eta,is_it_normalized,1,&z,&F_tab,&dF_tab,&G_tab,&dG_tab,&Hp_tab,&dHp_tab,&Hm_tab,&dHm_tab);
 }

@@ -18,6 +18,16 @@
 //mine
 #include<common/parameters/Parameters.hpp>
 
+struct kBasisID{
+    PetscReal k;
+    PetscInt l;
+};
+
+std::ostream& operator<<( std::ostream& out, const kBasisID a) {
+    out << a.k << ", " << a.l;
+    return out;
+}
+
 struct BasisID {
     // j = 1 -> 1/2;
     // j = 3 -> 3/2;
@@ -28,16 +38,30 @@ struct BasisID {
     {
         if (this->l < b.l)
             return true;
-        else if (this->l == b.l && this->j < b.j)
+        else if (this->l == b.l && this->n < b.n)
             return true;
-        else if (this->l == b.l && this->j == b.j && this->n < b.n)
+        else if (this->l == b.l && this->n < b.n && this->j == b.j )
             return true;
-        else if (this->l == b.l && this->j == b.j && this->n == b.n && this->m < b.m)
+        else if (this->l == b.l && this->n == b.n && this->j == b.j && this->m < b.m)
             return true;
         else
             return false;
     }
 };
+bool operator==(const kBasisID &a, const kBasisID &b)
+{
+    if (a.l != b.l || a.k != b.k )
+        return false;
+    else
+        return true;
+}
+bool operator==(const BasisID &a, const BasisID &b)
+{
+    if (a.l != b.l || a.n != b.n || a.j != b.j || a.e != b.e || a.m != b.m )
+        return false;
+    else
+        return true;
+}
 bool operator!=(const BasisID &a, const BasisID &b)
 {
     if (a.l != b.l || a.n != b.n || a.j != b.j || a.e != b.e || a.m != b.m )
@@ -54,7 +78,7 @@ std::istream& operator>>(std::istream &in, BasisID &b)     //input
 }
 std::ostream& operator<<(std::ostream &out, const BasisID &b)     //output
 {
-    out << b.n << ", " << b.j << ", " << b.l << ", " << b.m << ", " << b.e.real() << ", " << b.e.imag();
+    out << b.n << ", " << b.j << ", " << b.l << ", " << b.m << ", " << b.e.real();
     return out;
 }
 
@@ -69,6 +93,26 @@ std::ostream& operator<<(std::ostream &out, const std::array<T, N> &b) //output 
             out << b[i];
     }
     return out;
+}
+
+namespace std {
+template<>
+struct hash< BasisID > {
+public:
+    size_t operator()(const BasisID &a) const 
+    {
+        return a.n + 10000 * a.l + 10000000 * a.j + 100000000 * a.m;
+    }
+};
+
+template<>
+struct hash< kBasisID > {
+public:
+    size_t operator()(const kBasisID &a) const 
+    {
+        return 10000000 * a.l + 100000 * a.k;
+    }
+};
 }
 
 namespace common
