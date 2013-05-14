@@ -21,8 +21,10 @@ std::function<ReturnType (Arg)> memoize(std::function<ReturnType (Arg)> func)
 {
     std::unordered_map<Arg, ReturnType> cache;
     return ([=](Arg t) mutable  {
+            if (cache.size() > 200)
+                cache.clear();
             if (cache.find(t) == cache.end())
-                cache[t] = func(t);
+                cache.emplace(t,func(t));
             return cache[t];
     });
 }

@@ -264,7 +264,7 @@ namespace numerov
                 //Set the initial values:
 
                 //if the state is not a "problematic" state:
-                if (state.j != 2 * state.l - 1)
+                if (state.j != 2 * state.l - 1 || state.j == 0 )
                 {
                     wf[0] = std::pow(rgrid[0],state.l+1) * (1. - 2. * rgrid[0] / (2. * scalar(state.l) + 2. )) 
                         / std::sqrt(rgrid[0]);
@@ -485,8 +485,34 @@ namespace numerov
 
         for (tmp.n = tmp.l+1; tmp.n <= params.nmax(); tmp.n++)
         {
-            for (tmp.j = ((tmp.l>0)? 2 * tmp.l - 1 : 1); tmp.j <= ((tmp.l>0)? 2*tmp.l+1 : 1 ); tmp.j+=2)
+            if (params.fs())
+                for (tmp.j = ((tmp.l>0)? 2 * tmp.l - 1 : 1); tmp.j <= ((tmp.l>0)? 2*tmp.l+1 : 1 ); tmp.j+=2)
+                {
+                    std::cout << tmp << ", ";
+                    res = find_basis<scalar>( tmp, dx, rgrid, pot, 1e-13);
+                    tmp.e = res.energy;     //the energy min for the next will be the correct energy for the last.
+                    energies.push_back(tmp);
+                    std::cout << ",\t" << res.energy << std::endl;
+                    //we need to convert the wf to PetscReal, or PetscScalar...
+                    math::normalize(res.wf,rgrid);
+                    common::export_vector_binary(
+                            params.basis_function_filename(tmp),
+                            common::vector_type_change<scalar, write_type>(res.wf));
+                    std::cerr << tmp << std::endl;
+                    std::cerr << "=========================================" << std::endl;
+                    std::cerr << "=========================================" << std::endl;
+                    std::cerr << "=========================================" << std::endl;
+                    std::cerr << "=========================================" << std::endl;
+                    if ( tmp.n == tmp.l+2 && tmp.j == ((tmp.l>0)? 2 * tmp.l - 1 : 1))
+                    {
+                        std::cout << "[" << std::this_thread::get_id() << "] sending future" << std::endl;
+                        future_guess.set_value( tmp );
+                        std::cout << "[" << std::this_thread::get_id() << "] sent future" << std::endl;
+                    }
+                }
+            else
             {
+                tmp.j = 0;
                 std::cout << tmp << ", ";
                 res = find_basis<scalar>( tmp, dx, rgrid, pot, 1e-13);
                 tmp.e = res.energy;     //the energy min for the next will be the correct energy for the last.
@@ -502,7 +528,7 @@ namespace numerov
                 std::cerr << "=========================================" << std::endl;
                 std::cerr << "=========================================" << std::endl;
                 std::cerr << "=========================================" << std::endl;
-                if ( tmp.n == tmp.l+2 && tmp.j == ((tmp.l>0)? 2 * tmp.l - 1 : 1))
+                if ( tmp.n == tmp.l+2 && tmp.j == 0)
                 {
                     std::cout << "[" << std::this_thread::get_id() << "] sending future" << std::endl;
                     future_guess.set_value( tmp );
@@ -545,7 +571,7 @@ namespace numerov
             tmp.n = 1; tmp.l = 0; tmp.m = 0; tmp.j = 1; tmp.e = atom.gs_energy - 1;
 
             //concurrency and promises:
-            int num_threads = std::thread::hardware_concurrency();
+            size_t num_threads = params.procs();
             //std::promise<BasisID> p;
             //std::future<BasisID> f = p.get_future();
             //auto f2 = std::async( n_loop<scalar, write_type>, std::ref(p), tmp, std::cref(*rgrid), std::cref(params), std::cref(pot), dx );
@@ -555,7 +581,7 @@ namespace numerov
 
 
             std::cout << "Number of threads: " << num_threads << std::endl;
-            if (rank==0) std::cout << "n\tl\tj\te" << std::endl;
+            if (rank==0) std::cout << "n\tj\tl\te" << std::endl;
             std::cout << std::scientific;
 
             //std::cout << f.get() << std::endl;

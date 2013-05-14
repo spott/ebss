@@ -72,17 +72,40 @@ int main(int argc, const char **argv)
 
     //call function to find all the energy states here:
     if (params.atom() == "hydrogen")
-        numerov::find_basis_set<scalar>( (memoized_pot<scalar>(hydrogen)), params, hydrogen);
-    else if (params.atom() == "hydrogen-fs")
-        numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(hydrogen)), params, hydrogen);
-    else if (params.atom() == "argon-fs")
-        numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(argon)), params, argon);
-    else if (params.atom() == "neon-fs")
-        numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(neon)), params, neon);
-    else if (params.atom() == "rubidium-fs")
-        numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(rubidium)), params, rubidium);
-    else if (params.atom() == "potassium-fs")
-        numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(potassium)), params, potassium);
+    {
+        if (params.fs())
+            numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(hydrogen)), params, hydrogen);
+        else
+            numerov::find_basis_set<scalar>( (memoized_pot<scalar>(hydrogen)), params, hydrogen);
+    }
+    else if (params.atom() == "argon")
+    {
+        if (params.fs())
+            numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(argon)), params, argon);
+        else
+            numerov::find_basis_set<scalar>( (memoized_pot<scalar>(argon)), params, argon);
+    }
+    else if (params.atom() == "neon")
+    {
+        if (params.fs())
+            numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(neon)), params, neon);
+        else
+            numerov::find_basis_set<scalar>( (memoized_pot<scalar>(neon)), params, neon);
+    }
+    else if (params.atom() == "rubidium")
+    {
+        if (params.fs())
+            numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(rubidium)), params, rubidium);
+        else
+            numerov::find_basis_set<scalar>( (memoized_pot<scalar>(rubidium)), params, rubidium);
+    }
+    else if (params.atom() == "potassium")
+    {
+        if (params.fs())
+            numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(potassium)), params, potassium);
+        else
+            numerov::find_basis_set<scalar>( (memoized_pot<scalar>(potassium)), params, potassium);
+    }
 
     //numerov::find_basis_set<scalar>( 
     //std::bind(parameterized_finestructure_pot<scalar>, std::placeholders::_1, std::cref(hydrogen), std::placeholders::_2)

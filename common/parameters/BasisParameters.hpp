@@ -3,6 +3,8 @@
 #include<common/common.hpp>
 #include<common/parameters/Parameters.hpp>
 
+#include<thread>
+
 template<typename compute_type_, typename write_type_ = PetscReal >
 class BasisParameters: public Parameters
 {
@@ -43,6 +45,21 @@ public:
         opt.get("-basis_points")->getInt(points_);
         opt.get("-basis_folder")->getString(folder_);
         opt.get("-basis_atom")->getString(atom_);
+        fs_ = opt.isSet("-basis_fs");
+
+
+        if (opt.isSet("-basis_procs"))
+        {
+            //check for sign:
+            int p = 0;
+            opt.get("-basis_procs")->getInt(p);
+            if (p <=0 )
+                procs_ = std::thread::hardware_concurrency();
+            else
+                procs_ = static_cast<size_t>(p);
+        }
+        else
+            procs_ = std::thread::hardware_concurrency();
 
 
         folder_ = common::absolute_path(folder_);
@@ -62,6 +79,8 @@ public:
     PetscInt points() const { return points_; };
     PetscInt nmax() const { return nmax_; };
     PetscInt lmax() const { return lmax_; };
+    bool fs() const { return fs_; };
+    size_t procs() const { return procs_; }
     std::string atom() const { return atom_; };
 
     //getting the folder:
@@ -83,6 +102,8 @@ private:
     void register_parameters();
     ez::ezOptionParser opt;
     std::string folder_;
+    size_t procs_;
+    bool fs_;
     int nmax_;
     int lmax_;
     int points_;
@@ -119,6 +140,7 @@ void BasisParameters<compute_type_, write_type_>::init_from_file(std::string fil
     opt.get("-basis_points")->getInt(points_);
     opt.get("-basis_folder")->getString(folder_);
     opt.get("-basis_atom")->getString(atom_);
+    fs_ = opt.isSet("-basis_fs");
 
     this->grid_ = common::vector_type_change<write_type_, compute_type_>(
             common::import_vector_binary<write_type_>(this->grid_filename())
@@ -149,6 +171,8 @@ void BasisParameters<compute_type_, write_type_>::save_parameters()
     file << "-basis_points " << points_ << std::endl;
     file << "-basis_folder " << folder_ << std::endl;
     file << "-basis_atom " << atom_ << std::endl;
+    if (fs_)
+        file << "-basis_fs" << std::endl;
     file.close();
 }
 
@@ -157,7 +181,10 @@ std::string BasisParameters<compute_type_, write_type_>::basis_function_filename
 {
     std::ostringstream ss;
     ss << folder_;
-    ss << "/n_" << a.n << "_l_" << a.l << "_j_" << a.j << ".dat";
+    if (fs_)
+        ss << "/n_" << a.n << "_l_" << a.l << "_j_" << a.j << ".dat";
+    else
+        ss << "/n_" << a.n << "_l_" << a.l << ".dat";
     return ss.str();
 }
 
@@ -181,6 +208,9 @@ std::string BasisParameters<compute_type_, write_type_>::print() const
     out << "basis_points: " << points_ << std::endl;
     out << "basis_folder: " << folder_ << std::endl;
     out << "basis_atom: " << atom_ << std::endl;
+    out << "basis_procs: " << procs_ << std::endl;
+    if (fs_)
+        out << "basis_fs" << std::endl;
     return out.str();
 }
 
@@ -199,6 +229,22 @@ void BasisParameters<compute_type_, write_type_>::register_parameters()
             "-help",  // Flag token.
             "--help", // Flag token.
             "--usage" // Flag token.
+           );
+    opt.add(
+            "",
+            0,
+            0,
+            0,
+            "finestructure included?",
+            std::string(prefix).append("fs\0").c_str()
+           );
+    opt.add(
+            "",
+            0,
+            1,
+            0,
+            "number of processors",
+            std::string(prefix).append("procs\0").c_str()
            );
     opt.add(
             "500",
