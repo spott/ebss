@@ -198,11 +198,11 @@ namespace numerov
                     std::cerr << a[0] << ", " << a[1] << std::endl;
                     std::cerr << rgrid[a[0]] << ", " << rgrid[a[1]] << std::endl;
                 }
-                //if (wells.size() == 0)
-                //{
-                    //w[1] = rgrid.size();
-                    //wells.push_back(w);
-                //}
+                if (wells.size() == 0)
+                {
+                    w[1] = rgrid.size();
+                    wells.push_back(w);
+                }
 
                 if (wells.size() >=2 && state.j == 2 * state.l - 1)
                 {
