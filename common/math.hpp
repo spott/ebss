@@ -178,24 +178,30 @@ template <typename scalar, typename Func >
 scalar integrateTrapezoidRule(const std::vector<scalar> &psi1, const std::vector<scalar> &psi2, const std::vector<scalar> &grid, Func f)
 {
     if (psi1.size() != psi2.size() || psi1.size() != grid.size() )
+    {
+        std::cerr << "integrateTrapezoidRule: the sizes are not the same" << std::endl;
         throw (std::length_error( "integrateTrapezoidRule: the sizes are not the same" ));
+    }
     
     //grid[0] at the beginning is the dr, we assume that the [-1] value is zero for the grid
     scalar result = f(grid[0]) * psi1[0] * psi2[0] * grid[0] / 2;
 
     for (size_t i = 1; i < grid.size(); i++)
     {
-        //if (result != result || result == std::numeric_limits<scalar>::infinity() )
-        //{
-            //std::cerr << i-1 << " " << grid[i-1] << ", " << psi1[i-1] << ", " << psi2[i-1] << ", " << f(grid[i-1]) << std::endl;
-            //throw(std::out_of_range( "integrateTrapezoidRule: results in NaN: " ));
-        //}
+        if (result != result || result == std::numeric_limits<scalar>::infinity() )
+        {
+            std::cerr << i-1 << " " << grid[i-1] << ", " << psi1[i-1] << ", " << psi2[i-1] << ", " << f(grid[i-1]) << std::endl;
+            throw(std::out_of_range( "integrateTrapezoidRule: results in NaN: " ));
+        }
 
         result += (psi1[i] * f(grid[i]) * psi2[i] + psi1[i-1] * f(grid[i-1]) * psi2[i-1]) * (grid[i] - grid[i-1]) / 2;
     }
 
     if (result != result || result == std::numeric_limits<scalar>::infinity() )
+    {
+        std::cerr << "integrateTrapezoidRule: results in NaN or infinity" << std::endl;
         throw(std::out_of_range( "integrateTrapezoidRule: results in NaN" ));
+    }
 
     return result;
 }
@@ -205,7 +211,10 @@ scalar integrateTrapezoidRule(const std::vector<scalar> &psi1, const std::vector
 {
     //check for correct size!
     if (psi1.size() != psi2.size() || psi1.size() != grid.size() )
+    {
+        std::cerr << "integrateTrapezoidRule: the sizes are not the same" << std::endl;
         throw (std::length_error( "integrateTrapezoidRule: the sizes are not the same" ));
+    }
 
     scalar result = psi1[0] * psi2[0] * grid[0] * grid[0] / 2;
 
@@ -213,7 +222,10 @@ scalar integrateTrapezoidRule(const std::vector<scalar> &psi1, const std::vector
         result += (psi1[i] * grid[i] * psi2[i] + psi1[i-1] * grid[i-1] * psi2[i-1]) * (grid[i] - grid[i-1]) / 2;
 
     if (result != result || result == std::numeric_limits<scalar>::infinity() )
+    {
+        std::cerr << "integrateTrapezoidRule: results in NaN or infinity" << std::endl;
         throw(std::out_of_range( "integrateTrapezoidRule: results in NaN" ));
+    }
 
     return result;
 }
@@ -232,8 +244,8 @@ scalar integrateGrid(const std::vector<scalar> &psi1, const std::vector<scalar> 
 template<typename scalar>
 scalar normalize(std::vector<scalar> &wf, const std::vector<scalar> &grid)
 {
-    std::function< scalar (scalar) > f = [](scalar r){ return 1.;};
-    scalar norm = integrateTrapezoidRule(wf, wf, grid, f );
+    //std::function< scalar (scalar) > f = [](scalar r){ return 1.;};
+    scalar norm = integrateTrapezoidRule(wf, wf, grid, [](scalar r){return 1.;} );
 	norm = std::sqrt(norm);
     for ( auto& a : wf )
         a /= norm;

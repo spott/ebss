@@ -466,6 +466,12 @@ namespace numerov
                 }
 
             }
+            if (!converged)
+            {
+                std::cerr << "didn't converge, returning anyways" << std::endl;
+                std::cout << current.turnover;
+            }
+
 
             for (size_t i = 0; i < wf.size(); i++)
             {
@@ -492,7 +498,7 @@ namespace numerov
                     res = find_basis<scalar>( tmp, dx, rgrid, pot, 1e-13);
                     tmp.e = res.energy;     //the energy min for the next will be the correct energy for the last.
                     energies.push_back(tmp);
-                    std::cout << ",\t" << res.energy << std::endl;
+                    //std::cout << ",\t" << res.energy << std::endl;
                     //we need to convert the wf to PetscReal, or PetscScalar...
                     math::normalize(res.wf,rgrid);
                     common::export_vector_binary(
@@ -503,6 +509,7 @@ namespace numerov
                     std::cerr << "=========================================" << std::endl;
                     std::cerr << "=========================================" << std::endl;
                     std::cerr << "=========================================" << std::endl;
+                    std::cerr.flush();
                     if ( tmp.n == tmp.l+2 && tmp.j == ((tmp.l>0)? 2 * tmp.l - 1 : 1))
                     {
                         std::cout << "[" << std::this_thread::get_id() << "] sending future" << std::endl;
