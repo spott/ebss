@@ -45,8 +45,7 @@ int signum(T x) {
 template <typename scalar>
 scalar CGCoefficient(const BasisID &init, const BasisID &fin)
 {
-    scalar out = 0;
-    out = gsl_sf_coupling_3j(init.l*2, 2, fin.l*2, 0, 0, 0);
+    scalar out = gsl_sf_coupling_3j(init.l*2, 2, fin.l*2, 0, 0, 0);
     out *= out;
 	out *= std::sqrt(( 2 * init.l +1 ) * ( 2 * fin.l +1 ) );
     return out;

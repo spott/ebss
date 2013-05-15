@@ -48,11 +48,14 @@ int main(int argc, const char ** argv)
     auto prototype = params->prototype();
 
     std::function<bool (int, int)> dipole_selection_rules = [prototype,params](int i, int j) {
-                if (params->with_fs())
+                if (params->fs())
                     // since j is multiplied by 2, need to have a 2 between them.
-                    return ((std::abs(prototype[i].j - prototype[j].j) == 2) || prototype[i].j == prototype[j].j || i == j );
+                    return ( std::abs(prototype[i].l - prototype[j].l) == 1 && (
+                            std::abs(prototype[i].j - prototype[j].j) == 2 || 
+                            prototype[i].j == prototype[j].j ) || 
+                            i == j);
                 else
-                    return ((std::abs(prototype[i].l - prototype[j].l) == 1) || i == j );
+                    return (std::abs(prototype[i].l - prototype[j].l) == 1 || i == j );
     };
 
     std::function< std::shared_ptr<std::vector<double> > ( BasisID ) > import_wf = 
@@ -85,11 +88,15 @@ int main(int argc, const char ** argv)
                 *grid);
         PetscScalar angular = math::CGCoefficient<PetscScalar>(prototype[i],prototype[j]);
         //we are only considering spin up electrons.  so m_j always == +1/2 (since m_l is always 0)
-        if (params->with_fs())
+        if (radial == 0.0 || angular == 0.0)
+            std::cout << prototype[i] << " -> " << prototype[j] << " r: " << radial << " a: " << angular << std::endl;
+        if (params->fs())
             angular *= std::sqrt ( 
                     (prototype[i].l + (prototype[i].j - 2 * prototype[i].l) * .5 * .5 + .5) * 
                     (prototype[j].l + (prototype[j].j - 2 * prototype[j].l) * .5 * .5 + .5) / 
                     ((2. * prototype[i].l + 1) * (2. * prototype[j].l + 1)));
+        if (radial == 0.0 || angular == 0.0)
+            std::cout << prototype[i] << " -> " << prototype[j] << " r: " << radial << " a: " << angular << std::endl;
        return radial * angular;
     };
 

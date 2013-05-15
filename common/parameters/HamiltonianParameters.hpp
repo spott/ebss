@@ -1,6 +1,6 @@
 #pragma once
-#include<unistd.h>
 #include<common/common.hpp>
+#include<common/output.hpp>
 #include<common/parameters/Parameters.hpp>
 #include<common/parameters/BasisParameters.hpp>
 
@@ -37,13 +37,13 @@ public:
         }
 
         //std::string ctemp;
-        if ( opt.isSet("-hamiltonian_nofs") )
-        {
-            fs = false;
-            std::cout << "no finestructure! "<< std::endl;
-        }
-        else
-            fs = true;
+        //if ( opt.isSet("-hamiltonian_nofs") )
+        //{
+            //fs = false;
+            //std::cout << "no finestructure! "<< std::endl;
+        //}
+        //else
+            //fs = true;
         //opt.get("-hamiltonian_components")->getString(ctemp);
         //if ( ctemp.find('x') != std::string::npos )
             //x = true;
@@ -57,110 +57,41 @@ public:
         opt.get("-hamiltonian_mmax")->getInt(mmax_);
         opt.get("-hamiltonian_folder")->getString(folder_);
 
-
         folder_ = common::absolute_path(folder_);
 
         opt.get("-hamiltonian_basis_config")->getString(basis_config_);
         basis_config_ = common::absolute_path(basis_config_);
         basis_ = new BasisParameters<write_type_, write_type_>(basis_config_, comm_);
-        std::cout << basis_config_ << std::endl;
+        //std::cout << basis_config_ << std::endl;
+        fs_ = basis_->fs();
 
         //If we are bigger than the basis we are using, shrink to fit, and print an error message:
+        //create the prototype file:
+        this->prototype_.resize(0);
+        this->prototype_.reserve(this->basis_->basis_prototype()->size());
+        for(const auto i: *(this->basis_->basis_prototype()))
+        {
+            if (i.n < this->nmax() && i.l < this->lmax())
+                this->prototype_.push_back(i);
+        }
         if (this->nmax() > this->basis_->nmax() || this->lmax() > this->basis_->lmax() )
         {
             if (this->rank() == 0) 
             {
-                std::cerr << "\e[31m======================ERROR========================" << std::endl;
+                std::cerr << output::red;
+                std::cerr << "======================ERROR========================" << std::endl;
                 std::cerr << "=The basis you are attempting to use is smaller   =" << std::endl;
-                std::cerr << "= than you wanted, change your values.            =" << std::endl;
-                std::cerr << "======================ERROR========================\e[0m" << std::endl;
+                std::cerr << "= than requested, your requested values have been =" << std::endl;
+                std::cerr << "= changed to fit                                  =" << std::endl;
+                std::cerr << "======================ERROR========================" << std::endl;
+                std::cerr << output::reset;
             }
             if (nmax_ > this->basis_->nmax())
                 nmax_ = this->basis_->nmax();
             if (lmax_ > this->basis_->lmax())
                 lmax_ = this->basis_->lmax();
         }
-
-        //Initialize the prototype file:
-        if (this->mmax() == 0 && this->nmax() == this->basis_->nmax() && this->lmax() == this->basis_->lmax() && fs )
-        {
-            this->prototype_.resize(0);
-            for(auto i: *(this->basis_->basis_prototype()))
-                this->prototype_.push_back(i);
-            //std::copy(this->basis_->basis_prototype()->begin(), this->basis_->basis_prototype()->end(), this->prototype_);
-            this->prototype_.shrink_to_fit();
-        }
-        else if (fs)
-        {
-            BasisID temp;
-            for(int l = 0; l <= this->lmax(); l++)
-            {
-                for (int j = 2 * l - 1 < 0 ? 2 * l + 1 : 2 * l - 1 ; j <= 2 * l + 1; j+=2)
-                {
-                    for(int m = -( l <= this->mmax() ? l : this->mmax() ); m <= ( l <= this->mmax() ? l : this->mmax() ); m++)
-                    {
-                        for (int n = 1; n <= this->nmax(); n++)
-                        {
-                            if (n > l)
-                            {
-                                temp.n = n;
-                                temp.l = l;
-                                temp.j = j;
-                                auto el = std::find_if(this->basis_->basis_prototype()->begin(), 
-                                        this->basis_->basis_prototype()->end(),
-                                        [temp](BasisID a)->bool
-                                        { return (a.n == temp.n && a.l == temp.l && a.j == temp.j);});
-                                if ( el != this->basis_->basis_prototype()->end())
-                                    temp.e = el->e;
-                                else
-                                {
-                                    std::cout << "The energy wasn't in the basis prototype... I don't know what it is." << std::endl;
-                                    throw(std::exception());
-                                }
-                                temp.m = m;
-                                this->prototype_.push_back(temp);
-                            }
-                        }
-                    }
-                }
-            }
-            this->prototype_.shrink_to_fit();
-        }
-        else
-        {
-            std::cout << " The basis isn't using a finestructure! " << std::endl;
-            BasisID temp;
-            for(int l = 0; l <= this->lmax(); l++)
-            {
-                int j = 2 * l - 1 < 0 ? 2 * l + 1 : 2 * l - 1 ;
-                for(int m = -( l <= this->mmax() ? l : this->mmax() ); m <= ( l <= this->mmax() ? l : this->mmax() ); m++)
-                {
-                    for (int n = 1; n <= this->nmax(); n++)
-                    {
-                        if (n > l)
-                        {
-                            temp.n = n;
-                            temp.l = l;
-                            temp.j = j;
-                            auto el = std::find_if(this->basis_->basis_prototype()->begin(), 
-                                    this->basis_->basis_prototype()->end(),
-                                    [temp](BasisID a)->bool
-                                    { return (a.n == temp.n && a.l == temp.l && a.j == temp.j);});
-                            if ( el != this->basis_->basis_prototype()->end())
-                                temp.e = el->e;
-                            else
-                            {
-                                std::cout << "The energy wasn't in the basis prototype... I don't know what it is." << std::endl;
-                                throw(std::exception());
-                            }
-                            temp.m = m;
-                            this->prototype_.push_back(temp);
-                        }
-                    }
-                }
-            }
-            this->prototype_.shrink_to_fit();
-        }
+        this->prototype_.shrink_to_fit();
     }
 
 
@@ -186,7 +117,7 @@ public:
     std::vector<BasisID>& prototype() { return prototype_; };
 
     std::string print() const;
-    bool with_fs() const { return fs; }
+    bool fs() const { return fs_; }
 
     void save_parameters();
     void init_from_file(std::string filename);
@@ -195,7 +126,7 @@ private:
     BasisParameters<write_type_, write_type_> *basis_;
     std::vector<BasisID> prototype_;
 
-    bool fs;
+    bool fs_;
     void register_parameters();
     ez::ezOptionParser opt;
     int nmax_;
