@@ -129,13 +129,13 @@ namespace numerov
             current.energy_lower = std::max(scalar(state.e.real()), current.energy_lower);
 
             if (current.energy_upper < current.energy_lower)
-                current.energy_upper = current.energy_lower + .5;
+                current.energy_upper = current.energy_lower + 1;
             //The energy guess is an average of the lowest and the highest, but biased towards the highest:
             current.energy = (5 * current.energy_upper + current.energy_lower)/11;
 
             //Then we screw things up:
             if (current.energy_upper - current.energy_lower < 1.)
-                current.energy_upper = current.energy_lower + .5;
+                current.energy_upper = current.energy_lower + 1.;
             //else if (current.energy_upper - current.energy_lower > 1.)
                 //current.energy_upper = 2;
                 
@@ -270,8 +270,12 @@ namespace numerov
                         / std::sqrt(rgrid[0]);
                     wf[1] = std::pow(rgrid[1],state.l+1) * (1. - 2. * rgrid[1] / (2. * scalar(state.l) + 2. )) 
                         / std::sqrt(rgrid[1]);
-                    current.nodes = numerov(f.begin(),  (f.begin() + current.turnover + 2 > f.end() ? f.end() : f.begin() + current.turnover + 2), 
-                                            wf.begin(), (wf.begin() + current.turnover + 2 > wf.end() ? wf.end() : wf.begin() + current.turnover + 2 ));
+                    current.nodes = numerov(
+                        f.begin(),  
+                        (f.begin() + current.turnover + 2 > f.end() ? f.end() : f.begin() + current.turnover + 2), 
+                        wf.begin(), 
+                        (wf.begin() + current.turnover + 2 > wf.end() ? wf.end() : wf.begin() + current.turnover + 2 )
+                        );
                 }
                 else //if the state is:
                 {
@@ -282,8 +286,14 @@ namespace numerov
                     //zero everything before our new start
                     for (size_t i = 0; i < messiness; i++)
                         wf[i] = 0;
-                    current.nodes = numerov(f.begin() + messiness,  (f.begin() + current.turnover + 2 > f.end() ? f.end() : f.begin() + current.turnover + 2), 
-                                            wf.begin()+ messiness, (wf.begin() + current.turnover + 2 > wf.end() ? wf.end() : wf.begin() + current.turnover + 2 ));
+                    current.nodes = numerov(
+                            f.begin() + messiness,  
+                            (f.begin() + current.turnover + 2 > f.end() 
+                                ? f.end() : f.begin() + current.turnover + 2), 
+                            wf.begin()+ messiness, 
+                            (wf.begin() + current.turnover + 2 > wf.end() 
+                                ? wf.end() : wf.begin() + current.turnover + 2 )
+                            );
                 }
 
                 std::cerr << "nodes: " << current.nodes << std::endl;
@@ -498,7 +508,7 @@ namespace numerov
                     res = find_basis<scalar>( tmp, dx, rgrid, pot, 1e-13);
                     tmp.e = res.energy;     //the energy min for the next will be the correct energy for the last.
                     energies.push_back(tmp);
-                    //std::cout << ",\t" << res.energy << std::endl;
+                    std::cout << ",\t" << res.energy << std::endl;
                     //we need to convert the wf to PetscReal, or PetscScalar...
                     math::normalize(res.wf,rgrid);
                     common::export_vector_binary(
