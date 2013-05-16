@@ -624,8 +624,9 @@ namespace numerov
                     futures_que[i] = std::async(std::launch::async, n_loop<scalar, write_type>, std::ref(p_loop), tmp, std::cref(*rgrid), std::cref(params), std::cref(pot), dx );
                     if ( tmp.l < params.nmax() - 1 )
                     {
-                        std::cout << "[0] waiting for future: " << tmp << std::endl;
+                        std::cout << "[0] waiting for future: " << tmp.l << std::endl;
                         try {
+                            f_loop.wait();
                             tmp.e = f_loop.get();
                         } catch ( const std::future_error& e ) {
                             std::cout << "future error caught: " << e.code() << std::endl << e.what() << std::endl;
@@ -641,6 +642,7 @@ namespace numerov
                     std::vector< BasisID > b;
                     if (a.valid())
                         try {
+                            a.wait();
                             b = a.get();
                         } catch ( const std::future_error& e ) {
                             std::cout << "future error caught: " << e.code() << std::endl << e.what() << std::endl;
