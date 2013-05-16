@@ -523,7 +523,11 @@ namespace numerov
                     if ( tmp.n == tmp.l+2 && tmp.j == ((tmp.l>0)? 2 * tmp.l - 1 : 1))
                     {
                         std::cout << "[" << std::this_thread::get_id() << "] sending future" << std::endl;
-                        future_guess.set_value( tmp );
+                        try {
+                            future_guess.set_value( tmp );
+                        } catch ( const std::future_error& e ) {
+                            std::cout << "future error caught: " << e.code() << std::endl << e.what() << std::endl;
+                        }
                         std::cout << "[" << std::this_thread::get_id() << "] sent future" << std::endl;
                     }
                 }
@@ -548,7 +552,11 @@ namespace numerov
                 if ( tmp.n == tmp.l+2 && tmp.j == 0)
                 {
                     std::cout << "[" << std::this_thread::get_id() << "] sending future" << std::endl;
-                    future_guess.set_value( tmp );
+                    try {
+                        future_guess.set_value( tmp );
+                    } catch ( const std::future_error& e ) {
+                        std::cout << "future error caught: " << e.code() << std::endl << e.what() << std::endl;
+                    }
                     std::cout << "[" << std::this_thread::get_id() << "] sent future" << std::endl;
                 }
             }
@@ -617,7 +625,11 @@ namespace numerov
                     if ( tmp.l < params.nmax() - 1 )
                     {
                         std::cout << "[0] waiting for future" << std::endl;
-                        tmp.e = f_loop.get().e;
+                        try {
+                            tmp.e = f_loop.get().e;
+                        } catch ( const std::future_error& e ) {
+                            std::cout << "future error caught: " << e.code() << std::endl << e.what() << std::endl;
+                        }
                         std::cout << "[0] got future" << std::endl;
                     }
                     else
@@ -628,7 +640,11 @@ namespace numerov
                 {
                     std::vector< BasisID > b;
                     if (a.valid())
-                        b = a.get();
+                        try {
+                            b = a.get();
+                        } catch ( const std::future_error& e ) {
+                            std::cout << "future error caught: " << e.code() << std::endl << e.what() << std::endl;
+                        }
                     else
                         continue;
                     std::cout << " got future " << std::endl;
