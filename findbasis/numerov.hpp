@@ -551,7 +551,7 @@ namespace numerov
                 std::cerr << "=========================================" << std::endl;
                 if ( tmp.n == tmp.l+2 && tmp.j == 0)
                 {
-                    std::cout << "[" << std::this_thread::get_id() << "] sending future" << std::endl;
+                    std::cout << "[" << std::this_thread::get_id() << "] sending future: " << tmp << std::endl;
                     try {
                         future_guess.set_value( tmp );
                     } catch ( const std::future_error& e ) {
@@ -624,7 +624,7 @@ namespace numerov
                     futures_que[i] = std::async(std::launch::async, n_loop<scalar, write_type>, std::ref(p_loop), tmp, std::cref(*rgrid), std::cref(params), std::cref(pot), dx );
                     if ( tmp.l < params.nmax() - 1 )
                     {
-                        std::cout << "[0] waiting for future" << std::endl;
+                        std::cout << "[0] waiting for future: " << tmp << std::endl;
                         try {
                             tmp.e = f_loop.get().e;
                         } catch ( const std::future_error& e ) {
