@@ -494,7 +494,7 @@ namespace numerov
         };
 
     template< typename scalar, typename write_type >
-    std::vector<BasisID> n_loop( std::promise<BasisID>& future_guess, BasisID tmp, const std::vector<scalar>& rgrid, const BasisParameters<scalar, write_type>& params, const std::function< scalar (scalar, BasisID)>& pot, scalar dx)
+    std::vector<BasisID> n_loop( std::promise<std::complex<double> >& future_guess, BasisID tmp, const std::vector<scalar>& rgrid, const BasisParameters<scalar, write_type>& params, const std::function< scalar (scalar, BasisID)>& pot, scalar dx)
     {
         std::vector<BasisID> energies(0);
         basis<scalar> res;
@@ -524,7 +524,7 @@ namespace numerov
                     {
                         std::cout << "[" << std::this_thread::get_id() << "] sending future" << std::endl;
                         try {
-                            future_guess.set_value( tmp );
+                            future_guess.set_value( tmp.e );
                         } catch ( const std::future_error& e ) {
                             std::cout << "future error caught: " << e.code() << std::endl << e.what() << std::endl;
                         }
@@ -553,7 +553,7 @@ namespace numerov
                 {
                     std::cout << "[" << std::this_thread::get_id() << "] sending future: " << tmp << std::endl;
                     try {
-                        future_guess.set_value( tmp );
+                        future_guess.set_value( tmp.e );
                     } catch ( const std::future_error& e ) {
                         std::cout << "future error caught: " << e.code() << std::endl << e.what() << std::endl;
                     }
@@ -618,15 +618,15 @@ namespace numerov
                 //for each run through the "n's", start with an energy min of the gs,
                 for (size_t i = 0; i < ( l + num_threads > params.lmax()?params.lmax() - l + 1:num_threads) ; i++)
                 {
-                    std::promise<BasisID> p_loop;
-                    std::future<BasisID> f_loop = p_loop.get_future();
+                    std::promise<std::complex<double> > p_loop;
+                    std::future<std::complex<double> > f_loop = p_loop.get_future();
                     tmp.l = l + i;
                     futures_que[i] = std::async(std::launch::async, n_loop<scalar, write_type>, std::ref(p_loop), tmp, std::cref(*rgrid), std::cref(params), std::cref(pot), dx );
                     if ( tmp.l < params.nmax() - 1 )
                     {
                         std::cout << "[0] waiting for future: " << tmp << std::endl;
                         try {
-                            tmp.e = f_loop.get().e;
+                            tmp.e = f_loop.get();
                         } catch ( const std::future_error& e ) {
                             std::cout << "future error caught: " << e.code() << std::endl << e.what() << std::endl;
                         }
