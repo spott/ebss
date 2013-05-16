@@ -522,7 +522,7 @@ namespace numerov
                     std::cerr.flush();
                     if ( tmp.n == tmp.l+2 && tmp.j == ((tmp.l>0)? 2 * tmp.l - 1 : 1))
                     {
-                        std::cout << "[" << std::this_thread::get_id() << "] sending future" << std::endl;
+                        std::cout << "[" << std::this_thread::get_id() << "] sending future " << tmp.l << ", " << tmp.j << std::endl;
                         try {
                             future_guess.set_value( tmp.e );
                         } catch ( const std::future_error& e ) {
@@ -549,9 +549,9 @@ namespace numerov
                 std::cerr << "=========================================" << std::endl;
                 std::cerr << "=========================================" << std::endl;
                 std::cerr << "=========================================" << std::endl;
-                if ( tmp.n == tmp.l+2 && tmp.j == 0)
+                if ( tmp.n == tmp.l+2 )
                 {
-                    std::cout << "[" << std::this_thread::get_id() << "] sending future: " << tmp << std::endl;
+                    std::cout << "[" << std::this_thread::get_id() << "] sending future: " << tmp.l << std::endl;
                     try {
                         future_guess.set_value( tmp.e );
                     } catch ( const std::future_error& e ) {
