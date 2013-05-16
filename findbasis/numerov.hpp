@@ -494,7 +494,7 @@ namespace numerov
         };
 
     template< typename scalar, typename write_type >
-    std::vector<BasisID> n_loop( std::promise<std::complex<double> >& future_guess, BasisID tmp, const std::vector<scalar>& rgrid, const BasisParameters<scalar, write_type>& params, const std::function< scalar (scalar, BasisID)>& pot, scalar dx)
+    std::vector<BasisID> n_loop( std::promise<std::complex<double> >&& future_guess, BasisID tmp, const std::vector<scalar>& rgrid, const BasisParameters<scalar, write_type>& params, const std::function< scalar (scalar, BasisID)>& pot, scalar dx)
     {
         std::vector<BasisID> energies(0);
         basis<scalar> res;
@@ -621,7 +621,7 @@ namespace numerov
                     std::promise<std::complex<double> > p_loop;
                     std::future<std::complex<double> > f_loop = p_loop.get_future();
                     tmp.l = l + i;
-                    futures_que[i] = std::async(std::launch::async, n_loop<scalar, write_type>, std::ref(p_loop), tmp, std::cref(*rgrid), std::cref(params), std::cref(pot), dx );
+                    futures_que[i] = std::async(std::launch::async, n_loop<scalar, write_type>, std::move(p_loop), tmp, std::cref(*rgrid), std::cref(params), std::cref(pot), dx );
                     if ( tmp.l < params.nmax() - 1 )
                     {
                         std::cout << "[0] waiting for future: " << tmp.l << std::endl;
