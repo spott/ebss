@@ -30,21 +30,26 @@ std::function<ReturnType (Arg)> memoize(std::function<ReturnType (Arg)> func)
 }
 
 template <typename ReturnType, typename Arg>
-std::function<ReturnType (Arg, bool)> half_memoize(std::function<ReturnType (Arg)> func)
+std::function<ReturnType (Arg, bool)> half_memoize(std::function<ReturnType (Arg)> func, size_t size)
 {
     std::unordered_map<Arg, ReturnType> cache;
     return ([=](Arg t, bool remember) mutable  {
             if (cache.find(t) == cache.end())
             {
-                if (remember == false)
-                    return func(t);
-                if (cache.size() > 400)
+                //if (remember == false)
+                    //return func(t);
+                if (cache.size() > size)
                 {
                     if (remember)
+                    {
                         cache.clear();
+                        cache.emplace(t,func(t));
+                    }
                     else
                         return func(t);
                 }
+                if (cache.size() > size / 2 && !remember)
+                    return func(t);
                 cache.emplace(t,func(t));
             }
             return cache[t];
@@ -68,6 +73,31 @@ int main(int argc, const char ** argv)
 
     auto grid = params.basis_parameters()->grid();
     auto prototype = params.prototype();
+
+    // we need to do a rough calculation of how much memory we are going to need to hold, in order
+    // to figure out how large to make our memoization routine:
+    
+    //total size of dipole_matrix:
+    auto memory = prototype.size()*(params.fs() ? 2 : 1) * 2 * params.nmax() * sizeof(PetscScalar);
+    if (params.rank() == 0) std::cout << "total size of dipole matrix: " << memory;
+
+    //size per proc (fudge factor of 2 so we don't get too big:
+    memory /= 2 * params.size();
+    if (params.rank() == 0) std::cout << ", per processor: " << memory;
+
+    //we have ~2gb per proc:
+    memory = 193274000 - memory;
+    if (params.rank() == 0) std::cout << ", left over per processor for memoization: " << memory;
+    
+    //each
+    auto per_basis_state = grid->size() * sizeof(double) + 100;
+    if (params.rank() == 0) std::cout << std::endl << "each basis state takes up: " << per_basis_state ;
+
+    //left over number of basis states:
+    memory /= per_basis_state;
+
+    if (params.rank() == 0) std::cout << ", leaving enough for: " << memory << " basis states in memoization" <<std::endl;
+
     std::function<bool (int, int)> dipole_selection_rules;
     if (params.fs())
     {
@@ -97,7 +127,7 @@ int main(int argc, const char ** argv)
                         )); 
             return b;
         };
-    auto import_wf2 = half_memoize(import_wf);
+    auto import_wf2 = half_memoize(import_wf, memory);
 
 
     std::function<PetscScalar (int, int)> findvalue;
