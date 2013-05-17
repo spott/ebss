@@ -534,10 +534,10 @@ namespace common
        std::cout<< percent << "%     " << std::flush;
    };
 
-   template <typename T>
+   template <typename T, typename Test, typename FindValue>
    Mat populate_matrix(const Parameters &params,
-                       std::function<bool (int,int)> test,
-                       std::function<T (int,int)> find_value,
+                       Test test,
+                       FindValue find_value,
                        const unsigned int mat_size_m,
                        const unsigned int mat_size_n,
                        //const unsigned int diagonal_storage,
