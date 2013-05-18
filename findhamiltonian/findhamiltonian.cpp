@@ -81,7 +81,7 @@ int main(int argc, const char ** argv)
     auto memory = prototype.size()*(params.fs() ? 2 : 1) * 2 * params.nmax() * sizeof(PetscScalar);
     if (params.rank() == 0) std::cout << "total size of dipole matrix: " << memory;
 
-    //size per proc (fudge factor of 2 so we don't get too big:
+    //size per proc (fudge factor of 2 so we don't get too big):
     memory /= 2 * params.size();
     if (params.rank() == 0) std::cout << ", per processor: " << memory;
 
@@ -97,6 +97,7 @@ int main(int argc, const char ** argv)
     memory /= per_basis_state;
 
     if (params.rank() == 0) std::cout << ", leaving enough for: " << memory << " basis states in memoization" <<std::endl;
+
 
     std::function<bool (int, int)> dipole_selection_rules;
     if (params.fs())
