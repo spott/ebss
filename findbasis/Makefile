@@ -3,6 +3,8 @@ include ../makefile.include
 # To generate .clang_complete:
 # make make PCC='~/.vim/bundle/clang_complete/bin/cc_args.py /opt/local/petsc-3.3-gcc-debug/bin/mpicxx' -B <target>
 
+#OMPI_CXX=g++
+
 TESTS=bspline/bspline-test.cpp
 SOURCES=findbasis.cpp
 OBJECTS=$(SOURCES:.cpp=.o)

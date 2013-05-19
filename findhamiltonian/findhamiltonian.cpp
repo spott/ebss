@@ -163,8 +163,6 @@ int main(int argc, const char ** argv)
                     *b,
                     *grid );
             PetscScalar angular = math::CGCoefficient<PetscScalar>(prototype[i],prototype[j]);
-            if (i == 1 && j == 50)
-                std::cout << 3 + radial * angular << std::endl;
             return radial * angular;
         };
     }
