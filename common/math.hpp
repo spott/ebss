@@ -183,7 +183,6 @@ scalar integrateTrapezoidRule(const std::vector<scalar> &psi1, const std::vector
     }
 
     static const std::vector<scalar> dg = [&grid] {
-        std::cout << "creating the vector" << std::endl;
         std::vector<scalar> v;
         v.reserve(grid.size());
         v.push_back(grid[0]/2.);

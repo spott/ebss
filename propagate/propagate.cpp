@@ -115,9 +115,9 @@ main(int argc, const char ** argv)
     //Setup the wavefunction:
     MatGetVecs(D, &wf, PETSC_NULL);
     sparams->initial_vector(&wf, params->prototype());
-    //std::cout << output::blue << "WF: " << std::endl;
-    //VecView(wf, PETSC_VIEWER_STDOUT_WORLD);
-    //std::cout << output::reset <<std::endl;
+    std::cout << output::blue << "WF: " << std::endl;
+    VecView(wf, PETSC_VIEWER_STDOUT_WORLD);
+    std::cout << output::reset <<std::endl;
 
 
     //Copy the non-zero pattern from D to A (the matrix we use in our solver)

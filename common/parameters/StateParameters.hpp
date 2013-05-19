@@ -167,7 +167,7 @@ void StateParameters::initial_vector(Vec *v, const std::vector<BasisID> prototyp
     {
         for (size_t i = 0; i < prototype.size(); i++)
         {
-            if (prototype[i].n == init_.n && prototype[i].l == init_.l && prototype[i].j)
+            if ( prototype[i].n == init_.n && prototype[i].l == init_.l && prototype[i].j == init_.j)
             {
                 VecSetValue(*v, i, 1., INSERT_VALUES);
                 break;

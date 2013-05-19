@@ -156,7 +156,7 @@ solve(Vec *wf, context* cntx, Mat *A)
             efvec.push_back( ef.real() );
             dipole.push_back( cntx->dipole->find_dipole_moment(*(cntx->D), *wf) );
         }
-        if (!(step%100))
+        if (!(step%100) || step < 100)
         {
             VecCopy(*wf, prob);
             VecAbs(prob);
