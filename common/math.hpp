@@ -281,12 +281,13 @@ size_t factorial(size_t n)
     return n * factorial(n-1);
 };
 
-std::vector<double> gsl_coulomb_wave_function(kBasisID a, const std::vector<double>& grid)
+std::vector<double> gsl_coulomb_wave_function(const kBasisID& a, const std::vector<double>& grid)
 {
     int Z = 1;
     std::vector<double> cv;
     cv.reserve(grid.size());
     double* val = new double[1];
+    std::cerr << std::endl << "k: " << a.k << ", l:" << a.l << std::endl;
 
     for (auto& r : grid)
     {
@@ -295,7 +296,7 @@ std::vector<double> gsl_coulomb_wave_function(kBasisID a, const std::vector<doub
         gsl_sf_coulomb_wave_F_array ( a.l, 0, - 1./a.k, a.k * r, val, &exp );
         if (*val != *val || *val == std::numeric_limits<double>::infinity() )
         {
-            std::cerr << a << ": " << val << ", " << r << std::endl;
+            std::cerr << std::endl << "k: " << a.k << ", l:" << a.l << ": " << *val << ", " << r << std::endl;
             throw(std::out_of_range( "gsl_coulomb_wave_function: results in NaN" ));
         }
         cv.push_back(*val);

@@ -67,7 +67,6 @@ solve(Vec *wf, context* cntx, Mat *A)
 
     while (t < maxtime)
     {
-
         MatCopy(*( cntx->D ), *A , SAME_NONZERO_PATTERN);   // A = D
 
 		//ef-forward:
@@ -112,7 +111,6 @@ solve(Vec *wf, context* cntx, Mat *A)
             wf_name << "./wf_" << zero << ".dat";
             PetscViewerBinaryOpen(cntx->hparams->comm(),wf_name.str().c_str(),FILE_MODE_WRITE,&view);
             VecView(*wf, PETSC_VIEWER_STDOUT_WORLD);
-            //PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_MATHEMATICA);
             VecView(*wf, view);
             zero++;
             //analytically propagate for said time:
@@ -128,7 +126,6 @@ solve(Vec *wf, context* cntx, Mat *A)
             wf_name.str("");
             wf_name << "./wf_" << zero << ".dat";
             PetscViewerBinaryOpen(cntx->hparams->comm(),wf_name.str().c_str(),FILE_MODE_WRITE,&view);
-            //PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
             VecView(*wf, view);
             zero++;
             std::cout << output::reset;
@@ -145,8 +142,6 @@ solve(Vec *wf, context* cntx, Mat *A)
             std::ostringstream wf_name;
             wf_name << "./wf_" << zero << ".dat";
             PetscViewerBinaryOpen(cntx->hparams->comm(),wf_name.str().c_str(),FILE_MODE_WRITE,&view);
-            //PetscViewerASCIIOpen(cntx->hparams->comm(),wf_name.str().c_str(),&view);
-            //PetscViewerSetFormat(view, PETSC_VIEWER_ASCII_SYMMODU);
             VecView(*wf, view);
             zero++;
         }
@@ -161,14 +156,12 @@ solve(Vec *wf, context* cntx, Mat *A)
             VecCopy(*wf, prob);
             VecAbs(prob);
             VecNorm(prob,NORM_2,&norm);
-            VecPointwiseMult(prob, prob, prob);
-            VecShift(prob, 1e-20);
-            VecLog(prob);
+            //VecPointwiseMult(prob, prob, prob);
+            //VecShift(prob, 1e-20);
+            //VecLog(prob);
             //VecView(prob, PETSC_VIEWER_DRAW_WORLD);
             if (cntx->hparams->rank() == 0)
                 std::cout << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << " norm lost to absorbers: " <<  norm_lost << std::endl;
-            //if (norm-1 > 10e-5 && cntx->hparams->rank() == 0)
-                //std::cerr << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << std::endl;
         }
     }
     file_name = std::string("./wf_final.dat");
@@ -195,10 +188,8 @@ solve(Vec *wf, context* cntx, Mat *A)
         }
     }
 
-
     //After the propagation through diffeq, we need to do the propagation after the fact to find the dipole 
     //moment over time.
-    
 
     std::vector< PetscReal > after_dipole;
     std::vector< PetscReal > after_time;

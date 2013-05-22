@@ -19,7 +19,11 @@ std::function<ReturnType (Arg)> memoize(std::function<ReturnType (Arg)> func)
     std::unordered_map<Arg, ReturnType> cache;
     return ([=](Arg t) mutable  {
             if (cache.find(t) == cache.end())
+            {
+                if (cache.size() > 80)
+                    cache.clear();
                 cache[t] = func(t);
+            }
             return cache[t];
     });
 }
@@ -46,11 +50,13 @@ int main(int argc, const char ** argv)
     auto hp = kparams.prototype();
     auto kp = kparams.kprototype();
 
+    //for (auto a: kp)
+        //std::cout << a << std::endl;
     //std::vector< std::vector<double> > wavefunctions(hp.size());
     //std::vector< std::vector<double> > expansion(kp.size());
 
     std::function< bool (int, int) > test = [&hp, &kp, &kparams](int i, int j) -> bool {
-            return (hp[i].l == kp[i].l && hp[i].n < kparams.nmax()); };
+            return (hp[i].l == kp[j].l && hp[i].n < kparams.nmax() && hp[i].e.real() > 0.0); };
 
     std::function< std::shared_ptr<std::vector<double> > ( BasisID ) > import_wf = 
         [&kparams](BasisID a) -> std::shared_ptr<std::vector<double> > {
@@ -66,8 +72,8 @@ int main(int argc, const char ** argv)
     import_wf = memoize(import_wf);
 
 
-    std::function< std::shared_ptr<std::vector<double> > ( kBasisID ) > coulombf = 
-        [&kparams](kBasisID a) -> std::shared_ptr<std::vector<double> > {
+    std::function< std::shared_ptr<std::vector<double> > (kBasisID ) > coulombf = 
+        [&kparams](const kBasisID& a) -> std::shared_ptr<std::vector<double> > {
         std::shared_ptr< std::vector<double> > b(
                 new std::vector<double>(std::move(
                     math::gsl_coulomb_wave_function( a, *(kparams.hamiltonian().basis_parameters()->grid()) )
@@ -79,12 +85,12 @@ int main(int argc, const char ** argv)
 
     std::function< std::complex<double> (int, int) > value = [&hp, &kp, &kparams, &import_wf, &coulombf](int i, int j){
             auto wf = import_wf(hp[i]);
-            auto cwf = coulombf(kp[i]);
+            auto cwf = coulombf(kp[j]);
             return math::integrateTrapezoidRule(*wf, *cwf, *(kparams.hamiltonian().basis_parameters()->grid()), [](double r) -> double { return 1.; });
     };
 
 
-    Mat etok = common::populate_matrix( kparams, test, value, kp.size(), hp.size(), false);
+    Mat etok = common::populate_matrix<std::complex<double> >( kparams, test, value, hp.size(), kp.size(), false);
 
     kparams.write_matrix( etok );
     kparams.save_parameters();

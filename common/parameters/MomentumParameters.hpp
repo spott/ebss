@@ -47,7 +47,7 @@ public:
         opt.get("-momentum_hamiltonian_config")->getString(hamiltonian_config_);
         hamiltonian_config_ = common::absolute_path(hamiltonian_config_);
         hamiltonian_ = new HamiltonianParameters<write_type_>(comm_ ,hamiltonian_config_);
-        std::cout << hamiltonian_config_ << std::endl;
+        //std::cout << hamiltonian_config_ << std::endl;
 
         if (nmax_ > hamiltonian_->nmax())
             nmax_ = hamiltonian_->nmax();
@@ -73,6 +73,7 @@ public:
     const std::vector< BasisID >& prototype() const { return prototype_; };
     const HamiltonianParameters<write_type_>& hamiltonian() const {return *hamiltonian_;};
     void write_matrix( Mat ) const ;
+    void write_prototype( ) const ;
 
     void save_parameters();
     void init_from_file(std::string filename);
@@ -154,6 +155,12 @@ void MomentumParameters<write_type_>::write_matrix(Mat D) const
     common::petsc_binary_write(this->matrix_filename(), D, this->comm_);
 }
 
+template<typename write_type_>
+void MomentumParameters<write_type_>::write_prototype() const
+{
+    common::export_vector_binary(this->prototype_filename(), this->kPrototype);
+}
+
 //make the kPrototype:
 template< typename write_type_>
 std::vector< kBasisID > MomentumParameters<write_type_>::genPrototype()
@@ -233,7 +240,7 @@ void MomentumParameters<write_type_>::register_parameters()
             1,
             1,
             0,
-            "Basis config to import",
+            "hamiltonian config to import",
             std::string(prefix).append("hamiltonian_config\0").c_str()
            );
     opt.add(
