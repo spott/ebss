@@ -20,7 +20,7 @@ std::function<ReturnType (Arg)> memoize(std::function<ReturnType (Arg)> func)
     return ([=](Arg t) mutable  {
             if (cache.find(t) == cache.end())
             {
-                if (cache.size() > 80)
+                if (cache.size() > 200)
                     cache.clear();
                 cache[t] = func(t);
             }
@@ -74,12 +74,22 @@ int main(int argc, const char ** argv)
 
     std::function< std::shared_ptr<std::vector<double> > (kBasisID ) > coulombf = 
         [&kparams](const kBasisID& a) -> std::shared_ptr<std::vector<double> > {
+            try {
         std::shared_ptr< std::vector<double> > b(
                 new std::vector<double>(std::move(
                     math::gsl_coulomb_wave_function( a, *(kparams.hamiltonian().basis_parameters()->grid()) )
                     )
                 ));
         return b;
+            } catch (std::out_of_range e) {
+                std::shared_ptr< std::vector<double> > b(
+                        new std::vector<double>(std::move(
+                                math::coulomb_wave_function( a, *(kparams.hamiltonian().basis_parameters()->grid()) )
+                                )
+                            ));
+        return b;
+            }
+
     };
     coulombf = memoize(coulombf);
 

@@ -51,7 +51,7 @@ def binfunc( e, bins ):
             continue
     return bins[-1][1]
 
-def binned_group_by( bin_size, indexedwf ):
+def binned_group_by( indexedwf, bin_size = .001 ):
     r = indexedwf.copy()
     r["wf"] = r["wf"].map( lambda x: abs(x)**2 )
     minimum = min(r["e"])
@@ -64,16 +64,16 @@ def binned_group_by( bin_size, indexedwf ):
     r = g.aggregate( pandas.np.sum )
     return pandas.DataFrame({"wf_abs":r['wf']})
 
-def wavefunctions():
-    filenames = os.listdir("./")
+def wavefunctions(folder = "./"):
+    filenames = os.listdir(folder)
     wf_filenames = 0
     for i in filenames:
         if (i[:2] == "wf"):
             wf_filenames += 1
-    wfs = []
+    wfs = {}
     for i in range(wf_filenames-1):
-        wfs.append( import_petsc_vec( "wf_" + str(i) + ".dat" ) )
-    wfs.append( import_petsc_vec( "wf_final.dat" ) )
+        wfs["wf_"+str(i)] = import_petsc_vec(folder + "/wf_" + str(i) + ".dat" ) 
+    wfs["wf_final"] = import_petsc_vec(folder + "/wf_final.dat")
     return wfs
 
 def ionization( indexedwf, cutoff = 0.0 ):
@@ -85,17 +85,17 @@ def ionization( indexedwf, cutoff = 0.0 ):
     return {"bound" : r["wf"].loc[False], "ionized" : r["wf"].loc[True], "absorbed": 1- r["wf"].sum()}
 
 
-def all_wfs_mapped():
-    prototype = get_prototype()
-    wfs = wavefunctions()
-    iwfs = [ indexed_wf(prototype, wf) for wf in wfs]
+def all_wfs_mapped( folder = "./" ):
+    prototype = get_prototype(folder + "/prototype.csv")
+    wfs = wavefunctions(folder)
+    iwfs = [ indexed_wf(prototype, wfs[wf]) for wf in wfs]
     gnwfs= [ grouped_by("n", wf) for wf in iwfs]
     gewfs = [binned_group_by(.01, wf) for wf in iwfs]
     return (iwfs, gnwfs, gewfs)
 
-def final_wf_mapped( bin_size = .01):
-    prototype = get_prototype()
-    iwf = indexed_wf( prototype, import_petsc_vec( "wf_final.dat" ) )
+def final_wf_mapped( folder = "./", bin_size = .01):
+    prototype = get_prototype( folder + "/prototype.csv")
+    iwf = indexed_wf( prototype, import_petsc_vec( folder +  "/wf_final.dat" ) )
     gnwf= grouped_by("n", iwf)
     gewf = binned_group_by(bin_size, iwf)
     return (iwf, gnwf, gewf)

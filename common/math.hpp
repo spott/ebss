@@ -287,7 +287,7 @@ std::vector<double> gsl_coulomb_wave_function(const kBasisID& a, const std::vect
     std::vector<double> cv;
     cv.reserve(grid.size());
     double* val = new double[1];
-    std::cerr << std::endl << "k: " << a.k << ", l:" << a.l << std::endl;
+    //std::cerr << std::endl << "k: " << a.k << ", l:" << a.l << std::endl;
 
     for (auto& r : grid)
     {
