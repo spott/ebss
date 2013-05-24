@@ -27,6 +27,8 @@ int main ( int argc, const char ** argv )
 
     MomentumParameters<double> kparams(argc, argv, MPI_COMM_WORLD);
 
+	std::cout << kparams.print();
+
     if ( kparams.size() > 1 ) std::cerr << "This program is incredibly inefficient / wrong if run on more than one core" << std::endl;
 
     Mat m = common::petsc_binary_read<Mat> ( kparams.matrix_filename() , kparams.comm() );
@@ -48,7 +50,8 @@ int main ( int argc, const char ** argv )
         MatMult(m, wf, k);
 
         Matrix< std::complex<double> > spectrum( int(kparams.kmax()/kparams.dk()) + 1, int(math::PI / kparams.dtheta()) + 1);
-
+		std::cout << "spectrum: " << int(kparams.kmax()/kparams.dk()) + 1 << "," << int(math::PI / kparams.dtheta()) + 1 << std::endl;
+		
         //P (k, theta) = 2/pi | 1/k \sum_l i^l e^{i \sigma_l} Y_l (\theta) \sum_n c_nl * <u_nl | u_kl> |^2
         //dP / dk_\rho dk_z = 2 pi k_rho P(k, \theta)
 
@@ -59,13 +62,13 @@ int main ( int argc, const char ** argv )
         {
             for (int t = 0; t <= int (math::PI / kparams.dtheta()); ++t)
             {
-                spectrum( int(pro[i].k/kparams.dk()), kparams.dtheta() * t) += 
+                spectrum( int(pro[i].k/kparams.dk()), t) += 
                     std::sqrt(2. / math::PI) * 1. / pro[i].k  * 
                     std::pow(std::complex<double>(0,1), pro[i].l) * 
                     std::exp( std::complex<double>(0, std::arg(math::Gamma_Lanczos( std::complex<double>(pro[i].l + 1, -1. / pro[i].k) )))) * 
-                    sph_harmonics( pro[i].l, kparams.dtheta() * t ) * 
+                    sph_harmonics( t, pro[i].l) * 
                     kval[i];
-                std::cout << int(pro[i].k/ kparams.dk()) << "," << kparams.dtheta() * t << ": "<< spectrum(int(pro[i].k/kparams.dk()), kparams.dtheta() * t)  <<std::endl;
+                std::cout << int(pro[i].k/ kparams.dk()) << "," << kparams.dtheta() * t << ": "<< spectrum(int(pro[i].k/kparams.dk()), t)  <<std::endl;
             }
         }
 
