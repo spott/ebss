@@ -29,6 +29,13 @@ def import_petsc_vec( filename ):
         npy = numpy.fromfile(f, '>D', size)
         return npy
 
+def import_k_spectrum( filename ):
+    with open(filename, "rb") as f:
+        byte = f.read(8)
+        size = struct.unpack('ii',byte)
+        npy = numpy.fromfile(f, 'D', -1)
+        return npy.reshape(size[0], size[1])
+
 def indexed_wf( prototype, wf ):
     r = pandas.DataFrame( prototype )
     r['wf'] = pandas.Series( wf )

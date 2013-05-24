@@ -17,103 +17,9 @@
 
 //mine
 #include<common/parameters/Parameters.hpp>
+#include<common/types.hpp>
 
-struct kBasisID{
-    PetscReal k;
-    PetscInt l;
-};
 
-std::ostream& operator<<( std::ostream& out, const kBasisID a) {
-    out << a.k << ", " << a.l;
-    return out;
-}
-
-struct BasisID {
-    // j = 1 -> 1/2;
-    // j = 3 -> 3/2;
-    // j != 1,3 -> 0;
-    PetscInt n,l,m,j;
-    PetscScalar e;
-    bool operator<(const BasisID b) const
-    {
-        if (this->l < b.l)
-            return true;
-        else if (this->l == b.l && this->n < b.n)
-            return true;
-        else if (this->l == b.l && this->n < b.n && this->j == b.j )
-            return true;
-        else if (this->l == b.l && this->n == b.n && this->j == b.j && this->m < b.m)
-            return true;
-        else
-            return false;
-    }
-};
-bool operator==(const kBasisID &a, const kBasisID &b)
-{
-    if (a.l != b.l || a.k != b.k )
-        return false;
-    else
-        return true;
-}
-bool operator==(const BasisID &a, const BasisID &b)
-{
-    if (a.l != b.l || a.n != b.n || a.j != b.j || a.e != b.e || a.m != b.m )
-        return false;
-    else
-        return true;
-}
-bool operator!=(const BasisID &a, const BasisID &b)
-{
-    if (a.l != b.l || a.n != b.n || a.j != b.j || a.e != b.e || a.m != b.m )
-        return true;
-    else
-        return false;
-}
-std::istream& operator>>(std::istream &in, BasisID &b)     //input
-{
-    PetscReal er, ei;
-    in >> b.n >> b.j >> b.l >> b.m >> er >> ei;
-    b.e = std::complex<double>(er,ei);
-    return in;
-}
-std::ostream& operator<<(std::ostream &out, const BasisID &b)     //output
-{
-    out << b.n << ", " << b.j << ", " << b.l << ", " << b.m << ", " << b.e.real();
-    return out;
-}
-
-template<typename T, size_t N>
-std::ostream& operator<<(std::ostream &out, const std::array<T, N> &b) //output an array
-{
-    for (size_t i = 0; i < b.size(); i++)
-    {
-        if (i != 0)
-            out << ", " << b[i];
-        else
-            out << b[i];
-    }
-    return out;
-}
-
-namespace std {
-template<>
-struct hash< BasisID > {
-public:
-    size_t operator()(const BasisID &a) const 
-    {
-        return a.n + 10000 * a.l + 10000000 * a.j + 100000000 * a.m;
-    }
-};
-
-template<>
-struct hash< kBasisID > {
-public:
-    size_t operator()(const kBasisID &a) const 
-    {
-        return 10000000 * a.l + 100000 * a.k;
-    }
-};
-}
 
 namespace common
 {
@@ -301,6 +207,26 @@ namespace common
         file.open(filename.c_str(), std::ios::binary | std::ios::out);
         if (file.is_open())
         {
+            file.write(reinterpret_cast<const char*>(&out[0]), static_cast<size_t>(sizeof(T)* out.size()));
+            file.close();
+        }
+        else
+        {
+            std::cerr << "error opening file... does the folder exist?: " << filename << std::endl;
+            throw new std::exception();
+        }
+    };
+    
+    template <typename T, typename U>
+    void export_vector_binary(const std::string &filename, const std::vector<T>& out, const std::vector<U>& prefix)
+    {
+        std::ios::pos_type size;
+        std::ofstream file;
+        file.open(filename.c_str(), std::ios::binary | std::ios::out);
+        if (file.is_open())
+        {
+            if (prefix.size() > 0)
+                file.write( reinterpret_cast<const char*>(prefix.data()), static_cast<size_t>(sizeof(U) * prefix.size()));
             file.write(reinterpret_cast<const char*>(&out[0]), static_cast<size_t>(sizeof(T)* out.size()));
             file.close();
         }

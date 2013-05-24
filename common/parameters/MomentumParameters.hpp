@@ -1,5 +1,6 @@
 #pragma once
 
+#include<common/types.hpp>
 #include<common/common.hpp>
 #include<common/parameters/Parameters.hpp>
 #include<common/parameters/HamiltonianParameters.hpp>
@@ -37,6 +38,7 @@ public:
             }
         }
 
+        opt.get("-momentum_dtheta")->getDouble(dtheta_);
         opt.get("-momentum_kmax")->getDouble(kmax_);
         opt.get("-momentum_dk")->getDouble(dk_);
         opt.get("-momentum_lmax")->getInt(lmax_);
@@ -48,6 +50,8 @@ public:
         hamiltonian_config_ = common::absolute_path(hamiltonian_config_);
         hamiltonian_ = new HamiltonianParameters<write_type_>(comm_ ,hamiltonian_config_);
         //std::cout << hamiltonian_config_ << std::endl;
+
+        opt.get("-momentum_wf")->getStrings( wf_filenames_ );
 
         if (nmax_ > hamiltonian_->nmax())
             nmax_ = hamiltonian_->nmax();
@@ -63,7 +67,9 @@ public:
     int lmax() const { return lmax_; };
     double kmax() const { return kmax_; };
     double dk() const { return dk_; };
+    double dtheta() const { return dtheta_; };
 
+    const std::vector<std::string>& wf_filenames() const {return wf_filenames_; }
     std::string momentum_folder() const { return folder_; };
     std::string matrix_filename() const { return std::string(momentum_folder()).append("/matrix.dat"); }
     std::string prototype_filename() const { return std::string(momentum_folder()).append("/kprototype.dat"); }
@@ -86,6 +92,9 @@ private:
     int lmax_;
     bool fs = true;
 
+    //pic:
+    double dtheta_;
+
     //basis:
     int nmax_;
     std::string hamiltonian_config_;
@@ -100,6 +109,7 @@ private:
     std::vector< kBasisID > kPrototype;
     //std::vector< BasisID > fullPrototype;
     std::vector< BasisID > prototype_;
+    std::vector< std::string > wf_filenames_;
 };
 
 template< typename write_type_ >
@@ -202,6 +212,22 @@ void MomentumParameters<write_type_>::register_parameters()
             "-help",  // Flag token.
             "--help", // Flag token.
             "--usage" // Flag token.
+           );
+    opt.add(
+            "",
+            0,
+            1,
+            0,
+            "filename of wf",
+            std::string(prefix).append("wf\0").c_str()
+           );
+    opt.add(
+            ".31415",
+            0,
+            1,
+            0,
+            "the theta resolution",
+            std::string(prefix).append("dtheta\0").c_str()
            );
     opt.add(
             "500",

@@ -4,6 +4,7 @@
 #include<common/common.hpp>
 #include<common/special/coulomb/complex_functions.H>
 #include<common/special/coulomb/cwfcomp.cpp>
+#include<common/types.hpp>
 //#include<common/special/coulomb/test_rec_rel.>
 
 //fftw3:
@@ -19,6 +20,7 @@ extern "C" {
 //gsl:
 #include<gsl/gsl_sf_coupling.h>
 #include<gsl/gsl_sf_coulomb.h>
+#include<gsl/gsl_sf_legendre.h>
 
 
 namespace math{
@@ -304,6 +306,22 @@ std::vector<double> gsl_coulomb_wave_function(const kBasisID& a, const std::vect
     normalize(cv, grid); //we want to normalize to 1
     delete[] val;
     return cv;
+}
+
+Matrix< double > gsl_spherical_harmonics ( const int lmax, const int n_theta )
+{
+    Matrix<double> m( n_theta, lmax );
+
+    std::vector< double > t(n_theta);
+    int i = 0;
+    double dtheta = math::PI / n_theta;
+    for ( auto a = m[0]; a < m[n_theta]; a+=lmax )
+    {
+        gsl_sf_legendre_sphPlm_array(lmax, 0, std::cos( i * dtheta ), a);
+        i++;
+    }
+
+    return m;
 }
 
 inline std::complex<double> Gamma_Lanczos (std::complex<double> z)
