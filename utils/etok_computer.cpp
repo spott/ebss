@@ -58,13 +58,17 @@ int main ( int argc, const char ** argv )
         for (size_t i = 0; i < pro.size(); ++i)
         {
             for (int t = 0; t <= int (math::PI / kparams.dtheta()); ++t)
+            {
                 spectrum( int(pro[i].k/kparams.dk()), kparams.dtheta() * t) += 
                     std::sqrt(2. / math::PI) * 1. / pro[i].k  * 
                     std::pow(std::complex<double>(0,1), pro[i].l) * 
                     std::exp( std::complex<double>(0, std::arg(math::Gamma_Lanczos( std::complex<double>(pro[i].l + 1, -1. / pro[i].k) )))) * 
                     sph_harmonics( pro[i].l, kparams.dtheta() * t ) * 
                     kval[i];
+                std::cout << int(pro[i].k/ kparams.dk()) << "," << kparams.dtheta() * t << ": " spectrum(int(pro[i].k/kparams.dk()), kparams.dtheta() * t)  <<std::endl;
+            }
         }
+
 
         // write out!
         std::string f = wf_fname.substr(0,wf_fname.size() - 4);
