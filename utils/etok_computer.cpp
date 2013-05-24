@@ -65,7 +65,7 @@ int main ( int argc, const char ** argv )
                     std::exp( std::complex<double>(0, std::arg(math::Gamma_Lanczos( std::complex<double>(pro[i].l + 1, -1. / pro[i].k) )))) * 
                     sph_harmonics( pro[i].l, kparams.dtheta() * t ) * 
                     kval[i];
-                std::cout << int(pro[i].k/ kparams.dk()) << "," << kparams.dtheta() * t << ": " spectrum(int(pro[i].k/kparams.dk()), kparams.dtheta() * t)  <<std::endl;
+                std::cout << int(pro[i].k/ kparams.dk()) << "," << kparams.dtheta() * t << ": "<< spectrum(int(pro[i].k/kparams.dk()), kparams.dtheta() * t)  <<std::endl;
             }
         }
 
