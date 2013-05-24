@@ -72,6 +72,13 @@ int main ( int argc, const char ** argv )
             }
         }
 
+        for (size_t x = 0; x < spectrum.dim_x(); ++x)
+        {
+            for (size_t y = 0; y < spectrum.dim_y(); ++y)
+            {
+                spectrum(x,y) = std::pow(std::abs(spectrum(x,y)),2) * 2 * math::PI * (x * kparams.dk()) * std::sin( y * kparams.dtheta() );
+            }
+        }
 
         // write out!
         std::string f = wf_fname.substr(0,wf_fname.size() - 4);
