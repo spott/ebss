@@ -2,6 +2,7 @@ import numpy
 import pandas
 import struct
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import os
 
 #we are interested in the energy levels:
@@ -36,16 +37,29 @@ def import_k_spectrum( filename ):
         npy = numpy.fromfile(f, 'd', -1)
         return npy.reshape(size[0], size[1])
 
-def gen_x_y_matrices( kmax, dk, dtheta )
-    dim_x = int(kmax / kmin);
-    dim_y = int(pi / dtheta) + 1;
+def gen_x_y_matrices( kmax, dk, dtheta ):
+    dim_x = int(kmax / dk);
+    dim_y = int(numpy.pi / dtheta) + 1;
     X = numpy.ndarray((dim_x, dim_y))
     Y = numpy.ndarray((dim_x, dim_y))
     for i in range(dim_x):
         for j in range(dim_y):
-            X[i][j] = (i+1) * dk * cos( dtheta * j)
-            Y[i][j] = (i+1) * dk * sin( dtheta * j)
+            X[i][j] = (i+1) * dk * numpy.cos( dtheta * j)
+            Y[i][j] = (i+1) * dk * numpy.sin( dtheta * j)
     return (X,Y)
+
+def gen_k_spectrum_figure( spectrum_filename, kmax, out_filename ):
+    ks = import_k_spectrum( spectrum_filename )
+    ma = numpy.max(ks)
+    print (ma)
+    (X,Y) = gen_x_y_matrices( kmax, kmax / ks.shape[0], numpy.pi / ks.shape[1] )
+    #plt.figure()
+    #plt.pcolormesh(X, Y, numpy.log10(numpy.abs(ks)), norm=mpl.colors.Normalize(vmin=(numpy.log10(ma) - 4), vmax=(numpy.log10(ma)), clip=True))
+    #plt.savefig( out_filename )
+    plt.figure()
+    plt.imshow(numpy.log10(numpy.abs(ks)), norm=mpl.colors.Normalize(vmin=(numpy.log10(ma) - 4), vmax=(numpy.log10(ma)), clip=True), interpolation="bilinear")
+    plt.savefig( out_filename )
+
 
 def indexed_wf( prototype, wf ):
     r = pandas.DataFrame( prototype )

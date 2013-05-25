@@ -4,12 +4,8 @@ import analysis
 import pandas
 import matplotlib.pyplot as plt
 
-#(iwfs, gnwfs, gewfs) = analysis.all_wfs_mapped()
-
-#resonant:
-#top = {"121nm":"121","200nm":"200","242nm":"242","400nm":"400","500nm":"500","600nm":"600","700nm":"700","800nm":"800","900nm":"900","1000nm":"1000","1100nm":"1100","1200nm":"1200"}
-top = { 1.5E14:"1.5E14",  1E13:"1E13",   2E13:"2E13",   2E14:"2E14",   3E13:"3E13",   4E13:"4E13",   5E13:"5E13",   6E13:"6E13",   7E13:"7E13",   8E13:"8E13",   9E13:"9E13"}
-folders = ["hydrogen","hydrogen_fs","hydrogen_sfa"]
+top = { 3:"3", 6:"6", 9:"9", 12:"12", 15:"15", 18:"18", 21:"21"}
+folders = ["hydrogen"]
 datae = {}
 datan = {}
 ionization = {}
@@ -21,7 +17,8 @@ for j in top:
     indexe = []
     ionization[j] = {}
     for i in folders:
-        iwf = analysis.indexed_wf( analysis.get_prototype(top[j] + "/" + i + "/prototype.csv"), analysis.import_petsc_vec( top[j] + "/" + i + "/wf_final.dat") )
+        analysis.gen_k_spectrum_figure( top[j] + "/wf_final_kspectrum.dat" , .5, top[j] + "_" + i + "kspectrum.pdf" )
+        iwf = analysis.indexed_wf( analysis.get_prototype(top[j] + "/prototype.csv"), analysis.import_petsc_vec( top[j] + "/wf_final.dat") )
         ion = analysis.ionization(iwf)
         print ( top[j] + " - " + i + " -- " + str(1.-ion["bound"]) + ", absorbed: " + str(ion["absorbed"]) )
         ionization[j][i] = 1.-ion["bound"]
@@ -45,7 +42,7 @@ for j in top:
 
 ion = pandas.DataFrame( ionization ).transpose().sort()
 plt.figure()
-ion.plot(logy=True, logx=True, title="ionization vs. intensity")
+ion.plot(logy=True, logx=True, title="ionization vs. cycles")
 plt.savefig("ionization.pdf")
 
 for i in folders:
@@ -54,8 +51,8 @@ for i in folders:
     for j in top:
         de_l[j] = datae[j][i]
         dn_l[j] = datan[j][i]
-    de = pandas.DataFrame( de_l, datae[1.5E14].index)
-    dn = pandas.DataFrame( dn_l, datan[1.5E14].index)
+    de = pandas.DataFrame( de_l, datae[3].index)
+    dn = pandas.DataFrame( dn_l, datan[3].index)
     plt.figure()
     de.plot(logy=True, title=i)
     plt.savefig(i + "_e.pdf")
