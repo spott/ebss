@@ -31,12 +31,12 @@ public:
         {
             std::string fname;
             opt.get("-momentum_config")->getString(fname);
-            init_from_file(fname);
-            //if (! opt.importFile(fname.c_str(), '#'))
-            //{
-                //std::cout << "file must exist!" << std::endl;
-                //throw std::exception();
-            //}
+            //init_from_file(fname);
+            if (! opt.importFile(fname.c_str(), '#'))
+            {
+                std::cout << "file must exist!" << std::endl;
+                throw std::exception();
+            }
         }
 
         opt.get("-momentum_wf")->getStrings( wf_filenames_ );
@@ -142,13 +142,13 @@ void MomentumParameters<write_type_>::init_from_file(std::string filename)
     register_parameters();
     opt.importFile(filename.c_str(), '#');
 
-    //opt.get("-momentum_nmax")->getInt(nmax_);
-    //opt.get("-momentum_lmax")->getInt(lmax_);
-    //opt.get("-momentum_kmax")->getDouble(kmax_);
-    //opt.get("-momentum_dk")->getDouble(dk_);
-    //opt.get("-momentum_folder")->getString(folder_);
-    //opt.get("-momentum_hamiltonian_config")->getString(hamiltonian_config_);
-    //hamiltonian_ = new HamiltonianParameters<write_type_>( comm_, hamiltonian_config_);
+    opt.get("-momentum_nmax")->getInt(nmax_);
+    opt.get("-momentum_lmax")->getInt(lmax_);
+    opt.get("-momentum_kmax")->getDouble(kmax_);
+    opt.get("-momentum_dk")->getDouble(dk_);
+    opt.get("-momentum_folder")->getString(folder_);
+    opt.get("-momentum_hamiltonian_config")->getString(hamiltonian_config_);
+    hamiltonian_ = new HamiltonianParameters<write_type_>( comm_, hamiltonian_config_);
 
     //this->prototype_ = common::import_vector_binary<BasisID>(this->prototype_filename());
     kPrototype = common::import_vector_binary<kBasisID>(this->prototype_filename());
