@@ -49,7 +49,7 @@ int main ( int argc, const char ** argv )
         MatGetVecs( m, PETSC_NULL, &k);
         MatMult(m, wf, k);
 
-        Matrix< std::complex<double> > spectrum( int(kparams.kmax()/kparams.dk()) + 1, int(math::PI / kparams.dtheta()) + 1);
+        Matrix< std::complex<double> > spectrum( int(kparams.kmax()/kparams.dk()), int(math::PI / kparams.dtheta()) + 1);
 		std::cout << "spectrum: " << int(kparams.kmax()/kparams.dk()) + 1 << "," << int(math::PI / kparams.dtheta()) + 1 << std::endl;
 		
         //P (k, theta) = 2/pi | 1/k \sum_l i^l e^{i \sigma_l} Y_l (\theta) \sum_n c_nl * <u_nl | u_kl> |^2
@@ -62,21 +62,24 @@ int main ( int argc, const char ** argv )
         {
             for (int t = 0; t <= int (math::PI / kparams.dtheta()); ++t)
             {
-                spectrum( int(pro[i].k/kparams.dk()), t) += 
+                if (pro[i].k > kparams.kmax())
+                    continue;
+                spectrum( int(pro[i].k/kparams.dk()) - 1, t) += 
                     std::sqrt(2. / math::PI) * 1. / pro[i].k  * 
                     std::pow(std::complex<double>(0,1), pro[i].l) * 
                     std::exp( std::complex<double>(0, std::arg(math::Gamma_Lanczos( std::complex<double>(pro[i].l + 1, -1. / pro[i].k) )))) * 
                     sph_harmonics( t, pro[i].l) * 
                     kval[i];
-                std::cout << int(pro[i].k/ kparams.dk()) << "," << kparams.dtheta() * t << ": "<< spectrum(int(pro[i].k/kparams.dk()), t)  <<std::endl;
+                //std::cout << int(pro[i].k/ kparams.dk()) << "," << kparams.dtheta() * t << ": "<< spectrum(int(pro[i].k/kparams.dk()), t)  <<std::endl;
             }
         }
 
+        Matrix< double > ddspectrum( spectrum.dim_x(), spectrum.dim_y());
         for (size_t x = 0; x < spectrum.dim_x(); ++x)
         {
             for (size_t y = 0; y < spectrum.dim_y(); ++y)
             {
-                spectrum(x,y) = std::pow(std::abs(spectrum(x,y)),2) * 2 * math::PI * (x * kparams.dk()) * std::sin( y * kparams.dtheta() );
+                ddspectrum(x,y) = std::pow(std::abs(spectrum(x,y)),2) * 2 * math::PI * (x * kparams.dk()) * std::sin( y * kparams.dtheta() );
             }
         }
 
@@ -86,7 +89,7 @@ int main ( int argc, const char ** argv )
         std::vector<int> prefix({spectrum.dim_x(), spectrum.dim_y()});
         //prefix[0] = * (reinterpret_cast<char*>(new int[2]{spectrum.dim_x(), spectrum.dim_y()} ));
         //prefix.data() +  = reinterpret_cast<char>( spectrum.dim_x() );
-        common::export_vector_binary( f, spectrum.data(), prefix);
+        common::export_vector_binary( f, ddspectrum.data(), prefix);
     }
     VecDestroy(&wf);
     VecDestroy(&k);

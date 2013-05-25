@@ -33,8 +33,19 @@ def import_k_spectrum( filename ):
     with open(filename, "rb") as f:
         byte = f.read(8)
         size = struct.unpack('ii',byte)
-        npy = numpy.fromfile(f, 'D', -1)
+        npy = numpy.fromfile(f, 'd', -1)
         return npy.reshape(size[0], size[1])
+
+def gen_x_y_matrices( kmax, dk, dtheta )
+    dim_x = int(kmax / kmin);
+    dim_y = int(pi / dtheta) + 1;
+    X = numpy.ndarray((dim_x, dim_y))
+    Y = numpy.ndarray((dim_x, dim_y))
+    for i in range(dim_x):
+        for j in range(dim_y):
+            X[i][j] = (i+1) * dk * cos( dtheta * j)
+            Y[i][j] = (i+1) * dk * sin( dtheta * j)
+    return (X,Y)
 
 def indexed_wf( prototype, wf ):
     r = pandas.DataFrame( prototype )
