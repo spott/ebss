@@ -31,11 +31,12 @@ public:
         {
             std::string fname;
             opt.get("-momentum_config")->getString(fname);
-            if (! opt.importFile(fname.c_str(), '#'))
-            {
-                std::cout << "file must exist!" << std::endl;
-                throw std::exception();
-            }
+            init_from_file(fname);
+            //if (! opt.importFile(fname.c_str(), '#'))
+            //{
+                //std::cout << "file must exist!" << std::endl;
+                //throw std::exception();
+            //}
         }
 
         opt.get("-momentum_dtheta")->getDouble(dtheta_);
@@ -142,8 +143,9 @@ void MomentumParameters<write_type_>::init_from_file(std::string filename)
     opt.get("-momentum_hamiltonian_config")->getString(hamiltonian_config_);
     hamiltonian_ = new HamiltonianParameters<write_type_>( comm_, hamiltonian_config_);
 
-    this->prototype_ = common::import_vector_binary<BasisID>(this->prototype_filename());
-    kPrototype = genPrototype();
+    //this->prototype_ = common::import_vector_binary<BasisID>(this->prototype_filename());
+    kPrototype = common::import_vector_binary<kBasisID>(this->prototype_filename());
+    //kPrototype = genPrototype();
 }
 
 template<typename write_type_>
