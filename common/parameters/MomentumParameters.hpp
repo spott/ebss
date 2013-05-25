@@ -154,7 +154,10 @@ std::string MomentumParameters<write_type_>::print() const
     out << "momentum_lmax: " << lmax_ << std::endl;
     out << "momentum_kmax: " << kmax_ << std::endl;
     out << "momentum_dk: " << dk_ << std::endl;
+    out << "momentum_dtheta: " << dtheta_ << std::endl;
     out << "momentum_folder" << folder_ << std::endl;
+    for (auto& a : wf_filenames_)
+        out << "momentum_wf " << a << std::endl;
     out << hamiltonian_->print();
     return out.str();
 }
