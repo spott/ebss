@@ -70,7 +70,7 @@ public:
 
         //full prototype:
         prototype_ = this->hamiltonian_->prototype();
-        if (kPrototype.size() != 0)
+        if (kPrototype.size() == 0)
             kPrototype = genPrototype();
     }
 
