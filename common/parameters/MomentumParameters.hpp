@@ -39,6 +39,8 @@ public:
             //}
         }
 
+        opt.get("-momentum_wf")->getStrings( wf_filenames_ );
+
         opt.get("-momentum_dtheta")->getDouble(dtheta_);
         opt.get("-momentum_kmax")->getDouble(kmax_);
         opt.get("-momentum_dk")->getDouble(dk_);
@@ -52,7 +54,11 @@ public:
         hamiltonian_ = new HamiltonianParameters<write_type_>(comm_ ,hamiltonian_config_);
         //std::cout << hamiltonian_config_ << std::endl;
 
-        opt.get("-momentum_wf")->getStrings( wf_filenames_ );
+        std::cout << "wfs: " << std::endl;
+        for (auto& a: wf_filenames_)
+        {
+            std::cout << a << std::endl; 
+        }
 
         if (nmax_ > hamiltonian_->nmax())
             nmax_ = hamiltonian_->nmax();
@@ -61,7 +67,8 @@ public:
 
         //full prototype:
         prototype_ = this->hamiltonian_->prototype();
-        kPrototype = genPrototype();
+        if (kPrototype.size() != 0)
+            kPrototype = genPrototype();
     }
 
     int nmax() const { return nmax_; };
@@ -135,17 +142,18 @@ void MomentumParameters<write_type_>::init_from_file(std::string filename)
     register_parameters();
     opt.importFile(filename.c_str(), '#');
 
-    opt.get("-momentum_nmax")->getInt(nmax_);
-    opt.get("-momentum_lmax")->getInt(lmax_);
-    opt.get("-momentum_kmax")->getDouble(kmax_);
-    opt.get("-momentum_dk")->getDouble(dk_);
-    opt.get("-momentum_folder")->getString(folder_);
-    opt.get("-momentum_hamiltonian_config")->getString(hamiltonian_config_);
+    //opt.get("-momentum_nmax")->getInt(nmax_);
+    //opt.get("-momentum_lmax")->getInt(lmax_);
+    //opt.get("-momentum_kmax")->getDouble(kmax_);
+    //opt.get("-momentum_dk")->getDouble(dk_);
+    //opt.get("-momentum_folder")->getString(folder_);
+    //opt.get("-momentum_hamiltonian_config")->getString(hamiltonian_config_);
     hamiltonian_ = new HamiltonianParameters<write_type_>( comm_, hamiltonian_config_);
 
     //this->prototype_ = common::import_vector_binary<BasisID>(this->prototype_filename());
     kPrototype = common::import_vector_binary<kBasisID>(this->prototype_filename());
     //kPrototype = genPrototype();
+    std::cout << "inited from file" << std::endl;
 }
 
 template<typename write_type_>
@@ -219,7 +227,7 @@ void MomentumParameters<write_type_>::register_parameters()
             "--usage" // Flag token.
            );
     opt.add(
-            "",
+            "./wf_final.dat",
             0,
             1,
             0,

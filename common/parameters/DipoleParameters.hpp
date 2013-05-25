@@ -50,22 +50,27 @@ protected:
     std::string after_filename_;
     PetscReal dt_;
     PetscReal t_after_;
-    //Vec tmp;
+    Vec tmp;
 
 };
 
-PetscScalar DipoleParameters::find_dipole_moment(Mat& dipole, Vec& psi)
+PetscReal DipoleParameters::find_dipole_moment(Mat& dipole, Vec& psi)
 {
-    static Vec tmp = [&psi]{ Vec t; VecDuplicate(psi,&t); return t };
+    //static Vec tmp = [&psi]() -> Vec { 
+        //Vec t; 
+        //VecDuplicate(psi,&t); 
+        //return t; };
     PetscScalar out;
-    //if (tmp == PETSC_NULL)
-        //VecDuplicate(psi, &tmp);
+    if (tmp == PETSC_NULL)
+        VecDuplicate(psi, &tmp);
     VecCopy(psi,tmp);
     MatMult(dipole,psi,tmp);
     VecDot(psi,tmp, &out);
-    return out;
-}
+    if (out.imag() != 0.0)
+        std::cerr << "dipole moment didn't produce real number: " << out.imag() << std::endl;
 
+    return out.real();
+}
 
 void DipoleParameters::get_parameters()
 {

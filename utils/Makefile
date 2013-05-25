@@ -22,3 +22,8 @@ etok_computer: etok_computer.o chkopts
 #${EXECUTABLE}: ${OBJECTS}  chkopts
 #	-${CLINKER} -o ${BINDIR}/${EXECUTABLE} ${OBJECTS} ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
 
+#.phony clean: 
+	#rm *.o
+.PHONEY: clean
+clean::
+	rm *.o

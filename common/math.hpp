@@ -355,6 +355,24 @@ inline std::complex<double> Gamma_Lanczos (std::complex<double> z)
 
 }
 
+//find the second derivative of a vector, maintaining the vectors size:
+template <typename T>
+std::vector<T> second_difference( const std::vector<T>& in, const T& h)
+{
+    std::vector<T> out;
+    out.reserve( in.size() );
+
+    //initialize with a forward second derivative:
+    out.push_back( (in[2] - 2 * in[1] + in[0]) / (h*h) );
+
+    for (size_t i = 1; i < in.size()-1; ++i)
+        out.push_back( (in[i-1] - 2 * in[i] + in[i+1]) / (h*h) );
+
+    out.push_back( (in[ in.size() - 3 ] - 2 * in[in.size() - 2] + in[in.size() - 1]) / (h*h) );
+
+    return out;
+}
+
 //fourier
 std::vector< std::complex<double> > fourier(std::vector< double >&& time_series )
 {

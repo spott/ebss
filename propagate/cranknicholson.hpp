@@ -188,6 +188,7 @@ solve(Vec *wf, context* cntx, Mat *A)
         }
     }
 
+    dipole = math::second_difference( dipole, cntx->laser->dt() * 10);
     //After the propagation through diffeq, we need to do the propagation after the fact to find the dipole 
     //moment over time.
 
@@ -201,6 +202,7 @@ solve(Vec *wf, context* cntx, Mat *A)
         after_dipole.push_back(  cntx->dipole->find_dipole_moment(*(cntx->D), tmp) );
         t += cntx->dipole->dt();
     }
+
 
     if (cntx->hparams->rank() == 0) 
     {
@@ -216,6 +218,8 @@ solve(Vec *wf, context* cntx, Mat *A)
             std::cerr << "couldn't open the after_time file, oops... it won't be written to disk... NOOO!!" << std::endl;
         }
     }
+
+    dipole = math::second_difference( after_dipole, cntx->dipole->dt() );
 
     //fourier transform and output the dipole timeseries:
     if (cntx->hparams->rank() == 0)
