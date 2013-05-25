@@ -148,7 +148,7 @@ void MomentumParameters<write_type_>::init_from_file(std::string filename)
     //opt.get("-momentum_dk")->getDouble(dk_);
     //opt.get("-momentum_folder")->getString(folder_);
     //opt.get("-momentum_hamiltonian_config")->getString(hamiltonian_config_);
-    hamiltonian_ = new HamiltonianParameters<write_type_>( comm_, hamiltonian_config_);
+    //hamiltonian_ = new HamiltonianParameters<write_type_>( comm_, hamiltonian_config_);
 
     //this->prototype_ = common::import_vector_binary<BasisID>(this->prototype_filename());
     kPrototype = common::import_vector_binary<kBasisID>(this->prototype_filename());
