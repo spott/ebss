@@ -37,6 +37,9 @@ public:
                 std::cout << "file must exist!" << std::endl;
                 throw std::exception();
             }
+            opt.get("-momentum_folder")->getString(folder_);
+            folder_ = common::absolute_path(folder_);
+            kPrototype = common::import_vector_binary<kBasisID>(this->prototype_filename());
         }
 
         opt.get("-momentum_wf")->getStrings( wf_filenames_ );
@@ -45,8 +48,8 @@ public:
         opt.get("-momentum_kmax")->getDouble(kmax_);
         opt.get("-momentum_dk")->getDouble(dk_);
         opt.get("-momentum_lmax")->getInt(lmax_);
-        opt.get("-momentum_folder")->getString(folder_);
-        folder_ = common::absolute_path(folder_);
+        //opt.get("-momentum_folder")->getString(folder_);
+        //folder_ = common::absolute_path(folder_);
 
         opt.get("-momentum_nmax")->getInt(nmax_);
         opt.get("-momentum_hamiltonian_config")->getString(hamiltonian_config_);
