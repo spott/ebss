@@ -139,10 +139,10 @@ int main(int argc, const char ** argv)
                 return 0.0;
             auto a = import_wf2(prototype[i], true);
             auto b = import_wf2(prototype[j], false);
-            PetscScalar radial = math::integrateTrapezoidRule(
+            PetscScalar radial = std::abs(math::integrateTrapezoidRule(
                     *a,
                     *b,
-                    *grid );
+                    *grid ));
             PetscScalar angular = math::CGCoefficient<PetscScalar>(prototype[i],prototype[j]);
             //we are only considering spin up electrons.  so m_j always == +1/2 (since m_l is always 0)
             angular *= std::sqrt ( 

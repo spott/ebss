@@ -33,7 +33,7 @@ for j in top:
     datan[j] = pandas.DataFrame(dn, indexn)
 
     plt.figure()
-    datan[j].plot(logy=True, title=top[j])
+    datan[j].plot(logy=False, title=top[j])
     plt.savefig(top[j] + "_n.pdf")
     
     plt.figure()
