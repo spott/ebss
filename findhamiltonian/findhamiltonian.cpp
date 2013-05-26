@@ -149,6 +149,8 @@ int main(int argc, const char ** argv)
                     (prototype[i].l + (prototype[i].j - 2 * prototype[i].l) * .5 * .5 + .5) * 
                     (prototype[j].l + (prototype[j].j - 2 * prototype[j].l) * .5 * .5 + .5) / 
                     ((2. * prototype[i].l + 1) * (2. * prototype[j].l + 1)));
+            if (prototype[i].n == 2 && prototype[j].n == 2)
+                std::cout << "n = 2 transition: " << radial * angular << std::endl;
             return radial * angular;
         };
     }

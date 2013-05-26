@@ -38,6 +38,9 @@ def import_k_spectrum( filename ):
         return npy.reshape(size[0], size[1])
 
 def gen_x_y_matrices( kmax, dk, dtheta ):
+    print (kmax)
+    print (dk)
+    print (dtheta)
     dim_x = int(kmax / dk);
     dim_y = int(numpy.pi / dtheta) + 1;
     X = numpy.ndarray((dim_x, dim_y))
@@ -48,17 +51,22 @@ def gen_x_y_matrices( kmax, dk, dtheta ):
             Y[i][j] = (i+1) * dk * numpy.sin( dtheta * j)
     return (X,Y)
 
-def gen_k_spectrum_figure( spectrum_filename, kmax, out_filename ):
+def gen_k_spectrum_figure( spectrum_filename, kmax, out_filename, r = []):
     ks = import_k_spectrum( spectrum_filename )
     ma = numpy.max(ks)
+    print (ks.shape)
     print (ma)
-    (X,Y) = gen_x_y_matrices( kmax, kmax / ks.shape[0], numpy.pi / ks.shape[1] )
-    #plt.figure()
-    #plt.pcolormesh(X, Y, numpy.log10(numpy.abs(ks)), norm=mpl.colors.Normalize(vmin=(numpy.log10(ma) - 4), vmax=(numpy.log10(ma)), clip=True))
-    #plt.savefig( out_filename )
+    (X,Y) = gen_x_y_matrices( kmax, kmax / float(ks.shape[0]), numpy.pi / float(ks.shape[1]) )
+    if (len(r) == 0):
+        r.append(numpy.log10(ma) - 4)
+        r.append(numpy.log10(ma))
+
     plt.figure()
-    plt.imshow(numpy.log10(numpy.abs(ks)), norm=mpl.colors.Normalize(vmin=(numpy.log10(ma) - 4), vmax=(numpy.log10(ma)), clip=True), interpolation="bilinear")
+    plt.pcolormesh(X, Y, numpy.log10(numpy.abs(ks)), norm=mpl.colors.Normalize(vmin=r[0], vmax=r[1], clip=True))
     plt.savefig( out_filename )
+    #plt.figure()
+    #plt.imshow(numpy.log10(numpy.abs(ks)), norm=mpl.colors.Normalize(vmin=(numpy.log10(ma) - 4), vmax=(numpy.log10(ma)), clip=True), interpolation="bilinear")
+    #plt.savefig( out_filename )
 
 
 def indexed_wf( prototype, wf ):
@@ -104,9 +112,22 @@ def wavefunctions(folder = "./"):
             wf_filenames += 1
     wfs = {}
     for i in range(wf_filenames-1):
-        wfs["wf_"+str(i)] = import_petsc_vec(folder + "/wf_" + str(i) + ".dat" ) 
-    wfs["wf_final"] = import_petsc_vec(folder + "/wf_final.dat")
+        wfs[i] = import_petsc_vec(folder + "/wf_" + str(i) + ".dat" ) 
     return wfs
+
+def probabilities(folder = "./"):
+    return pandas.DataFrame(wavefunctions(folder)).apply( lambda x: abs(x)**2 )
+
+def grouped_probabilities( index, prototype, wfs):
+    r = wfs.copy()
+    r[index] = pandas.DataFrame(prototype)[index]
+    return r.groupby(index).aggregate(pandas.np.sum)
+
+def ionized_probabilities( prototype, wfs):
+    r = wfs.copy()
+    r["e"] = pandas.DataFrame(prototype)["e"]
+    return r.set_index("e").groupby(lambda x: 1 if x < -.4 else (2 if x < 0.0 else 3)).aggregate(pandas.np.sum)
+
 
 def ionization( indexedwf, cutoff = 0.0 ):
     r = indexedwf.copy()
