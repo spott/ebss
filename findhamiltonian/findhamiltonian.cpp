@@ -161,10 +161,10 @@ int main(int argc, const char ** argv)
                 return 0.0;
             auto a = import_wf2(prototype[i], true);
             auto b = import_wf2(prototype[j], false);
-            PetscScalar radial = math::integrateTrapezoidRule(
+            PetscScalar radial = std::abs(math::integrateTrapezoidRule(
                     *a,
                     *b,
-                    *grid );
+                    *grid ));
             PetscScalar angular = math::CGCoefficient<PetscScalar>(prototype[i],prototype[j]);
             if (prototype[i].n == 2 && prototype[j].n == 2)
                 std::cout << "n = 2 transition: " << radial * angular << std::endl;
