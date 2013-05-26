@@ -166,6 +166,8 @@ int main(int argc, const char ** argv)
                     *b,
                     *grid );
             PetscScalar angular = math::CGCoefficient<PetscScalar>(prototype[i],prototype[j]);
+            if (prototype[i].n == 2 && prototype[j].n == 2)
+                std::cout << "n = 2 transition: " << radial * angular << std::endl;
             return radial * angular;
         };
     }
