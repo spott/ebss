@@ -58,6 +58,9 @@ std::function<ReturnType (Arg, bool)> half_memoize(std::function<ReturnType (Arg
 
 int main(int argc, const char ** argv)
 {
+    static_assert( math::signum( -1.0 ) == -1 , "math::signum failed 1");
+    static_assert( math::signum( 1.0 ) == 1 , "math::signum failed 2");
+    static_assert( math::signum( 0.0 ) == 0 , "math::signum failed 3");
     int ac = argc;
     char** av = new char*[argc];
     for (size_t i = 0; i < argc; i++)
@@ -144,7 +147,8 @@ int main(int argc, const char ** argv)
             {
                 if (math::signum( (*a)[n] ) != 0 && math::signum( (*b)[n] ) != 0)
                 {
-                    s =  math::signum( (*a)[n] * (*b)[n]);
+                    s =  math::signum( (*a)[n] * (*b)[n] );
+                    std::cout << s;
                     break;
                 }
             }
