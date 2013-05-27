@@ -148,7 +148,6 @@ int main(int argc, const char ** argv)
                 if (math::signum( (*a)[n] ) != 0 && math::signum( (*b)[n] ) != 0)
                 {
                     s =  math::signum( (*a)[n] * (*b)[n] );
-                    std::cout << s;
                     break;
                 }
             }
@@ -183,7 +182,7 @@ int main(int argc, const char ** argv)
                 if (math::signum( (*a)[n] ) != 0 && math::signum( (*b)[n] ) != 0)
                 {
                     s =  math::signum( (*a)[n] * (*b)[n]);
-                    std::cout << s;
+                    std::cout << s << " from: " << (*a)[n] << " and " << (*b)[n];
                     break;
                 }
             }
