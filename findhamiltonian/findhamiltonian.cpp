@@ -179,10 +179,10 @@ int main(int argc, const char ** argv)
             int s = 0;
             for (size_t n = 0; n < (*a).size(); ++n)
             {
-                if (math::signum( (*a)[n] ) != 0 && math::signum( (*b)[n] ) != 0)
+                if (std::abs( (*a)[n] ) > 1e-6 && std::abs( (*b)[n] ) >  1e-6)
                 {
                     s =  math::signum( (*a)[n] * (*b)[n]);
-                    std::cout << s << " from: " << (*a)[n] << " and " << (*b)[n];
+                    std::cout << s << " from: " << (*a)[n] << " and " << (*b)[n] << std::endl;
                     break;
                 }
             }
