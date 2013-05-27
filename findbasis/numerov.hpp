@@ -345,6 +345,11 @@ namespace numerov
                     if (std::abs(current.de) < 1e-18 && current.turnover > wf.size() - 2) //if we have converged for an excited state:
                     {
                         converged = true;
+                        //figure out when the sign changes:
+                        if (wf[4] < 0) //flip the wf:
+                            for (auto& a : wf)
+                                a = -a;
+
                         std::cout << current.turnover << "\t";
                         continue;
                     }
@@ -482,6 +487,8 @@ namespace numerov
                 std::cout << current.turnover;
             }
 
+            //we need to make sure that the wavefunction is always positive first...
+            if 
 
             for (size_t i = 0; i < wf.size(); i++)
             {

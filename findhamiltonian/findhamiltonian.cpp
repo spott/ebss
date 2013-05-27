@@ -139,19 +139,30 @@ int main(int argc, const char ** argv)
                 return 0.0;
             auto a = import_wf2(prototype[i], true);
             auto b = import_wf2(prototype[j], false);
-            PetscScalar radial = std::abs(math::integrateTrapezoidRule(
+            int s = 0;
+            for (size_t n = 0; n < (*a).size(); ++n)
+            {
+                if (math::signum( (*a)[n] ) != 0 && math::signum( (*b)[n] ) != 0)
+                {
+                    s =  math::signum( (*a)[n] * (*b)[n]);
+                    break;
+                }
+            }
+
+            if (s == 0)  std:: cout << "shit... one or the other wavefunction is always zero" << std::endl;
+            PetscScalar radial = math::integrateTrapezoidRule(
                     *a,
                     *b,
-                    *grid ));
+                    *grid );
             PetscScalar angular = math::CGCoefficient<PetscScalar>(prototype[i],prototype[j]);
             //we are only considering spin up electrons.  so m_j always == +1/2 (since m_l is always 0)
-            angular *= std::sqrt ( 
+            angular *= std::sqrt (
                     (prototype[i].l + (prototype[i].j - 2 * prototype[i].l) * .5 * .5 + .5) * 
                     (prototype[j].l + (prototype[j].j - 2 * prototype[j].l) * .5 * .5 + .5) / 
                     ((2. * prototype[i].l + 1) * (2. * prototype[j].l + 1)));
             if (prototype[i].n == 2 && prototype[j].n == 2)
                 std::cout << "n = 2 transition: " << radial * angular << std::endl;
-            return radial * angular;
+            return std::abs(radial * angular);
         };
     }
     else
@@ -161,14 +172,26 @@ int main(int argc, const char ** argv)
                 return 0.0;
             auto a = import_wf2(prototype[i], true);
             auto b = import_wf2(prototype[j], false);
-            PetscScalar radial = std::abs(math::integrateTrapezoidRule(
+
+            int s = 0;
+            for (size_t n = 0; n < (*a).size(); ++n)
+            {
+                if (math::signum( (*a)[n] ) != 0 && math::signum( (*b)[n] ) != 0)
+                {
+                    s =  math::signum( (*a)[n] * (*b)[n]);
+                    break;
+                }
+            }
+
+            if (s == 0)  std:: cout << "shit... one or the other wavefunction is always zero" << std::endl;
+            PetscScalar radial = s * math::integrateTrapezoidRule(
                     *a,
                     *b,
-                    *grid ));
+                    *grid );
             PetscScalar angular = math::CGCoefficient<PetscScalar>(prototype[i],prototype[j]);
             if (prototype[i].n == 2 && prototype[j].n == 2)
                 std::cout << "n = 2 transition: " << radial * angular << std::endl;
-            return radial * angular;
+            return std::abs(radial * angular);
         };
     }
 
