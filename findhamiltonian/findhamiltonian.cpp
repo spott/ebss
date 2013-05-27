@@ -152,7 +152,7 @@ int main(int argc, const char ** argv)
                 }
             }
 
-            if (s == 0)  std:: cout << "shit... one or the other wavefunction is always zero" << std::endl;
+            //if (s == 0)  std:: cout << "shit... one or the other wavefunction is always zero" << std::endl;
             PetscScalar radial = math::integrateTrapezoidRule(
                     *a,
                     *b,
@@ -165,7 +165,7 @@ int main(int argc, const char ** argv)
                     ((2. * prototype[i].l + 1) * (2. * prototype[j].l + 1)));
             if (prototype[i].n == 2 && prototype[j].n == 2)
                 std::cout << "n = 2 transition: " << radial * angular << std::endl;
-            return std::abs(radial * angular);
+            return radial * angular;
         };
     }
     else
@@ -182,20 +182,20 @@ int main(int argc, const char ** argv)
                 if (std::abs( (*a)[n] ) > 1e-6 && std::abs( (*b)[n] ) >  1e-6)
                 {
                     s =  math::signum( (*a)[n] * (*b)[n]);
-                    std::cout << s << " from: " << (*a)[n] << " and " << (*b)[n] << std::endl;
+                    //std::cout << s << " from: " << (*a)[n] << " and " << (*b)[n] << std::endl;
                     break;
                 }
             }
 
-            if (s == 0)  std:: cout << "shit... one or the other wavefunction is always zero" << std::endl;
-            PetscScalar radial = s * math::integrateTrapezoidRule(
+            //if (s == 0)  std:: cout << "shit... one or the other wavefunction is always zero" << std::endl;
+            PetscScalar radial = math::integrateTrapezoidRule(
                     *a,
                     *b,
                     *grid );
             PetscScalar angular = math::CGCoefficient<PetscScalar>(prototype[i],prototype[j]);
             if (prototype[i].n == 2 && prototype[j].n == 2)
                 std::cout << "n = 2 transition: " << radial * angular << std::endl;
-            return std::abs(radial * angular);
+            return radial * angular;
         };
     }
 
@@ -204,7 +204,7 @@ int main(int argc, const char ** argv)
                                     dipole_selection_rules, 
                                     findvalue, 
                                     prototype.size(),
-                                    prototype.size());
+                                    prototype.size(), true);
 
 
    params.write_dipole_matrix(H);
