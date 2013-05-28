@@ -161,7 +161,7 @@ solve(Vec *wf, context* cntx, Mat *A)
             if (cntx->hparams->rank() == 0)
                 std::cout << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << " *" << std::endl;
             std::ostringstream wf_name;
-            wf_name << "./wf_p" << int(period/p0) << "o4.dat";
+            wf_name << "./wf_p" << static_cast<int>(std::round(period/p0)+.1) << "o4.dat";
             PetscViewerBinaryOpen(cntx->hparams->comm(),wf_name.str().c_str(),FILE_MODE_WRITE,&view);
             VecView(*wf, view);
             period += period;
