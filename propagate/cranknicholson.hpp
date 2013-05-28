@@ -36,6 +36,8 @@ solve(Vec *wf, context* cntx, Mat *A)
     Vec             prob;
     PetscReal       norm;
     PetscInt        zero = 0;
+    PetscReal       period = maxtime / (8 * cntx->laser->cycles()) ;
+    PetscReal       p0 = period;
 
     if (cntx->hparams->rank() == 0)
         std::cout << "maxtime: " << maxtime << " steps: " << maxtime/cntx->laser->dt() << " pulse length: " << cntx->laser->pulse_length() << std::endl;
@@ -72,23 +74,23 @@ solve(Vec *wf, context* cntx, Mat *A)
 		//ef-forward:
 		PetscScalar eff = cntx->laser->efield( t+ cntx->laser->dt() );
         //This has different 't's on both sides:
-        //MatScale(*A, (ef + eff)/2.  );                                   // A = ef(t) * D
-        //MatDiagonalSet(*A, *(cntx->H), INSERT_VALUES);      // A = ef(t) * D + H_0
-        //MatScale(*A, cn_factor);                            // A = - i * .5 * dt [ ef(t) * D + H_0 ]
-        //MatShift(*A, std::complex<double>(1,0));            // A = - i * .5 * dt [ ef(t) * D + H_0 ] + 1
-        //MatMult(*A, *wf, tmp);                              // A u_n = tmp
-           ////MatAXPY(*A, cn_factor * (cntx->laser->efield(t+cntx->laser->dt()) - ef), *( cntx->D ), SAME_NONZERO_PATTERN);
-        //MatScale(*A, std::complex<double>(-1,0));           // A = i * .5 dt [ef(t+dt) * D + H_0 ] - 1
-        //MatShift(*A, std::complex<double>(2,0));            // A = i * .5 dt [ef(t+dt) * D + H_0 ] + 1
-
-        MatScale(*A, ef );                                   // A = ef(t) * D
+        MatScale(*A, (ef + eff)/2.  );                                   // A = ef(t) * D
         MatDiagonalSet(*A, *(cntx->H), INSERT_VALUES);      // A = ef(t) * D + H_0
         MatScale(*A, cn_factor);                            // A = - i * .5 * dt [ ef(t) * D + H_0 ]
         MatShift(*A, std::complex<double>(1,0));            // A = - i * .5 * dt [ ef(t) * D + H_0 ] + 1
         MatMult(*A, *wf, tmp);                              // A u_n = tmp
-        MatAXPY(*A, cn_factor * (eff - ef), *( cntx->D ), SAME_NONZERO_PATTERN);
+        //MatAXPY(*A, cn_factor * (cntx->laser->efield(t+cntx->laser->dt()) - ef), *( cntx->D ), SAME_NONZERO_PATTERN);
         MatScale(*A, std::complex<double>(-1,0));           // A = i * .5 dt [ef(t+dt) * D + H_0 ] - 1
         MatShift(*A, std::complex<double>(2,0));            // A = i * .5 dt [ef(t+dt) * D + H_0 ] + 1
+
+        //MatScale(*A, ef );                                   // A = ef(t) * D
+        //MatDiagonalSet(*A, *(cntx->H), INSERT_VALUES);      // A = ef(t) * D + H_0
+        //MatScale(*A, cn_factor);                            // A = - i * .5 * dt [ ef(t) * D + H_0 ]
+        //MatShift(*A, std::complex<double>(1,0));            // A = - i * .5 * dt [ ef(t) * D + H_0 ] + 1
+        //MatMult(*A, *wf, tmp);                              // A u_n = tmp
+        //MatAXPY(*A, cn_factor * (eff - ef), *( cntx->D ), SAME_NONZERO_PATTERN);
+        //MatScale(*A, std::complex<double>(-1,0));           // A = i * .5 dt [ef(t+dt) * D + H_0 ] - 1
+        //MatShift(*A, std::complex<double>(2,0));            // A = i * .5 dt [ef(t+dt) * D + H_0 ] + 1
 
         KSPSetOperators(ksp, *A, *A, SAME_NONZERO_PATTERN); // Solve[ A x = tmp ] for x
 
@@ -154,6 +156,18 @@ solve(Vec *wf, context* cntx, Mat *A)
             VecView(*wf, view);
             zero++;
         }
+        if ( t- cntx->laser->dt() < period && t > period)
+        {
+            if (cntx->hparams->rank() == 0)
+                std::cout << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << " *" << std::endl;
+            std::ostringstream wf_name;
+            wf_name << "./wf_p" << int(period/p0) << ".dat";
+            PetscViewerBinaryOpen(cntx->hparams->comm(),wf_name.str().c_str(),FILE_MODE_WRITE,&view);
+            VecView(*wf, view);
+            period += period;
+            zero++;
+        }
+
         if (!(step%10))
         {
             time.push_back( t );
