@@ -156,7 +156,7 @@ solve(Vec *wf, context* cntx, Mat *A)
             VecView(*wf, view);
             zero++;
         }
-        if ( t- cntx->laser->dt() < period && t > period)
+        if ( t+ cntx->laser->dt() > period && t < period)
         {
             if (cntx->hparams->rank() == 0)
                 std::cout << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << " *" << std::endl;
@@ -165,7 +165,6 @@ solve(Vec *wf, context* cntx, Mat *A)
             PetscViewerBinaryOpen(cntx->hparams->comm(),wf_name.str().c_str(),FILE_MODE_WRITE,&view);
             VecView(*wf, view);
             period += period;
-            zero++;
         }
 
         if (!(step%10))
