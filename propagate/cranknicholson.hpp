@@ -157,16 +157,25 @@ solve(Vec *wf, context* cntx, Mat *A)
             VecView(*wf, view);
             zero++;
         }
-        if ( (t > p * period) && (t - cntx->laser->dt() <= p * period))
-        {
-            if (cntx->hparams->rank() == 0)
-                std::cout << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << " * " << p << "/4" << std::endl;
-            std::ostringstream wf_name;
-            wf_name << "./wf_p" << p << "o4.dat";
-            PetscViewerBinaryOpen(cntx->hparams->comm(),wf_name.str().c_str(),FILE_MODE_WRITE,&view);
-            VecView(*wf, view);
-            p++;
-        }
+        //if ( (t > p * period) && (t - cntx->laser->dt() <= p * period))
+        //{
+            //if (cntx->hparams->rank() == 0)
+                //std::cout << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << " * " << p << "/4" << std::endl;
+            //std::ostringstream wf_name;
+            //wf_name << "./wf_p" << p << "o4.dat";
+            //PetscViewerBinaryOpen(cntx->hparams->comm(),wf_name.str().c_str(),FILE_MODE_WRITE,&view);
+            //VecView(*wf, view);
+            //p++;
+        //}
+        //if (( ef.real() - cntx->laser->efield(t - cntx->laser->dt()).real() > 0 && cntx->laser->efield(t + cntx->laser->dt()).real() 0 ef.real() < 0) || ( ef.real() - cntx->laser->efield(t - cntx->laser->dt()).real() < 0 && cntx->laser->efield(t + cntx->laser->dt()).real() 0 ef.real() > 0)) //maximum of the field
+        //{
+            //if (cntx->hparams->rank() == 0)
+                //std::cout << "time: " << t << " step: " << step << " efield: " << ef << " norm-1: " << norm-1 << " * " << p << " max " << std::endl;
+            //std::ostringstream wf_name;
+            //wf_name << "./wf_m" << zero-1 << ".dat";
+            //PetscViewerBinaryOpen(cntx->hparams->comm(),wf_name.str().c_str(),FILE_MODE_WRITE,&view);
+            //VecView(*wf, view);
+        //}
 
         if (!(step%10))
         {
