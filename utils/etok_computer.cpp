@@ -62,7 +62,7 @@ int main ( int argc, const char ** argv )
         {
             for (int t = 0; t <= int ( std::round(math::PI / kparams.dtheta()) + .1); ++t)
             {
-                if (pro[i].k > kparams.kmax())
+                if (pro[i].k > kparams.kmax() || pro[i].l > kparams.lmax() )
                     continue;
                 spectrum( int(std::round(pro[i].k/kparams.dk() + .1)) - 1, t) += 
                     std::sqrt(2. / math::PI) * 1. / pro[i].k  * 
