@@ -48,6 +48,7 @@ public:
         opt.get("-momentum_kmax")->getDouble(kmax_);
         opt.get("-momentum_dk")->getDouble(dk_);
         opt.get("-momentum_lmax")->getInt(lmax_);
+        opt.get("-momentum_out_filename_postfix")->getString(ofnamepost_);
         //opt.get("-momentum_folder")->getString(folder_);
         //folder_ = common::absolute_path(folder_);
 
@@ -81,6 +82,7 @@ public:
     double dtheta() const { return dtheta_; };
 
     const std::vector<std::string>& wf_filenames() const {return wf_filenames_; }
+    std::string output_filename_postfix() const { return ofnamepost_; };
     std::string momentum_folder() const { return folder_; };
     std::string matrix_filename() const { return std::string(momentum_folder()).append("/matrix.dat"); }
     std::string prototype_filename() const { return std::string(momentum_folder()).append("/kprototype.dat"); }
@@ -113,6 +115,7 @@ private:
 
     //folder:
     std::string folder_;
+    std::string ofnamepost_;
 
     void register_parameters();
     ez::ezOptionParser opt;
@@ -292,6 +295,14 @@ void MomentumParameters<write_type_>::register_parameters()
             0,
             "folder for hamiltonian",
             std::string(prefix).append("folder\0").c_str()
+           );
+    opt.add(
+            "kspectrum.dat",
+            0,
+            1,
+            0,
+            "output filename postfix",
+            std::string(prefix).append("out_filename_postfix\0").c_str()
            );
     //opt.add(
             //"",

@@ -85,7 +85,7 @@ int main ( int argc, const char ** argv )
 
         // write out!
         std::string f = wf_fname.substr(0,wf_fname.size() - 4);
-        f.append("_kspectrum.dat");
+        f.append(kparams.output_filename_postfix());
         std::vector<int> prefix({spectrum.dim_x(), spectrum.dim_y()});
         //prefix[0] = * (reinterpret_cast<char*>(new int[2]{spectrum.dim_x(), spectrum.dim_y()} ));
         //prefix.data() +  = reinterpret_cast<char>( spectrum.dim_x() );
