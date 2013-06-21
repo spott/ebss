@@ -9,6 +9,7 @@
 #include<iostream>
 #include<limits>
 #include<future>
+#include<stdexcept>
 
 //ebss
 #include<common/common.hpp>
@@ -45,7 +46,7 @@ namespace numerov
             {
                 wfstart[i] = wfstart[i-1];
                 std::cerr << "infinity detected at " << i << " last two values: " << *(wfstart+i-1) << ", " << wfstart[i-2] << " nodes: " << nodes << std::endl;
-                //throw (std::exception());
+                throw (std::out_of_range("infinity detected"));
                 inf = true;
             }
         }
@@ -144,6 +145,9 @@ namespace numerov
             std::cerr << "energy_upper: " << current.energy_upper << " energy_lower: " << current.energy_lower << " energy: " << current.energy << std::endl;
 
             bool converged = false;
+            history = current;
+            history.energy = state.e.real();
+            history.nodes = -1;
 
             while (!converged && current.iteration < 10000)
             {
@@ -270,12 +274,16 @@ namespace numerov
                         / std::sqrt(rgrid[0]);
                     wf[1] = std::pow(rgrid[1],state.l+1) * (1. - 2. * rgrid[1] / (2. * scalar(state.l) + 2. )) 
                         / std::sqrt(rgrid[1]);
-                    current.nodes = numerov(
-                        f.begin(),  
-                        (f.begin() + current.turnover + 2 > f.end() ? f.end() : f.begin() + current.turnover + 2), 
-                        wf.begin(), 
-                        (wf.begin() + current.turnover + 2 > wf.end() ? wf.end() : wf.begin() + current.turnover + 2 )
-                        );
+                    try {
+                        current.nodes = numerov(
+                            f.begin(),  
+                            (f.begin() + current.turnover + 2 > f.end() ? f.end() : f.begin() + current.turnover + 2), 
+                            wf.begin(), 
+                            (wf.begin() + current.turnover + 2 > wf.end() ? wf.end() : wf.begin() + current.turnover + 2 )
+                            );
+                    } catch (std::out_of_range e) {
+                    }
+
                 }
                 else //if the state is:
                 {
@@ -301,14 +309,16 @@ namespace numerov
                 if (current.nodes - (state.n - state.l - 1) >= 1 && !current.upper_converged)
                 {
                     std::cerr << "we are too high in energy: " << std::endl;
-                    if (std::abs(current.de) < 1e-18)
+                    if (std::abs(current.de) < 1e-18 && current.de == current.de)
                     {
+                        std::cerr << "subtract by de" << std::endl;
                         current.energy -= std::abs(current.de);
                         continue;
                     }
                     //we are too high in energy:
-                    if (history.nodes == current.nodes - 1)
+                    if (history.nodes == current.nodes - 1 && history.nodes != -1 )
                     {
+                        std::cerr << "set energy_upper to energy and average again, cause we flipped" << std::endl;
                         auto t = current;
                         current.energy_upper = current.energy;
                         current.de = (current.energy_upper + 3 * history.energy)/4 - current.energy_upper; //be biased towards the history end
@@ -316,6 +326,7 @@ namespace numerov
                         history = t;
                         continue;
                     }
+                    std::cerr << "average and try again" << std::endl;
 
                     history = current;
                     current.energy_upper = current.energy;
@@ -486,9 +497,6 @@ namespace numerov
                 std::cerr << "didn't converge, returning anyways" << std::endl;
                 std::cout << current.turnover;
             }
-
-            //we need to make sure that the wavefunction is always positive first...
-            if 
 
             for (size_t i = 0; i < wf.size(); i++)
             {

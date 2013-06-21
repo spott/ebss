@@ -29,14 +29,14 @@ int main(int argc, const char **argv)
     if (params.rank() == 0) 
         std::cout << params.print();
 
-    std::vector< sae_param<scalar> > argon_params{
-        {0, -0.14865117, 1.69045518},
-        {0, 1.14865117, 2.48113492},
-        {1, -2.01010923, 83.81780982},
-        {1, -0.01998004, 0.57781500},
-        {2, -20.01846287, 14.79181994},
-        {2, 0.53596000, 1.83863745}};
-    sae<scalar> argon = {argon_params, 18, 18, -114.45726722};
+    std::vector< sae_param<scalar> > helium_params{
+        {0, 0.33740902, 6.28379042},
+        {0, 0.66259098, 0.23817624},
+        {1, 1.67240025, 3.60759648},
+        {1, -1.15584925, 1.39690934},
+        {2, -1.10884184, 3.64179068},
+        {2, -0.33200330, 0.81080622},};
+    sae<scalar> helium = {helium_params, 2, 2, -0.91793786};
 
     std::vector< sae_param<scalar> > neon_params{
         {0, .46087879, 4.68014471},
@@ -46,6 +46,15 @@ int main(int argc, const char **argv)
         {2, -1.12569309, 4.51696279},
         {2, 1.29942636, 3.06518063}};
     sae<scalar> neon = {neon_params, 10, 10, -30.87114223};
+
+    std::vector< sae_param<scalar> > argon_params{
+        {0, -0.14865117, 1.69045518},
+        {0, 1.14865117, 2.48113492},
+        {1, -2.01010923, 83.81780982},
+        {1, -0.01998004, 0.57781500},
+        {2, -20.01846287, 14.79181994},
+        {2, 0.53596000, 1.83863745}};
+    sae<scalar> argon = {argon_params, 18, 18, -114.45726722};
 
     std::vector< sae_param<scalar> > rubidium_params{
         {0, 0.81691787, 7.83077875},
@@ -77,6 +86,13 @@ int main(int argc, const char **argv)
             numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(hydrogen)), params, hydrogen);
         else
             numerov::find_basis_set<scalar>( (memoized_pot<scalar>(hydrogen)), params, hydrogen);
+    }
+    if (params.atom() == "helium")
+    {
+        if (params.fs())
+            numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(helium)), params, helium);
+        else
+            numerov::find_basis_set<scalar>( (memoized_pot<scalar>(helium)), params, helium);
     }
     else if (params.atom() == "argon")
     {
