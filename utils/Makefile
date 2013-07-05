@@ -3,9 +3,9 @@ include ../makefile.include
 # To generate .clang_complete:
 # make make PCC='~/.vim/bundle/clang_complete/bin/cc_args.py /opt/local/petsc-3.3-gcc-debug/bin/mpicxx' -B <target>
 
-SOURCES=etok_computer.cpp
+SOURCES=nonlinear_index.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
-EXECUTABLE=etok_computer
+EXECUTABLE=nonlinear
 DEFAULT=all
 
 all: $(SOURCES) $(EXECUTABLE)
@@ -18,6 +18,9 @@ etok: etok.o chkopts
 
 etok_computer: etok_computer.o chkopts
 	-${CLINKER} -o ${BINDIR}/etok_computer etok_computer.o ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
+
+nonlinear: nonlinear_index.o chkopts
+	-${CLINKER} -o ${BINDIR}/nonlinear_index nonlinear_index.o ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
 
 #${EXECUTABLE}: ${OBJECTS}  chkopts
 #	-${CLINKER} -o ${BINDIR}/${EXECUTABLE} ${OBJECTS} ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}

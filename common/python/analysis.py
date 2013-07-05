@@ -23,6 +23,16 @@ def get_prototype( filename = "prototype.csv" ):
         prototype.append(a)
     return prototype
 
+def find_channel_closings(wavelength_nm=800, Ip_au=.82277, nmax=50):
+    omega_au=45.5896/wavelength_nm
+    atomic_unit_of_intensity=3.50944758E16
+    return filter(lambda x:x>0.0,[4*omega_au**2*(n*omega_au-Ip_au)*atomic_unit_of_intensity for n in range(0,nmax)])
+
+def import_complex_vector( filename ):
+    with open (filename, "rb") as f:
+        npy = numpy.fromfile(f, numpy.complex128, -1)
+        return npy
+
 def import_petsc_vec( filename ):
     with open(filename, "rb") as f:
         byte = f.read(8)
@@ -113,7 +123,21 @@ def wavefunctions(folder = "./"):
     wfs = {}
     for i in range(wf_filenames-1):
         wfs[i] = import_petsc_vec(folder + "/wf_" + str(i) + ".dat" ) 
+    wfs[wf_filenames] = import_petsc_vec( folder + "/wf_final.dat")
     return wfs
+
+def wavefunctions_non_zero(folder = "./"):
+    filenames = os.listdir(folder)
+    wf_filenames = 0
+    for i in filenames:
+        if (i[:4] == "wf_p"):
+            wf_filenames += 1
+    wfs = {}
+    for i in range(wf_filenames-1):
+        wfs[i] = import_petsc_vec(folder + "/wf_p" + str(i) + "o4.dat" ) 
+    return wfs
+
+
 
 def probabilities(folder = "./"):
     return pandas.DataFrame(wavefunctions(folder)).apply( lambda x: abs(x)**2 )
@@ -123,19 +147,21 @@ def grouped_probabilities( index, prototype, wfs):
     r[index] = pandas.DataFrame(prototype)[index]
     return r.groupby(index).aggregate(pandas.np.sum)
 
-def ionized_probabilities( prototype, wfs):
+def ionized_probabilities( prototype, wfs, llc = .06):
     r = wfs.copy()
     r["e"] = pandas.DataFrame(prototype)["e"]
-    return r.set_index("e").groupby(lambda x: 1 if x < -.4 else (2 if x < 0.0 else 3)).aggregate(pandas.np.sum)
-
+    g = r.set_index("e").groupby(lambda x: "ground" if (x < -0.4) else ("excited" if x < 0.0 else ("low-lying continuum" if (x < .06) else "ionized" ))).aggregate( pandas.np.sum )
+    for i in g:
+        g[i].loc["ionized"] += (1 - g[i].sum())
+    return g
 
 def ionization( indexedwf, cutoff = 0.0 ):
     r = indexedwf.copy()
-    r["wf"] = r["wf"].map( lambda x: abs(x)**2 )
-    bf = lambda x:  True if x > cutoff else False
+    #r["wf"] = r["wf"].map( lambda x: abs(x)**2 )
+    bf = lambda x:  "ionized" if x > cutoff else ("bound" if x > -.4 else "ground")
     g = r.set_index('e').groupby(bf)
     r = g.aggregate( pandas.np.sum )
-    return {"bound" : r["wf"].loc[False], "ionized" : r["wf"].loc[True], "absorbed": 1- r["wf"].sum()}
+    return {"ground": r["wf"].loc["ground"], "excited" : r["wf"].loc["bound"], "ionized" : r["wf"].loc["ionized"] + (1-r["wf"].sum()), "absorbed": 1- r["wf"].sum()}
 
 
 def all_wfs_mapped( folder = "./" ):
@@ -163,4 +189,19 @@ def timeseries(fname, tfname = "time.dat", title="tsdata" ):
 def efield( effname = "efield.dat" ):
     return timeseries( fname = effname ,title="efield")
 
+def normalize( wf ):
+    wfn = wf.copy()
+    wfn = wfn / wfn.sum()
+    return wfn
 
+def photon_binned( prob, photon_energy, num_bins ):
+    r = indexedwf.copy()
+    minimum = 0.
+    maximum = photon_energy * num_bins;
+    diff = maximum - minimum
+    #create the bins:
+    bins = [ ((i + 1) * bin_size + minimum, (i + .5) * bin_size + minimum ) for i in range(int ( diff / bin_size ) + 1) ]
+    bf = lambda x: binfunc( x, bins )
+    g = r.set_index('e').groupby( bf )
+    r = g.aggregate( pandas.np.sum )
+    return pandas.DataFrame({"wf":r['wf']})
