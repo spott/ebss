@@ -186,191 +186,191 @@ int main( int argc, const char** argv )
      *****************/
 
     //temporary denominator vector
-    Vec d;
-    VecDuplicate(H0, &d);
+    //Vec d;
+    //VecDuplicate(H0, &d);
 
-    //tmp vectors for matrix multiplication:
-    Vec tmp, tmp2;
-    VecDuplicate(H0, &tmp);
-    VecDuplicate(H0, &tmp2);
+    ////tmp vectors for matrix multiplication:
+    //Vec tmp, tmp2;
+    //VecDuplicate(H0, &tmp);
+    //VecDuplicate(H0, &tmp2);
 
-    // the output vector for chi1 "by the book"
-    std::vector< std::complex<double> > out;
-    out.reserve(10000);
+    //// the output vector for chi1 "by the book"
+    //std::vector< std::complex<double> > out;
+    //out.reserve(10000);
 
-    for (int i = 0; i < 10000; ++i)
-    {
-        //calculate chi1 "by the book"
-        double freq = .0001*i;
+    //for (int i = 0; i < 10000; ++i)
+    //{
+        ////calculate chi1 "by the book"
+        //double freq = .0001*i;
 
-        PetscScalar t1, t2;
+        //PetscScalar t1, t2;
 
-        VecCopy(H0, d);
-        VecShift(d, -wg);
-        VecShift(d, -freq);
-        VecReciprocal(d);
+        //VecCopy(H0, d);
+        //VecShift(d, -wg);
+        //VecShift(d, -freq);
+        //VecReciprocal(d);
 
-        MatMult(D, psi0, tmp);
-        VecPointwiseMult(tmp2, d, tmp);
-        MatMult(D, tmp2, tmp);
-        VecDot(psi0, tmp, &t1);
+        //MatMult(D, psi0, tmp);
+        //VecPointwiseMult(tmp2, d, tmp);
+        //MatMult(D, tmp2, tmp);
+        //VecDot(psi0, tmp, &t1);
 
 
-        VecCopy(H0, d);
-        VecShift(d, -wg);
-        VecShift(d, freq);
-        VecConjugate(d);
-        VecReciprocal(d);
+        //VecCopy(H0, d);
+        //VecShift(d, -wg);
+        //VecShift(d, freq);
+        //VecConjugate(d);
+        //VecReciprocal(d);
 
-        MatMult(D, psi0, tmp);
-        VecPointwiseMult(tmp2, d, tmp);
-        MatMult(D, tmp2, tmp);
-        VecDot(psi0, tmp, &t2);
+        //MatMult(D, psi0, tmp);
+        //VecPointwiseMult(tmp2, d, tmp);
+        //MatMult(D, tmp2, tmp);
+        //VecDot(psi0, tmp, &t2);
 
-        out.push_back(pre*(t1+t2));
-    }
-    common::export_vector_binary( "chi1_book.dat" ,out);
+        //out.push_back(pre*(t1+t2));
+    //}
+    //common::export_vector_binary( "chi1_book.dat" ,out);
 
     /*****************
      * Chi3!
      *****************/
 
-    //three denominators:
-    Vec d1,d2,d3;
-    VecDuplicate(H0, &d1);
-    VecDuplicate(H0, &d2);
-    VecDuplicate(H0, &d3);
+    ////three denominators:
+    //Vec d1,d2,d3;
+    //VecDuplicate(H0, &d1);
+    //VecDuplicate(H0, &d2);
+    //VecDuplicate(H0, &d3);
 
-    //we will reuse the vector for chi1
-    out.clear();
+    ////we will reuse the vector for chi1
+    //out.clear();
 
-    for( int i = 0; i < 10000; ++i)
-    {
-        double freq = .0001*i;
+    //for( int i = 0; i < 10000; ++i)
+    //{
+        //double freq = .0001*i;
 
-        //four terms, each with 3 denominators
-        PetscScalar t1,t2,t3,t4;
+        ////four terms, each with 3 denominators
+        //PetscScalar t1,t2,t3,t4;
 
-        //term 1:
-        VecCopy(H0, d1);
-        VecShift(d1, -wg);
-        VecShift(d1, -freq);
+        ////term 1:
+        //VecCopy(H0, d1);
+        //VecShift(d1, -wg);
+        //VecShift(d1, -freq);
 
-        VecCopy(d1, d2);
-        VecShift(d2, -freq);
+        //VecCopy(d1, d2);
+        //VecShift(d2, -freq);
 
-        VecCopy(d2, d3);
-        VecShift(d3, -freq);
+        //VecCopy(d2, d3);
+        //VecShift(d3, -freq);
 
-        VecReciprocal(d1);
-        VecReciprocal(d2);
-        VecReciprocal(d3);
+        //VecReciprocal(d1);
+        //VecReciprocal(d2);
+        //VecReciprocal(d3);
 
-        MatMult(D, psi0, tmp);
-        VecPointwiseMult(tmp, d1, tmp);
-        MatMult(D, tmp, tmp2);
-        VecPointwiseMult(tmp, d2, tmp2);
-        MatMult(D, tmp, tmp2);
-        VecPointwiseMult(tmp, d3, tmp2);
-        MatMult(D, tmp, tmp2);
+        //MatMult(D, psi0, tmp);
+        //VecPointwiseMult(tmp, d1, tmp);
+        //MatMult(D, tmp, tmp2);
+        //VecPointwiseMult(tmp, d2, tmp2);
+        //MatMult(D, tmp, tmp2);
+        //VecPointwiseMult(tmp, d3, tmp2);
+        //MatMult(D, tmp, tmp2);
 
-        VecDot(psi0, tmp2 , &t1);
+        //VecDot(psi0, tmp2 , &t1);
 
-        //term 2:
-        VecCopy(H0, d1);
-        VecShift(d1, -wg);
-        VecShift(d1, -freq);
+        ////term 2:
+        //VecCopy(H0, d1);
+        //VecShift(d1, -wg);
+        //VecShift(d1, -freq);
 
-        VecCopy(d1, d2);
-        VecShift(d2, -freq);
+        //VecCopy(d1, d2);
+        //VecShift(d2, -freq);
 
-        VecCopy(H0, d3);
-        VecShift(d3, -wg);
-        VecShift(d3, freq);
-        VecConjugate(d3);
+        //VecCopy(H0, d3);
+        //VecShift(d3, -wg);
+        //VecShift(d3, freq);
+        //VecConjugate(d3);
 
-        VecReciprocal(d1);
-        VecReciprocal(d2);
-        VecReciprocal(d3);
+        //VecReciprocal(d1);
+        //VecReciprocal(d2);
+        //VecReciprocal(d3);
 
-        MatMult(D, psi0, tmp);
-        VecPointwiseMult(tmp, d1, tmp);
-        MatMult(D, tmp, tmp2);
-        VecPointwiseMult(tmp, d2, tmp2);
-        MatMult(D, tmp, tmp2);
-        VecPointwiseMult(tmp, d3, tmp2);
-        MatMult(D, tmp, tmp2);
+        //MatMult(D, psi0, tmp);
+        //VecPointwiseMult(tmp, d1, tmp);
+        //MatMult(D, tmp, tmp2);
+        //VecPointwiseMult(tmp, d2, tmp2);
+        //MatMult(D, tmp, tmp2);
+        //VecPointwiseMult(tmp, d3, tmp2);
+        //MatMult(D, tmp, tmp2);
 
-        VecDot(psi0, tmp2 , &t2);
+        //VecDot(psi0, tmp2 , &t2);
 
-        //term 3:
-        VecCopy(H0, d1);
-        VecShift(d1, -wg);
-        VecShift(d1, -freq);
+        ////term 3:
+        //VecCopy(H0, d1);
+        //VecShift(d1, -wg);
+        //VecShift(d1, -freq);
 
-        VecCopy(H0, d2);
-        VecShift(d2, -wg);
-        VecShift(d2, freq);
-        VecShift(d2, freq);
-        VecConjugate(d2);
+        //VecCopy(H0, d2);
+        //VecShift(d2, -wg);
+        //VecShift(d2, freq);
+        //VecShift(d2, freq);
+        //VecConjugate(d2);
 
-        VecCopy(H0, d3);
-        VecShift(d3, -wg);
-        VecShift(d3, freq);
-        VecConjugate(d3);
+        //VecCopy(H0, d3);
+        //VecShift(d3, -wg);
+        //VecShift(d3, freq);
+        //VecConjugate(d3);
 
-        VecReciprocal(d1);
-        VecReciprocal(d2);
-        VecReciprocal(d3);
+        //VecReciprocal(d1);
+        //VecReciprocal(d2);
+        //VecReciprocal(d3);
 
-        MatMult(D, psi0, tmp);
-        VecPointwiseMult(tmp, d1, tmp);
-        MatMult(D, tmp, tmp2);
-        VecPointwiseMult(tmp, d2, tmp2);
-        MatMult(D, tmp, tmp2);
-        VecPointwiseMult(tmp, d3, tmp2);
-        MatMult(D, tmp, tmp2);
+        //MatMult(D, psi0, tmp);
+        //VecPointwiseMult(tmp, d1, tmp);
+        //MatMult(D, tmp, tmp2);
+        //VecPointwiseMult(tmp, d2, tmp2);
+        //MatMult(D, tmp, tmp2);
+        //VecPointwiseMult(tmp, d3, tmp2);
+        //MatMult(D, tmp, tmp2);
 
-        VecDot(psi0, tmp2 , &t3);
+        //VecDot(psi0, tmp2 , &t3);
 
-        //term 4:
-        VecCopy(H0, d1);
-        VecShift(d1, -wg);
-        VecShift(d1, freq);
-        VecShift(d1, freq);
-        VecShift(d1, freq);
-        VecConjugate(d1);
+        ////term 4:
+        //VecCopy(H0, d1);
+        //VecShift(d1, -wg);
+        //VecShift(d1, freq);
+        //VecShift(d1, freq);
+        //VecShift(d1, freq);
+        //VecConjugate(d1);
 
-        VecCopy(H0, d2);
-        VecShift(d2, -wg);
-        VecShift(d2, freq);
-        VecShift(d2, freq);
-        VecConjugate(d2);
+        //VecCopy(H0, d2);
+        //VecShift(d2, -wg);
+        //VecShift(d2, freq);
+        //VecShift(d2, freq);
+        //VecConjugate(d2);
 
-        VecCopy(H0, d3);
-        VecShift(d3, -wg);
-        VecShift(d3, freq);
-        VecConjugate(d3);
+        //VecCopy(H0, d3);
+        //VecShift(d3, -wg);
+        //VecShift(d3, freq);
+        //VecConjugate(d3);
 
-        VecReciprocal(d1);
-        VecReciprocal(d2);
-        VecReciprocal(d3);
+        //VecReciprocal(d1);
+        //VecReciprocal(d2);
+        //VecReciprocal(d3);
 
-        MatMult(D, psi0, tmp);
-        VecPointwiseMult(tmp, d1, tmp);
-        MatMult(D, tmp, tmp2);
-        VecPointwiseMult(tmp, d2, tmp2);
-        MatMult(D, tmp, tmp2);
-        VecPointwiseMult(tmp, d3, tmp2);
-        MatMult(D, tmp, tmp2);
+        //MatMult(D, psi0, tmp);
+        //VecPointwiseMult(tmp, d1, tmp);
+        //MatMult(D, tmp, tmp2);
+        //VecPointwiseMult(tmp, d2, tmp2);
+        //MatMult(D, tmp, tmp2);
+        //VecPointwiseMult(tmp, d3, tmp2);
+        //MatMult(D, tmp, tmp2);
 
-        VecDot(psi0, tmp2 , &t4);
+        //VecDot(psi0, tmp2 , &t4);
 
-        if (params.rank() == 0) std::cout << "..." << i << std::flush;
-        out.push_back(pre*(t1+t2+t3+t4));
-    }
+        //if (params.rank() == 0) std::cout << "..." << i << std::flush;
+        //out.push_back(pre*(t1+t2+t3+t4));
+    //}
 
-    common::export_vector_binary( "chi3_book.dat" ,out);
+    //common::export_vector_binary( "chi3_book.dat" ,out);
 
 
     PetscFinalize();

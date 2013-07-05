@@ -1,7 +1,0 @@
--I/opt/local/petsc-3.3-gcc-debug/include
--I/usr/X11R6/include
--I/Users/spott/Documents/Code/ebss//
--I/opt/local/slepc-3.3-gcc-debug/
--I/opt/local/slepc-3.3-gcc-debug///include
--I/opt/local/slepc-3.3-gcc-debug//include
--D__INSDIR__=
