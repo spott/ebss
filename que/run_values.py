@@ -10,7 +10,7 @@ def ensure_dir(f):
         os.makedirs(d)
 
 R_max_list = [ i for i in range(1000, 7000, 1000) ]
-n_max_list = [ 50 * i for i in range(1, 6) ]
+n_max_list = [ 50 * i for i in range(6, 12) ]
 
 product = itertools.product(R_max_list, n_max_list)
 
