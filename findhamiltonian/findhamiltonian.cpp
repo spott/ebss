@@ -16,6 +16,12 @@
 #include<memory>
 #include<functional>
 
+//gsl:
+#include<gsl/gsl_sf_coulomb.h>
+#include<gsl/gsl_integration.h>
+#include<gsl/gsl_errno.h>
+
+
 template <typename ReturnType, typename Arg>
 std::function<ReturnType (Arg)> memoize(std::function<ReturnType (Arg)> func)
 {
@@ -56,11 +62,43 @@ std::function<ReturnType (Arg, bool)> half_memoize(std::function<ReturnType (Arg
             });
 }
 
+struct dipole_params { BasisID a,b; };
+
+double dipole_matrix_element( double r, void* params )
+{
+    dipole_params* p = static_cast<dipole_params*>(params);
+
+//std::cout <<  p->a << " -- " << p->b << " -- " << r << std::endl;
+
+    gsl_sf_result left;
+    gsl_sf_result right;
+    auto error_handler = gsl_set_error_handler_off();
+    //auto left = gsl_sf_hydrogenicR (p->a.n, p->a.l, 1, r);
+    //auto right = gsl_sf_hydrogenicR (p->b.n, p->b.l, 1, r);
+    auto err = gsl_sf_hydrogenicR_e(p->a.n, p->a.l, 1, r, &left);
+    if (err == GSL_EUNDRFLW)
+        left.val = 0;
+    else if (err != 0) {
+        std::cout << err << " " << gsl_strerror(err) << std::endl;
+        throw std::exception();
+    }
+
+    err = 0;
+    err = gsl_sf_hydrogenicR_e(p->b.n, p->b.l, 1, r, &right);
+    if (err == GSL_EUNDRFLW)
+        right.val = 0;
+    else if (err != 0) {
+        std::cout << err << " " << gsl_strerror(err) << std::endl;
+        throw std::exception();
+    }
+
+    gsl_set_error_handler (error_handler);
+
+    return left.val * r * r * r * right.val;
+}
+
 int main(int argc, const char ** argv)
 {
-    static_assert( math::signum( -1.0 ) == -1 , "math::signum failed 1");
-    static_assert( math::signum( 1.0 ) == 1 , "math::signum failed 2");
-    static_assert( math::signum( 0.0 ) == 0 , "math::signum failed 3");
     int ac = argc;
     char** av = new char*[argc];
     for (size_t i = 0; i < argc; i++)
@@ -74,8 +112,13 @@ int main(int argc, const char ** argv)
     if (params.rank() == 0)
         std::cout << params.print();
 
-    auto grid = params.basis_parameters()->grid();
+    //decltype( params.basis_parameters()->grid() ) grid;
+    std::vector<double>* grid;
     auto prototype = params.prototype();
+
+    if (! params.analytic() )  {
+        grid = params.basis_parameters()->grid();
+    }
 
     // we need to do a rough calculation of how much memory we are going to need to hold, in order
     // to figure out how large to make our memoization routine:
@@ -93,14 +136,19 @@ int main(int argc, const char ** argv)
     if (params.rank() == 0) std::cout << ", left over per processor for memoization: " << memory;
     
     //each
-    auto per_basis_state = grid->size() * sizeof(double) + 100;
-    if (params.rank() == 0) std::cout << std::endl << "each basis state takes up: " << per_basis_state ;
+    size_t per_basis_state = 0;
+    if (! params.analytic() )
+    {
+        per_basis_state = grid->size() * sizeof(double) + 100;
+        if (params.rank() == 0) std::cout << std::endl << "each basis state takes up: " << per_basis_state ;
+    }
+    else
+        per_basis_state = 1;
 
     //left over number of basis states:
     memory /= per_basis_state;
 
     if (params.rank() == 0) std::cout << ", leaving enough for: " << memory << " basis states in memoization" <<std::endl;
-
 
     std::function<bool (int, int)> dipole_selection_rules;
     if (params.fs())
@@ -168,7 +216,7 @@ int main(int argc, const char ** argv)
             return radial * angular;
         };
     }
-    else
+    else if ( !params.analytic() )
     {
         findvalue = [&prototype,&grid,&import_wf2](int i, int j)->PetscScalar{
             if (i == j)
@@ -197,6 +245,34 @@ int main(int argc, const char ** argv)
                 std::cout << "n = 2 transition: " << radial * angular << std::endl;
             return radial * angular;
         };
+    }
+    else
+    {
+        findvalue = [&prototype](int i, int j)->PetscScalar{
+            if (i == j)
+                return 0.0;
+            dipole_params p{prototype[i], prototype[j]};
+            double radial = 0;
+            double error;
+            gsl_integration_workspace * w = gsl_integration_workspace_alloc (10000);
+            gsl_function f;
+            f.function = &dipole_matrix_element;
+            f.params = static_cast<void*>( &p );
+
+            auto error_handler = gsl_set_error_handler_off();
+            std::cout << p.a << " --- " << p.b << "\t";
+            auto err = gsl_integration_qagiu (&f, 0, 1e-8, 1e-9, 10000, w, &radial, &error);
+            std::cout << radial << "\t" << error << "\t|| " << gsl_strerror(err) << std::endl;
+            gsl_set_error_handler (error_handler);
+
+            PetscScalar angular = math::CGCoefficient<PetscScalar>(prototype[i],prototype[j]);
+            if (prototype[i].n == 2 && prototype[j].n == 2)
+                std::cout << "n = 2 transition: " << radial * angular + 3 << std::endl;
+            gsl_integration_workspace_free(w);
+            return radial * angular;
+        };
+
+
     }
 
 

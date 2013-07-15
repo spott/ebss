@@ -40,8 +40,8 @@
 
     //return out;
 //}
-Vec psi( int order, std::vector< double >::const_iterator frequencies_begin, std::vector<double>::const_iterator frequencies_end, PetscScalar wg, Vec& H0, Mat& D, Vec& psi0);
-Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_begin, std::vector<double>::const_iterator frequencies_end, PetscScalar wg, Vec& H0, Mat& D, Vec& psi0);
+Vec psi( int order, std::vector< double >::const_iterator frequencies_begin, std::vector<double>::const_iterator frequencies_end, PetscScalar wg, Vec& H0, Mat& D, Vec& psi0, Vec& mask);
+Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_begin, std::vector<double>::const_iterator frequencies_end, PetscScalar wg, Vec& H0, Mat& D, Vec& psi0, Vec& mask);
 
 int main( int argc, const char** argv )
 {
@@ -61,10 +61,21 @@ int main( int argc, const char** argv )
     Mat D = params.read_dipole_matrix();
     Vec H0 = params.read_energy_eigenvalues();
 
+    //create a mask for bound states:
+    Vec mask = common::map_function(H0, [](PetscScalar in) { return 1; });
+    //int start, end;
+    //PetscScalar* a;
+    //VecGetOwnershipRange(mask, &start, &end);
+    //VecGetArray(mask, &a);
+    //for(int i = start; i < end; ++i)
+        //if (a[i - start] == 0.0)
+            //MatZeroRowsColumns(
+    
+
     //View the hamiltonian
     //VecView(H0, PETSC_VIEWER_STDOUT_WORLD);
 
-    VecShift(H0, std::complex<double>(0,-.00001));
+    //VecShift(H0, std::complex<double>(0,-.00001));
     Vec psi0;
     VecDuplicate(H0, &psi0);
     VecSetValue(psi0, 0, 1., INSERT_VALUES);
@@ -83,18 +94,22 @@ int main( int argc, const char** argv )
 
     if (params.rank() == 0) std::cout << "wg: " << wg << std::endl;
 
+    //the size of the frequency run:
+    const int num_freqs = 11;
+    const double freq_step = 0.05;
+    //
     //create the vectors that will store the chi's
     std::vector< std::complex<double> > chi1;
-    chi1.reserve(10000);
+    chi1.reserve(num_freqs);
     std::vector< std::complex<double> > chi3;
-    chi3.reserve(10000);
+    chi3.reserve(num_freqs);
     //std::vector< std::complex<double> > chi5;
     //chi5.reserve(10000);
-    for( int i = 0; i < 10000; ++i)
+    for( int i = 0; i < num_freqs; ++i)
     {
         //the frequency list, currently, all frequencies are the same (for 3rd harmonic generation), 
         //later I will need this to look at the Kerr effect and others
-        std::vector<double> freq{.0001*i, .0001*i, .0001*i, .0001*i, .0001*i};
+        std::vector<double> freq{freq_step*i, freq_step*i, freq_step*i, freq_step*i, freq_step*i};
         PetscScalar t1,t2,t3,t4,t5,t6;
         Vec c;
         VecDuplicate(H0, &c);
@@ -104,16 +119,16 @@ int main( int argc, const char** argv )
         //(the actual conjugation happens in VecDot).
         //Vec p5  = psi(5, freq.cbegin(), freq.cend(), wg, H0, D, psi0);
         //Vec p4  = psi(4, freq.cbegin(), freq.cend(), wg, H0, D, psi0);
-        Vec p3  = psi(3, freq.cbegin(), freq.cend(), wg, H0, D, psi0);
-        Vec p2  = psi(2, freq.cbegin(), freq.cend(), wg, H0, D, psi0);
-        Vec p1  = psi(1, freq.cbegin(), freq.cend(), wg, H0, D, psi0);
-        Vec p0  = psi(0, freq.cbegin(), freq.cend(), wg, H0, D, psi0);
+        Vec p3  = psi(3, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
+        Vec p2  = psi(2, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
+        Vec p1  = psi(1, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
+        Vec p0  = psi(0, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
         //Vec p5c = psi_conjugate(5, freq.cbegin(), freq.cend(), wg, H0, D, psi0);
         //Vec p4c = psi_conjugate(4, freq.cbegin(), freq.cend(), wg, H0, D, psi0);
-        Vec p3c = psi_conjugate(3, freq.cbegin(), freq.cend(), wg, H0, D, psi0);
-        Vec p2c = psi_conjugate(2, freq.cbegin(), freq.cend(), wg, H0, D, psi0);
-        Vec p1c = psi_conjugate(1, freq.cbegin(), freq.cend(), wg, H0, D, psi0);
-        Vec p0c = psi_conjugate(0, freq.cbegin(), freq.cend(), wg, H0, D, psi0);
+        Vec p3c = psi_conjugate(3, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
+        Vec p2c = psi_conjugate(2, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
+        Vec p1c = psi_conjugate(1, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
+        Vec p0c = psi_conjugate(0, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
 
         // chi1 = <\psi^(0) | D | \psi^(1)>
         MatMult(D, p1, c);
@@ -380,7 +395,7 @@ int main( int argc, const char** argv )
 // Each version takes "n" frequencies in a vector of real values
 
 //template< typename Iterator >
-Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::vector<double>::const_iterator frequencies_end, PetscScalar wg, Vec& H0, Mat& D, Vec& psi0)
+Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::vector<double>::const_iterator frequencies_end, PetscScalar wg, Vec& H0, Mat& D, Vec& psi0, Vec& mask)
 {
     //we must have enough frequencies to do the calculation:
     assert( frequencies_end - frequencies_begin >= order );
@@ -420,6 +435,7 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::
         VecReciprocal(tmp);
         // out = tmp * out
         VecPointwiseMult(out, tmp, out);
+        VecPointwiseMult(out, mask, out);
     }
     
     //destroy the temporary
@@ -428,7 +444,7 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::
     return out;
 }
 
-Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_begin, std::vector<double>::const_iterator frequencies_end, PetscScalar wg, Vec& H0, Mat& D, Vec& psi0)
+Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_begin, std::vector<double>::const_iterator frequencies_end, PetscScalar wg, Vec& H0, Mat& D, Vec& psi0, Vec& mask)
 {
     assert( frequencies_end - frequencies_begin >= order );
     Vec out;
@@ -449,6 +465,7 @@ Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_
         }
         VecReciprocal(tmp);
         VecPointwiseMult(out, tmp, out);
+        VecPointwiseMult(out, mask, out);
     }
 
     VecDestroy(&tmp);
