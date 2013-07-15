@@ -11,6 +11,7 @@
 #include<cstdarg>
 #include<memory>
 #include<algorithm>
+#include<stdexcept>
 
 //petsc
 #include<petsc.h>
@@ -23,6 +24,61 @@
 
 namespace common
 {
+
+    //template <typename Func>
+    //IS map_predicate(Vec& vector, Func p)
+    //{
+        //IS out;
+        //ISCreateGeneral(vector, &out);
+
+
+        //PetscInt ostart, oend;
+        //PetscScalar* a;
+        //PetscScalar* b;
+
+        //VecGetOwnershipRange(vector,&vstart,&vend);
+        //VecGetOwnershipRange(out,&ostart,&oend);
+        //VecGetArray(vector, &a);
+        //VecGetArray(out, &b);
+
+        //if (ostart != vstart || oend != vend)
+            //throw std::out_of_range("the two vectors don't have the same local structure");
+
+        //for (int i = 0; i < oend - ostart; ++i)
+            //b[i] = f(a[i]);
+
+        //VecRestoreArray(vector, &a);
+        //VecRestoreArray(out, &b);
+
+        //return out;
+    //}
+    template <typename Func>
+    Vec map_function(Vec& vector, Func f)
+    {
+        Vec out;
+        VecDuplicate(vector, &out);
+
+        PetscInt vstart, vend;
+        PetscInt ostart, oend;
+        PetscScalar* a;
+        PetscScalar* b;
+
+        VecGetOwnershipRange(vector,&vstart,&vend);
+        VecGetOwnershipRange(out,&ostart,&oend);
+        VecGetArray(vector, &a);
+        VecGetArray(out, &b);
+
+        if (ostart != vstart || oend != vend)
+            throw std::out_of_range("the two vectors don't have the same local structure");
+
+        for (int i = 0; i < oend - ostart; ++i)
+            b[i] = f(a[i]);
+
+        VecRestoreArray(vector, &a);
+        VecRestoreArray(out, &b);
+
+        return out;
+    }
 
     Vec eigen_balls(Mat mat)
     {
@@ -529,8 +585,8 @@ namespace common
                        MatSetValue(H, j, i, value, INSERT_VALUES);
                }
            }
-           if (params.rank() == 0) 
-               printProgBar( double(i - rowstart)/ double(rowend-rowstart) );
+           //if (params.rank() == 0) 
+               //printProgBar( double(i - rowstart)/ double(rowend-rowstart) );
        }
        if (params.rank() == 0) std::cout << std::endl;
 

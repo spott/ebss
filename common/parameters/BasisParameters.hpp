@@ -46,6 +46,7 @@ public:
         opt.get("-basis_folder")->getString(folder_);
         opt.get("-basis_atom")->getString(atom_);
         fs_ = opt.isSet("-basis_fs");
+        bo_ = opt.isSet("-basis_bound_only");
 
 
         if (opt.isSet("-basis_procs"))
@@ -80,6 +81,7 @@ public:
     PetscInt nmax() const { return nmax_; };
     PetscInt lmax() const { return lmax_; };
     bool fs() const { return fs_; };
+    bool bound_only() const { return bo_; };
     size_t procs() const { return procs_; }
     std::string atom() const { return atom_; };
 
@@ -109,6 +111,7 @@ private:
     int points_;
     double rmax_;
     double rmin_;
+    bool bo_;
     std::string atom_;
 };
 
@@ -141,6 +144,7 @@ void BasisParameters<compute_type_, write_type_>::init_from_file(std::string fil
     opt.get("-basis_folder")->getString(folder_);
     opt.get("-basis_atom")->getString(atom_);
     fs_ = opt.isSet("-basis_fs");
+    bo_ = opt.isSet("-basis_bound_only");
 
     this->grid_ = common::vector_type_change<write_type_, compute_type_>(
             common::import_vector_binary<write_type_>(this->grid_filename())
@@ -173,6 +177,8 @@ void BasisParameters<compute_type_, write_type_>::save_parameters()
     file << "-basis_atom " << atom_ << std::endl;
     if (fs_)
         file << "-basis_fs" << std::endl;
+    if (bo_)
+        file << "-basis_bound_only" << std::endl;
     file.close();
 }
 
@@ -211,6 +217,8 @@ std::string BasisParameters<compute_type_, write_type_>::print() const
     out << "basis_procs: " << procs_ << std::endl;
     if (fs_)
         out << "basis_fs" << std::endl;
+    if (bo_)
+        out << "-basis_bound_only" << std::endl;
     return out.str();
 }
 
@@ -237,6 +245,14 @@ void BasisParameters<compute_type_, write_type_>::register_parameters()
             0,
             "finestructure included?",
             std::string(prefix).append("fs\0").c_str()
+           );
+    opt.add(
+            "",
+            0,
+            0,
+            0,
+            "bound only?",
+            std::string(prefix).append("bound_only\0").c_str()
            );
     opt.add(
             "",

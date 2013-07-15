@@ -7,6 +7,11 @@ import os
 
 #we are interested in the energy levels:
 
+def nm_to_hartree( nm ):
+    length = 5.29177206e-11
+    alpha = 1./137.035999
+    return 2. * numpy.pi * length / (alpha * nm * 1e-9) 
+
 #prototype load:
 def get_prototype( filename = "prototype.csv" ):
     prototype_f = file( filename )
@@ -23,10 +28,11 @@ def get_prototype( filename = "prototype.csv" ):
         prototype.append(a)
     return prototype
 
-def find_channel_closings(wavelength_nm=800, Ip_au=.82277, nmax=50):
-    omega_au=45.5896/wavelength_nm
+def find_channel_closings(wavelength_nm=800, Ip_au=.82277, nmax=5):
+    trycalc=1000
+    omega_au=nm_to_hartree(wavelength_nm)
     atomic_unit_of_intensity=3.50944758E16
-    return filter(lambda x:x>0.0,[4*omega_au**2*(n*omega_au-Ip_au)*atomic_unit_of_intensity for n in range(0,nmax)])
+    return filter(lambda x:x>0.0,[4 * omega_au**2 * (n * omega_au - Ip_au) * atomic_unit_of_intensity for n in range(0,trycalc)])[:nmax]
 
 def import_complex_vector( filename ):
     with open (filename, "rb") as f:

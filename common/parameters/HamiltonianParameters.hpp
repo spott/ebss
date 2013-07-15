@@ -3,6 +3,7 @@
 #include<common/output.hpp>
 #include<common/parameters/Parameters.hpp>
 #include<common/parameters/BasisParameters.hpp>
+#include<algorithm>
 
 template <typename write_type_ = double>
 class HamiltonianParameters: public Parameters
@@ -27,8 +28,10 @@ public:
 
         if (opt.isSet("-hamiltonian_config"))
         {
+            std::cout << "reading from file: ";
             std::string fname;
             opt.get("-hamiltonian_config")->getString(fname);
+            std::cout << fname << std::endl;
             if (! opt.importFile(fname.c_str(), '#'))
             {
                 std::cout << "file must exist!" << std::endl;
@@ -57,41 +60,64 @@ public:
         opt.get("-hamiltonian_mmax")->getInt(mmax_);
         opt.get("-hamiltonian_folder")->getString(folder_);
 
+        analytic_ = opt.isSet("-hamiltonian_analytical");
+
         folder_ = common::absolute_path(folder_);
 
-        opt.get("-hamiltonian_basis_config")->getString(basis_config_);
-        basis_config_ = common::absolute_path(basis_config_);
-        basis_ = new BasisParameters<write_type_, write_type_>(basis_config_, comm_);
+        if (!analytic_)
+        {
+            opt.get("-hamiltonian_basis_config")->getString(basis_config_);
+            basis_config_ = common::absolute_path(basis_config_);
+            basis_ = new BasisParameters<write_type_, write_type_>(basis_config_, comm_);
+
         //std::cout << basis_config_ << std::endl;
-        fs_ = basis_->fs();
+            fs_ = basis_->fs();
+        }
+        else
+            basis_ = nullptr;
 
         //If we are bigger than the basis we are using, shrink to fit, and print an error message:
         //create the prototype file:
         this->prototype_.resize(0);
-        this->prototype_.reserve(this->basis_->basis_prototype()->size());
-        for(const auto i: *(this->basis_->basis_prototype()))
+        if (!analytic_)
         {
-            if (i.n < this->nmax() && i.l < this->lmax())
-                this->prototype_.push_back(i);
-        }
-        if (this->nmax() > this->basis_->nmax() || this->lmax() > this->basis_->lmax() )
-        {
-            if (this->rank() == 0) 
+            this->prototype_.reserve(this->basis_->basis_prototype()->size());
+
+            for(const auto i: *(this->basis_->basis_prototype()))
             {
-                std::cerr << output::red;
-                std::cerr << "======================ERROR========================" << std::endl;
-                std::cerr << "=The basis you are attempting to use is smaller   =" << std::endl;
-                std::cerr << "= than requested, your requested values have been =" << std::endl;
-                std::cerr << "= changed to fit                                  =" << std::endl;
-                std::cerr << "======================ERROR========================" << std::endl;
-                std::cerr << output::reset;
+                if (i.n < this->nmax() && i.l < this->lmax())
+                    this->prototype_.push_back(i);
             }
-            if (nmax_ > this->basis_->nmax())
-                nmax_ = this->basis_->nmax();
-            if (lmax_ > this->basis_->lmax())
-                lmax_ = this->basis_->lmax();
+            if (this->nmax() > this->basis_->nmax() || this->lmax() > this->basis_->lmax() )
+            {
+                if (this->rank() == 0) 
+                {
+                    std::cerr << output::red;
+                    std::cerr << "======================ERROR========================" << std::endl;
+                    std::cerr << "=The basis you are attempting to use is smaller   =" << std::endl;
+                    std::cerr << "= than requested, your requested values have been =" << std::endl;
+                    std::cerr << "= changed to fit                                  =" << std::endl;
+                    std::cerr << "======================ERROR========================" << std::endl;
+                    std::cerr << output::reset;
+                }
+                if (nmax_ > this->basis_->nmax())
+                    nmax_ = this->basis_->nmax();
+                if (lmax_ > this->basis_->lmax())
+                    lmax_ = this->basis_->lmax();
+            }
+            this->prototype_.shrink_to_fit();
         }
-        this->prototype_.shrink_to_fit();
+        else
+        {
+            //make the prototype:
+            for(int n = 1; n <= nmax_; ++n)
+            {
+                for(int l = 0; l <= std::min(n-1,lmax_); ++l)
+                {
+                    prototype_.push_back( {n, l, 0, 0, std::complex<double>( -1./(2. * n * n), 0) } );
+                }
+            }
+        }
     }
 
 
@@ -118,6 +144,7 @@ public:
 
     std::string print() const;
     bool fs() const { return fs_; }
+    bool analytic() const { return analytic_; }
 
     void save_parameters();
     void init_from_file(std::string filename);
@@ -134,6 +161,7 @@ private:
     int mmax_;
     std::string folder_;
     std::string basis_config_;
+    bool analytic_;
 };
 
 template< typename write_type_ >
@@ -148,7 +176,10 @@ void HamiltonianParameters<write_type_>::save_parameters()
     file << "-hamiltonian_lmax " << lmax_ << std::endl;
     file << "-hamiltonian_mmax " << mmax_ << std::endl;
     file << "-hamiltonian_folder " << folder_ << std::endl;
-    file << "-hamiltonian_basis_config " << basis_config_ << std::endl;
+    if (!analytic_)
+        file << "-hamiltonian_basis_config " << basis_config_ << std::endl;
+    if (analytic_)
+        file << "-hamiltonian_analytical" << std::endl;
     file.close();
 }
 
@@ -162,8 +193,14 @@ void HamiltonianParameters<write_type_>::init_from_file(std::string filename)
     opt.get("-hamiltonian_lmax")->getInt(lmax_);
     opt.get("-hamiltonian_mmax")->getInt(mmax_);
     opt.get("-hamiltonian_folder")->getString(folder_);
-    opt.get("-hamiltonian_basis_config")->getString(basis_config_);
-    basis_ = new BasisParameters<write_type_, write_type_>(basis_config_, comm_);
+    analytic_ = opt.isSet("-hamiltonian_analytical");
+    if (!analytic_)
+    {
+        opt.get("-hamiltonian_basis_config")->getString(basis_config_);
+        basis_ = new BasisParameters<write_type_, write_type_>(basis_config_, comm_);
+    }
+    else
+        basis_ = nullptr;
 
     this->prototype_ = common::import_vector_binary<BasisID>(this->prototype_filename());
 }
@@ -242,7 +279,10 @@ std::string HamiltonianParameters<write_type_>::print() const
     out << "hamiltonian_lmax: " << lmax_ << std::endl;
     out << "hamiltonian_mmax: " << mmax_ << std::endl;
     out << "hamiltonian_folder" << folder_ << std::endl;
-    out << basis_->print();
+    if (!analytic_)
+        out << basis_->print();
+    else
+        out << "hamiltonian_analytical" << std::endl;
     return out.str();
 }
 
@@ -261,6 +301,14 @@ void HamiltonianParameters<write_type_>::register_parameters()
             "-help",  // Flag token.
             "--help", // Flag token.
             "--usage" // Flag token.
+           );
+    opt.add(
+            "",
+            0,
+            0,
+            0,
+            "calculate the analytical solution",
+            std::string(prefix).append("analytical\0").c_str()
            );
     opt.add(
             "500",
