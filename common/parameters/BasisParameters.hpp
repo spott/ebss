@@ -38,6 +38,7 @@ public:
             }
         }
 
+        opt.get("-basis_charge")->getInt(charge_);
         opt.get("-basis_nmax")->getInt(nmax_);
         opt.get("-basis_lmax")->getInt(lmax_);
         opt.get("-basis_rmax")->getDouble(rmax_);
@@ -80,6 +81,7 @@ public:
     PetscInt points() const { return points_; };
     PetscInt nmax() const { return nmax_; };
     PetscInt lmax() const { return lmax_; };
+    PetscInt charge() const { return charge_; };
     bool fs() const { return fs_; };
     bool bound_only() const { return bo_; };
     size_t procs() const { return procs_; }
@@ -106,6 +108,7 @@ private:
     std::string folder_;
     size_t procs_;
     bool fs_;
+    int charge_;
     int nmax_;
     int lmax_;
     int points_;
@@ -136,6 +139,7 @@ void BasisParameters<compute_type_, write_type_>::init_from_file(std::string fil
     register_parameters();
     opt.importFile(filename.c_str(), '#');
 
+    opt.get("-basis_charge")->getInt(charge_);
     opt.get("-basis_nmax")->getInt(nmax_);
     opt.get("-basis_lmax")->getInt(lmax_);
     opt.get("-basis_rmax")->getDouble(rmax_);
@@ -175,6 +179,7 @@ void BasisParameters<compute_type_, write_type_>::save_parameters()
     file << "-basis_points " << points_ << std::endl;
     file << "-basis_folder " << folder_ << std::endl;
     file << "-basis_atom " << atom_ << std::endl;
+    file << "-basis_charge " << charge_ << std::endl;
     if (fs_)
         file << "-basis_fs" << std::endl;
     if (bo_)
@@ -215,6 +220,7 @@ std::string BasisParameters<compute_type_, write_type_>::print() const
     out << "basis_folder: " << folder_ << std::endl;
     out << "basis_atom: " << atom_ << std::endl;
     out << "basis_procs: " << procs_ << std::endl;
+    out << "basis_charge " << charge_ << std::endl;
     if (fs_)
         out << "basis_fs" << std::endl;
     if (bo_)
@@ -237,6 +243,14 @@ void BasisParameters<compute_type_, write_type_>::register_parameters()
             "-help",  // Flag token.
             "--help", // Flag token.
             "--usage" // Flag token.
+           );
+    opt.add(
+            "0",
+            0,
+            1,
+            0,
+            "charge of the atom",
+            std::string(prefix).append("charge\0").c_str()
            );
     opt.add(
             "",
