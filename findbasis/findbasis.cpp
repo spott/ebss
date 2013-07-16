@@ -82,6 +82,12 @@ int main(int argc, const char **argv)
     //call function to find all the energy states here:
     if (params.atom() == "hydrogen")
     {
+        hydrogen.N -= params.charge();
+        if ( params.charge() > 0)
+        {
+            std::cerr << "hydrogen with zero electrons is just stupid..." << std::endl;
+            throw std::exception();
+        }
         if (params.fs())
             numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(hydrogen)), params, hydrogen);
         else
@@ -89,6 +95,9 @@ int main(int argc, const char **argv)
     }
     if (params.atom() == "helium")
     {
+        helium.N -= params.charge();
+        if ( params.charge() > 0)
+            helium.gs_energy *= std::pow(2, params.charge());
         if (params.fs())
             numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(helium)), params, helium);
         else
@@ -96,6 +105,9 @@ int main(int argc, const char **argv)
     }
     else if (params.atom() == "argon")
     {
+        argon.N -= params.charge();
+        if ( params.charge() > 0)
+            argon.gs_energy *= std::pow(2, params.charge());
         if (params.fs())
             numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(argon)), params, argon);
         else
@@ -103,6 +115,9 @@ int main(int argc, const char **argv)
     }
     else if (params.atom() == "neon")
     {
+        neon.N -= params.charge();
+        if ( params.charge() > 0)
+            neon.gs_energy *= std::pow(2, params.charge());
         if (params.fs())
             numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(neon)), params, neon);
         else
@@ -110,6 +125,9 @@ int main(int argc, const char **argv)
     }
     else if (params.atom() == "rubidium")
     {
+        rubidium.N -= params.charge();
+        if ( params.charge() > 0)
+            rubidium.gs_energy *= std::pow(2, params.charge());
         if (params.fs())
             numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(rubidium)), params, rubidium);
         else
@@ -117,6 +135,9 @@ int main(int argc, const char **argv)
     }
     else if (params.atom() == "potassium")
     {
+        potassium.N -= params.charge();
+        if ( params.charge() > 0)
+            potassium.gs_energy *= std::pow(2, params.charge());
         if (params.fs())
             numerov::find_basis_set<scalar>( (memoized_finestructure_pot<scalar>(potassium)), params, potassium);
         else
