@@ -516,16 +516,12 @@ namespace numerov
 
         for (tmp.n = tmp.l+1; tmp.n <= params.nmax(); tmp.n++)
         {
-            if (params.bound_only() && temp.e.real() > 0.)
-                break;
             if (params.fs())
                 for (tmp.j = ((tmp.l>0)? 2 * tmp.l - 1 : 1); tmp.j <= ((tmp.l>0)? 2*tmp.l+1 : 1 ); tmp.j+=2)
                 {
                     std::cout << tmp << ", ";
                     res = find_basis<scalar>( tmp, dx, rgrid, pot, 1e-13);
                     tmp.e = res.energy;     //the energy min for the next will be the correct energy for the last.
-                    if (params.bound_only() && temp.e.real() > 0.)
-                        break;
                     energies.push_back(tmp);
                     std::cout << ",\t" << res.energy << std::endl;
                     //we need to convert the wf to PetscReal, or PetscScalar...

@@ -75,7 +75,7 @@ int main( int argc, const char** argv )
     //View the hamiltonian
     //VecView(H0, PETSC_VIEWER_STDOUT_WORLD);
 
-    //VecShift(H0, std::complex<double>(0,-.00001));
+    VecShift(H0, std::complex<double>(0,-.00001));
     Vec psi0;
     VecDuplicate(H0, &psi0);
     VecSetValue(psi0, 0, 1., INSERT_VALUES);
@@ -95,16 +95,16 @@ int main( int argc, const char** argv )
     if (params.rank() == 0) std::cout << "wg: " << wg << std::endl;
 
     //the size of the frequency run:
-    const int num_freqs = 11;
-    const double freq_step = 0.05;
+    const int num_freqs = 200;
+    const double freq_step = 0.005;
     //
     //create the vectors that will store the chi's
     std::vector< std::complex<double> > chi1;
     chi1.reserve(num_freqs);
     std::vector< std::complex<double> > chi3;
     chi3.reserve(num_freqs);
-    //std::vector< std::complex<double> > chi5;
-    //chi5.reserve(10000);
+    std::vector< std::complex<double> > chi5;
+    chi5.reserve(num_freqs);
     for( int i = 0; i < num_freqs; ++i)
     {
         //the frequency list, currently, all frequencies are the same (for 3rd harmonic generation), 
@@ -117,14 +117,14 @@ int main( int argc, const char** argv )
         //perterbative vectors.  the only difference with psi_conjugate is that it takes the positive of the frequencies 
         //(this is necessary so that every term has the same exponential phase term, so that said term can be ignored). 
         //(the actual conjugation happens in VecDot).
-        //Vec p5  = psi(5, freq.cbegin(), freq.cend(), wg, H0, D, psi0);
-        //Vec p4  = psi(4, freq.cbegin(), freq.cend(), wg, H0, D, psi0);
+        Vec p5  = psi(5, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
+        Vec p4  = psi(4, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
         Vec p3  = psi(3, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
         Vec p2  = psi(2, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
         Vec p1  = psi(1, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
         Vec p0  = psi(0, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
-        //Vec p5c = psi_conjugate(5, freq.cbegin(), freq.cend(), wg, H0, D, psi0);
-        //Vec p4c = psi_conjugate(4, freq.cbegin(), freq.cend(), wg, H0, D, psi0);
+        Vec p5c = psi_conjugate(5, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
+        Vec p4c = psi_conjugate(4, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
         Vec p3c = psi_conjugate(3, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
         Vec p2c = psi_conjugate(2, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
         Vec p1c = psi_conjugate(1, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask);
@@ -145,43 +145,43 @@ int main( int argc, const char** argv )
         MatMult(D, p2, c);
         VecDot(p1c ,c,  &t2);
         //      + <\psi^(2) | D | \psi^(1)>
-        //MatMult(D, p1, c);
-        //VecDot(p2c ,c,  &t3);
+        MatMult(D, p1, c);
+        VecDot(p2c ,c,  &t3);
         ////      + <\psi^(3) | D | \psi^(0)>
-        //MatMult(D, p0, c);
-        //VecDot(p3c ,c,  &t4);
-        chi3.push_back(pre*(t1+t2+std::conj(t1+t2)));
+        MatMult(D, p0, c);
+        VecDot(p3c ,c,  &t4);
+        chi3.push_back(pre*(t1+t2+t3+t4));
 
         // chi5 = <\psi^(0) | D | \psi^(5)>
-        //MatMult(D, p5, c);
-        //VecDot(p0c ,c,  &t1);
+        MatMult(D, p5, c);
+        VecDot(p0c ,c,  &t1);
         ////      + <\psi^(1) | D | \psi^(4)>
-        //MatMult(D, p4, c);
-        //VecDot(p1c ,c,  &t2);
+        MatMult(D, p4, c);
+        VecDot(p1c ,c,  &t2);
         ////      + <\psi^(2) | D | \psi^(3)>
-        //MatMult(D, p3, c);
-        //VecDot(p2c ,c,  &t3);
+        MatMult(D, p3, c);
+        VecDot(p2c ,c,  &t3);
         ////      + <\psi^(2) | D | \psi^(3)>
-        //MatMult(D, p2, c);
-        //VecDot(p3c ,c,  &t4);
+        MatMult(D, p2, c);
+        VecDot(p3c ,c,  &t4);
         ////      + <\psi^(4) | D | \psi^(1)>
-        //MatMult(D, p1, c);
-        //VecDot(p4c ,c,  &t5);
+        MatMult(D, p1, c);
+        VecDot(p4c ,c,  &t5);
         ////      + <\psi^(5) | D | \psi^(0)>
-        //MatMult(D, p0, c);
-        //VecDot(p5c ,c,  &t6);
-        //chi5.push_back(pre*(t1+t2+t3+t4+t5+t6));
+        MatMult(D, p0, c);
+        VecDot(p5c ,c,  &t6);
+        chi5.push_back(pre*(t1+t2+t3+t4+t5+t6));
 
 
         if (params.rank() == 0) std::cout << "..." << i << std::flush;
-        //VecDestroy(&p5);
-        //VecDestroy(&p4);
+        VecDestroy(&p5);
+        VecDestroy(&p4);
         VecDestroy(&p3);
         VecDestroy(&p2);
         VecDestroy(&p1);
         VecDestroy(&p0);
-        //VecDestroy(&p5c);
-        //VecDestroy(&p4c);
+        VecDestroy(&p5c);
+        VecDestroy(&p4c);
         VecDestroy(&p3c);
         VecDestroy(&p2c);
         VecDestroy(&p1c);
@@ -192,7 +192,7 @@ int main( int argc, const char** argv )
     //export vectors.
     common::export_vector_binary( "chi1.dat" , chi1);
     common::export_vector_binary( "chi3.dat" , chi3);
-    //common::export_vector_binary( "chi5.dat" , chi5);
+    common::export_vector_binary( "chi5.dat" , chi5);
 
     std::cout << std::endl << "done with general code." <<std::endl;
 
