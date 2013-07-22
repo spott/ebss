@@ -23,6 +23,45 @@ extern "C" {
 #include<gsl/gsl_sf_legendre.h>
 
 
+namespace units {
+    //for converting between "real" and "atomic" units:
+
+    class Meter {
+        public:
+        constexpr Meter( double m ) : v(m) {};
+
+        double value() { return v; };
+
+        private: double v;
+    };
+
+
+    class eV {
+        public: 
+        constexpr eV( double m ) : v(m) {};
+
+        double value() { return v; };
+
+        private: double v;
+    };
+
+
+    template<typename T>
+    double toEnergy( T from ) {};
+
+    template<>
+    double toEnergy< Meter > ( Meter from ) { return 4.556335e-8 / from.value(); };
+
+    template<>
+    double toEnergy< eV > ( eV from ) { return from.value() * 0.03674932; };
+
+
+}
+inline constexpr units::Meter operator"" _nm( long double d ) { return units::Meter( d * 1e-9 ); };
+inline constexpr units::Meter operator"" _cm( long double d ) { return units::Meter( d * 1e-2 ); };
+
+inline constexpr units::eV operator"" _eV( long double d ) { return units::eV( d ); };
+
 namespace math{
 //Constants:
 
