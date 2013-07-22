@@ -57,6 +57,13 @@ int main( int argc, const char** argv )
     //the parameters (where to find the hamiltonian)
     HamiltonianParameters<double> params(argc, argv, MPI_COMM_WORLD);
 
+    //the state: for removing states (such as when the ground state isn't the ground state calculated.
+    //StateParameters sparams(argc, argv, MPIC_COMM_WORLD);
+
+    //the parameters for this:
+
+
+
     //read in the matrices
     Mat D = params.read_dipole_matrix();
     Vec H0 = params.read_energy_eigenvalues();
@@ -70,8 +77,6 @@ int main( int argc, const char** argv )
     //for(int i = start; i < end; ++i)
         //if (a[i - start] == 0.0)
             //MatZeroRowsColumns(
-    
-
     //View the hamiltonian
     //VecView(H0, PETSC_VIEWER_STDOUT_WORLD);
 
@@ -97,19 +102,30 @@ int main( int argc, const char** argv )
     //the size of the frequency run:
     const int num_freqs = 200;
     const double freq_step = 0.005;
-    //
+
+    // create the frequencies list:
+    std::vector< units::Meter > nm{ 800._nm, 400._nm, 263._nm, 266.666_nm, 1200._nm, 1800._nm, 4000._nm};
+    std::vector< double > frequencies{ 0. };
+
+    for( auto a : nm )
+        frequencies.push_back( units::toEnergy( a ) );
+
+    for( auto a : frequencies )
+        std::cout << a << ", ";
+    std::cout << std::endl;
+
     //create the vectors that will store the chi's
     std::vector< std::complex<double> > chi1;
-    chi1.reserve(num_freqs);
+    chi1.reserve(frequencies.size());
     std::vector< std::complex<double> > chi3;
-    chi3.reserve(num_freqs);
+    chi3.reserve(frequencies.size());
     std::vector< std::complex<double> > chi5;
-    chi5.reserve(num_freqs);
-    for( int i = 0; i < num_freqs; ++i)
+    chi5.reserve(frequencies.size());
+    for( int i = 0; i < frequencies.size(); ++i)
     {
         //the frequency list, currently, all frequencies are the same (for 3rd harmonic generation), 
         //later I will need this to look at the Kerr effect and others
-        std::vector<double> freq{freq_step*i, freq_step*i, freq_step*i, freq_step*i, freq_step*i};
+        std::vector<double> freq{frequencies[i], frequencies[i], frequencies[i], frequencies[i], frequencies[i]};
         PetscScalar t1,t2,t3,t4,t5,t6;
         Vec c;
         VecDuplicate(H0, &c);
@@ -155,19 +171,19 @@ int main( int argc, const char** argv )
         // chi5 = <\psi^(0) | D | \psi^(5)>
         MatMult(D, p5, c);
         VecDot(p0c ,c,  &t1);
-        ////      + <\psi^(1) | D | \psi^(4)>
+        //      + <\psi^(1) | D | \psi^(4)>
         MatMult(D, p4, c);
         VecDot(p1c ,c,  &t2);
-        ////      + <\psi^(2) | D | \psi^(3)>
+        //      + <\psi^(2) | D | \psi^(3)>
         MatMult(D, p3, c);
         VecDot(p2c ,c,  &t3);
-        ////      + <\psi^(2) | D | \psi^(3)>
+        //      + <\psi^(2) | D | \psi^(3)>
         MatMult(D, p2, c);
         VecDot(p3c ,c,  &t4);
-        ////      + <\psi^(4) | D | \psi^(1)>
+        //      + <\psi^(4) | D | \psi^(1)>
         MatMult(D, p1, c);
         VecDot(p4c ,c,  &t5);
-        ////      + <\psi^(5) | D | \psi^(0)>
+        //      + <\psi^(5) | D | \psi^(0)>
         MatMult(D, p0, c);
         VecDot(p5c ,c,  &t6);
         chi5.push_back(pre*(t1+t2+t3+t4+t5+t6));
