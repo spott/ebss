@@ -132,7 +132,7 @@ int main(int argc, const char ** argv)
     if (params.rank() == 0) std::cout << ", per processor: " << memory;
 
     //we have ~2gb per proc:
-    memory = 193274000 - memory;
+    memory = params.mem_per_proc() - memory;
     if (params.rank() == 0) std::cout << ", left over per processor for memoization: " << memory;
     
     //each

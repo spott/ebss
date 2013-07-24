@@ -55,6 +55,15 @@ public:
         //if ( ctemp.find('z') != std::string::npos )
             //z = true;
 
+        int m;
+        opt.get("-hamiltonian_mem_per_proc")->getInt(m);
+
+        if (m < 0)
+            throw std::out_of_range("mem_per_proc is less than zero");
+        else 
+            mem_ = static_cast<size_t>(m);
+
+
         opt.get("-hamiltonian_nmax")->getInt(nmax_);
         opt.get("-hamiltonian_lmax")->getInt(lmax_);
         opt.get("-hamiltonian_mmax")->getInt(mmax_);
@@ -145,6 +154,7 @@ public:
     std::string print() const;
     bool fs() const { return fs_; }
     bool analytic() const { return analytic_; }
+    size_t  mem_per_proc() const { return mem_; }
 
     void save_parameters();
     void init_from_file(std::string filename);
@@ -159,6 +169,7 @@ private:
     int nmax_;
     int lmax_;
     int mmax_;
+    size_t mem_;
     std::string folder_;
     std::string basis_config_;
     bool analytic_;
@@ -309,6 +320,14 @@ void HamiltonianParameters<write_type_>::register_parameters()
             0,
             "calculate the analytical solution",
             std::string(prefix).append("analytical\0").c_str()
+           );
+    opt.add(
+            "193274000",
+            0,
+            1,
+            0,
+            "mememory available per processor",
+            std::string(prefix).append("mem_per_proc\0").c_str()
            );
     opt.add(
             "500",
