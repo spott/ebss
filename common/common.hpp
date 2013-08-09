@@ -585,8 +585,8 @@ namespace common
                        MatSetValue(H, j, i, value, INSERT_VALUES);
                }
            }
-           //if (params.rank() == 0) 
-               //printProgBar( double(i - rowstart)/ double(rowend-rowstart) );
+           if (params.rank() == 0) 
+               printProgBar( double(i - rowstart)/ double(rowend-rowstart) );
        }
        if (params.rank() == 0) std::cout << std::endl;
 
