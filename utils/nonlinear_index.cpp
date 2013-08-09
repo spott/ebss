@@ -105,7 +105,12 @@ int main( int argc, const char** argv )
 
     // create the frequencies list:
     std::vector< units::Meter > nm{ 800._nm, 400._nm, 263._nm, 266.666_nm, 1200._nm, 1800._nm, 4000._nm};
-    std::vector< double > frequencies{ 0. };
+    std::vector< double > frequencies(200);
+
+	std::iota(frequencies.begin(), frequencies.end(), 0. );
+
+	for (auto& a : frequencies)
+		a = a * .005;
 
     for( auto a : nm )
         frequencies.push_back( units::toEnergy( a ) );

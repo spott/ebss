@@ -61,7 +61,7 @@ public:
         if (m < 0)
             throw std::out_of_range("mem_per_proc is less than zero");
         else 
-            mem_ = static_cast<size_t>(m);
+            mem_ = static_cast<size_t>(m)* 1024;
 
 
         opt.get("-hamiltonian_nmax")->getInt(nmax_);
@@ -289,7 +289,8 @@ std::string HamiltonianParameters<write_type_>::print() const
     out << "hamiltonian_nmax: " << nmax_ << std::endl;
     out << "hamiltonian_lmax: " << lmax_ << std::endl;
     out << "hamiltonian_mmax: " << mmax_ << std::endl;
-    out << "hamiltonian_folder" << folder_ << std::endl;
+    out << "hamiltonian_folder " << folder_ << std::endl;
+	out << "hamiltonian_mem_per_proc " << mem_ << std::endl;
     if (!analytic_)
         out << basis_->print();
     else
@@ -326,7 +327,7 @@ void HamiltonianParameters<write_type_>::register_parameters()
             0,
             1,
             0,
-            "mememory available per processor",
+            "mememory available per processor (in kb)",
             std::string(prefix).append("mem_per_proc\0").c_str()
            );
     opt.add(
