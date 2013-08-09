@@ -16,6 +16,7 @@ extern "C" {
 #include<complex>
 #include<vector>
 #include<cmath>
+#include<cassert>
 
 //gsl:
 #include<gsl/gsl_sf_coupling.h>
@@ -23,44 +24,6 @@ extern "C" {
 #include<gsl/gsl_sf_legendre.h>
 
 
-namespace units {
-    //for converting between "real" and "atomic" units:
-
-    class Meter {
-        public:
-        constexpr Meter( double m ) : v(m) {};
-
-        double value() { return v; };
-
-        private: double v;
-    };
-
-
-    class eV {
-        public: 
-        constexpr eV( double m ) : v(m) {};
-
-        double value() { return v; };
-
-        private: double v;
-    };
-
-
-    template<typename T>
-    double toEnergy( T from ) {};
-
-    template<>
-    double toEnergy< Meter > ( Meter from ) { return 4.556335e-8 / from.value(); };
-
-    template<>
-    double toEnergy< eV > ( eV from ) { return from.value() * 0.03674932; };
-
-
-}
-inline constexpr units::Meter operator"" _nm( long double d ) { return units::Meter( d * 1e-9 ); };
-inline constexpr units::Meter operator"" _cm( long double d ) { return units::Meter( d * 1e-2 ); };
-
-inline constexpr units::eV operator"" _eV( long double d ) { return units::eV( d ); };
 
 namespace math{
 //Constants:
@@ -91,6 +54,84 @@ scalar CGCoefficient(const BasisID &init, const BasisID &fin)
 	out *= std::sqrt(( 2 * init.l +1 ) * ( 2 * fin.l +1 ) );
     return out;
 }
+
+//interpolation class: input an iterator
+
+//template <size_t order>
+class interpolate
+{
+    public:
+    interpolate( const std::vector< double > & y, const std::vector< double > & x ) : y_(y), x_(x), coefficient(x.size()) {
+        //we need to set up the second derivative vector?
+        coefficient.front() = 3 * ( (y_[1] - y_[0])/(std::pow(x_[1] - x_.front(),2) ) ); //natural boundary conditions.
+        coefficient.back() = 3 * ( (y_.back() - y_[y_.size() - 2])/(std::pow(x_.back() - x_[x_.size() - 2],2) ) ); //natural boundary conditions.
+        for( size_t i = 1; i < coefficient.size()-1; ++i)
+            coefficient[i] = 3 * ( (y_[i] - y_[i-1])/(std::pow(x_[i] - x_[i-1],2)) + (y_[i+1] - y_[i])/(std::pow(x_[i+1] - x_[i],2)) );
+
+        //populate and solve the tridiagonal system, saving the solution in coefficient_?
+        std::vector<double> u(x_.size()); //upper
+        std::vector<double> d(x_.size()); //diagonal
+        std::vector<double> l(x_.size()); //lower == upper
+        d[0] = 2. / (x_[1] - x_[0]);
+        u[0] = 1. / (x_[1] - x_[0]);
+        l[0] = 1. / (x_[1] - x_[0]);
+
+        for( size_t i = 1; i < x_.size() - 1; ++i)
+        {
+            u[i] = 1. / (x_[i+1] - x_[i]);
+            l[i] = 1. / (x_[i+1] - x_[i]);
+            d[i] = 2. * (u[i] + u[i-1]);
+        }
+        d.back() = 2. * u[x_.size() - 2];
+
+        for( size_t i = 1; i < x_.size(); ++i)
+        {
+            double m = 1.0 / (d[i] - l[i-1] * u[i - 1]);
+            u[i] = u[i] * m;
+            coefficient[i] = (coefficient[i] - l[i-1] * coefficient[i - 1]) * m;
+        }
+
+        for (size_t i = x_.size() - 1; i --> 0; )
+            coefficient[i] = coefficient[i] - u[i] * coefficient[i + 1];
+
+        //now, coefficient is a list of coefficients that I can use.
+    };
+
+
+    double operator() ( double x ) {
+        size_t p = find_nearest_point(x);
+
+        if (p == x_.size())
+            return y_.back();
+
+        auto t = (x - x_[p]) / (x_[p+1] - x_[p]);
+        auto a = coefficient[p] * (x_[p+1] - x_[p]) - (y_[p+1] - y_[p]);
+        auto b = -coefficient[p+1] * (x_[p+1] - x_[p]) + (y_[p+1] - y_[p]);
+        return (1 - t) * y_[p] + t * y_[p+1] + t * (1-t) * (a * (1-t) + b * t);
+    }
+
+
+    private:
+        //find the point to the left
+    size_t find_nearest_point( double x ) {
+        assert( x >= x_.front() && x <= x_.back() );
+        if (x == x_.front())
+            return 0;
+        if (x == x_.back())
+            return x_.size();
+        for (size_t r = 1; r < x_.size(); ++r)
+            if (x < x_[r])
+                return r-1;
+        //if we still haven't found anything...
+        throw std::out_of_range("couldn't find nearest point... bug in code");
+    }
+
+
+
+    const std::vector<double>& y_,x_;
+    std::vector<double>  coefficient;
+
+};
 
 template <typename scalar>
 std::array< scalar, 3 > GCCoefficients( const BasisID &init, const BasisID &fin)

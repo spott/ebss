@@ -44,6 +44,7 @@ public:
     PetscScalar envelope(PetscReal t, PetscReal t_start) const;
     virtual PetscScalar efield(const PetscReal t, const PetscReal phase) const;
     virtual PetscScalar efield(const PetscReal t) const;
+    std::pair< std::vector< double >, std::vector< double > > read_efield( std::string filename ) const;
 
     virtual std::string print() const;
 
@@ -61,6 +62,7 @@ protected:
     double t_after_;
     double energy_;
     std::string laser_filename_;
+    bool load_efield;
 
 };
 
@@ -92,6 +94,7 @@ void LaserParameters::get_parameters()
     else
         energy_ = -1.0;
 
+    load_efield = opt.isSet("-laser_filename");
 
     opt.get("-laser_lambda")->getDouble(lambda_);
     opt.get("-laser_intensity")->getDouble(intensity_);
@@ -100,7 +103,7 @@ void LaserParameters::get_parameters()
     opt.get("-laser_dt")->getDouble(dt_);
     opt.get("-laser_dt_after")->getDouble(dt_after_);
     opt.get("-laser_t_after")->getDouble(t_after_);
-    opt.get("-laser_laser_filename")->getString(laser_filename_);
+    opt.get("-laser_filename")->getString(laser_filename_);
 }
 
 std::string LaserParameters::print() const
@@ -159,6 +162,26 @@ PetscScalar LaserParameters::envelope(PetscReal t, PetscReal t_start) const
     return efield;
 }
 
+std::pair< std::vector< double >, std::vector< double > > LaserParameters::read_efield( std::string filename ) const
+{
+    //ignore reading it in this time:
+    std::vector<double> t(100);
+    std::iota(t.begin(), t.end(), 0);
+    for (auto& i: t)
+        i *= .01;
+
+    std::vector<double> e(100);
+    PetscReal efield = std::sqrt( this->intensity() );
+    for( size_t i = 0; i < 100; ++i)
+    {
+        e[i] = efield 
+            * std::pow( std::sin( this->frequency() * t[i] / (this->cycles() * 2) ) , 2) 
+            * std::sin( this->frequency() * t[i]);
+    }
+
+    return std::make_pair(t, e);
+}
+
 PetscScalar 
 LaserParameters::efield(PetscReal t, PetscReal phase) const
 {
@@ -166,14 +189,27 @@ LaserParameters::efield(PetscReal t, PetscReal phase) const
         return 0.0;
     PetscReal efield = std::sqrt( this->intensity() );
     return std::complex<double>(efield 
-        * std::pow( std::sin( this->frequency() * t / (this->cycles() * 2) ) , 2) 
-        * std::sin( this->frequency() * t + phase ));
+            * std::pow( std::sin( this->frequency() * t / (this->cycles() * 2) ) , 2) 
+            * std::sin( this->frequency() * t + phase ));
 }
+
+
 
 PetscScalar 
 LaserParameters::efield(PetscReal t) const
 {
-    return this->efield(t, this->cep() );
+    if (load_efield == false)
+    {
+        return this->efield(t, this->cep() );
+    }
+    else
+    {
+        static math::interpolate efield = [=]() {
+            auto a = read_efield( this->laser_filename_ );
+            return math::interpolate(std::get<0>(a), std::get<1>(a));
+        }();
+        return efield(t);
+    }
 }
 
 
@@ -261,8 +297,8 @@ void LaserParameters::register_parameters()
             0,
             1,
             0,
-            "filename to put the laser",
-            std::string(prefix).append("laser_filename\0").c_str()
+            "filename to put the laser or pull the laser",
+            std::string(prefix).append("filename\0").c_str()
            );
     opt.add(
             "",
