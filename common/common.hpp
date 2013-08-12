@@ -347,13 +347,13 @@ namespace common
             else
             {
                 std::cerr << "file is empty!: " << filename << std::endl;
-                throw new std::exception();
+                throw std::exception();
             }
         }
         else
         {
             std::cerr << "error opening file: " << filename << std::endl;
-            throw new std::exception();
+            throw std::exception();
         }
 
         return vec;

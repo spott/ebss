@@ -77,7 +77,10 @@ public:
         {
             opt.get("-hamiltonian_basis_config")->getString(basis_config_);
             basis_config_ = common::absolute_path(basis_config_);
+            try {
             basis_ = new BasisParameters<write_type_, write_type_>(basis_config_, comm_);
+            } catch (std::exception e) {
+            }
 
         //std::cout << basis_config_ << std::endl;
             fs_ = basis_->fs();

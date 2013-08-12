@@ -72,7 +72,12 @@ public:
 
     BasisParameters(std::string filename, MPI_Comm comm): Parameters(comm) 
     {
-        init_from_file(filename);
+        try {
+            init_from_file(filename);
+        } catch (std::exception e)
+        {
+            throw e;
+        }
     };
 
     //The stuff that I care about:
@@ -150,10 +155,24 @@ void BasisParameters<compute_type_, write_type_>::init_from_file(std::string fil
     fs_ = opt.isSet("-basis_fs");
     bo_ = opt.isSet("-basis_bound_only");
 
+    try {
     this->grid_ = common::vector_type_change<write_type_, compute_type_>(
             common::import_vector_binary<write_type_>(this->grid_filename())
             );
+    }
+    catch (std::exception e)
+    {
+        std::cout << "grid file not found" << std::endl;
+        throw e;
+    }
+
+    try {
     this->basis_prototype_ = common::import_vector_binary<BasisID>(this->basis_prototype_filename());
+    } catch (std::exception e) {
+        std::cout << "prototype file not found" << std::endl;
+        throw e;
+    }
+
 }
 
 template<typename compute_type_, typename write_type_ >

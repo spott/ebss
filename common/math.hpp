@@ -360,6 +360,8 @@ std::vector< double > coulomb_wave_function(kBasisID a, const std::vector<double
 }
 size_t factorial(size_t n)
 {
+    if (n == 0)
+        return 1;
     return n * factorial(n-1);
 };
 
