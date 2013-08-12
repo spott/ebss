@@ -9,7 +9,7 @@
 //mine:
 #include<common/parameters/HamiltonianParameters.hpp>
 #include<common/parameters/NonlinearParameters.hpp>
-#include<common/Parameters/StateParameters.hpp>
+#include<common/parameters/StateParameters.hpp>
 #include<common/math.hpp>
 #include<common/common.hpp>
 
