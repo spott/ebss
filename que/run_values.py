@@ -25,7 +25,7 @@ que = """#!/bin/bash
 #PBS -A UCB00000170
 #PBS -q {que}
 #PBS -N {atom}_{t}
-#PBS -l walltime=24:00:00
+#PBS -l walltime={time}
 #PBS -l nodes=1:ppn={proc}
 #PBS -m abe
 #PBS -M andrew.spott@gmail.com
@@ -51,7 +51,7 @@ for i in itertools.product(R_max_list, points_list):
         ensure_dir(basis_folder)
         b = open( basis_folder + "que", "w" )
         run_command = "findbasis -basis_atom " + atom + " -basis_nmax " + str(max(n_max_list)) + " -basis_points " + str(points) + " -basis_lmax "+lmax+" -basis_rmax " + str(R_max) + "\n" + "touch done \n"
-        b.write( que.format( atom=atom, proc=str(lmax), script=run_command, que=que, other="", t="basis" ))
+        b.write( que.format( atom=atom, proc=str(lmax), script=run_command, que=que, other="", t="basis", time="24:00:00" ))
         os.fchmod( b.fileno(), 0o0777)
         b.close()
         basis_folder = os.path.abspath(basis_folder)
@@ -94,7 +94,7 @@ for j in p:
     if ( not os.path.exists("done") ):
         h = open( "que", "w" )
         hscript = "mpiexec -n " + str(proc) + "  findhamiltonian -hamiltonian_basis_config ../basis/Basis.config -hamiltonian_nmax " + str(n_max) + "\ntouch done \n"
-        h.write( que.format( atom=atom, proc=str(proc), script=hscript, que=que, other="#PBS -W after:"+basis_proc_id, t="hamiltonian" ))
+        h.write( que.format( atom=atom, proc=str(proc), script=hscript, que=que, other="#PBS -W after:"+basis_proc_id, t="hamiltonian", time="24:00:00" ))
         os.fchmod( h.fileno(), 0o0777)
         h.close()
 
@@ -116,7 +116,7 @@ for j in p:
     if ( not os.path.exists("done") ):
         n = open( "que", "w" )
         nscript = "mpiexec -n " + str(proc) + " nonlinear_index -hamiltonian_config ../" + str(n_max) + "_hamiltonian/Hamiltonian.config -nonlinear_chi1 1 -nonlinear_chi3 1,0,0 -nonlinear_chi3 1,1,1 -nonlinear_chi3 1,-1,1 -nonlinear_chi5 1,0,0,0,0 -nonlinear_chi5 1,1,1,-1,-1 -nonlinear_chi5 1,1,1,1,1 -nonlinear_freq 0 -nonlinear_wavelengths 400,800,267,1200,1800,4000 \ntouch done \n"
-        n.write( que.format( atom=atom, proc=str(proc), script=nscript, que=que, other="#PBS -W after:"+h_p_id, t="nonlinear" ))
+        n.write( que.format( atom=atom, proc=str(proc), script=nscript, que=que, other="#PBS -W after:"+h_p_id, t="nonlinear", time="24:00:00" ))
         os.fchmod( n.fileno(), 0o0777)
         n.close()
 
