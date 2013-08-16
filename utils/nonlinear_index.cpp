@@ -253,7 +253,7 @@ int main( int argc, const char** argv )
     {
         ss << "chi1_" << nparams.chi1s()[a - chi1_data.begin()] << ".dat";
         common::export_vector_binary( ss.str(), *a);
-        ss.str() = "";
+        ss.str("");
     }
     ss.str("");
 
@@ -264,7 +264,7 @@ int main( int argc, const char** argv )
             ss<< b << "_";
         ss << ".dat";
         common::export_vector_binary( ss.str(), *a);
-        ss.str() = "";
+        ss.str("");
     }
 
     ss.str("");
@@ -275,7 +275,7 @@ int main( int argc, const char** argv )
             ss << b << "_";
         ss << ".dat";
         common::export_vector_binary( ss.str(), *a);
-        ss.str() = "";
+        ss.str("");
     }
     //for( auto a = chi3_data.begin(); a != chi3_data.end(); ++a)
         //common::export_vector_binary( std::string("chi1_") + std::string(nparams.chi1s()[a - chi1_data.begin()]) + std::string(".dat") , a);
