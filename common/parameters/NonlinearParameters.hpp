@@ -66,6 +66,9 @@ public:
                 freqs_.push_back( units::toEnergy( units::Meter( a * 1e-9 ) ) );
         }
 
+
+        opt.get("-nonlinear_img")->getDoubles(imgs_);
+        
         std::vector< std::vector<int> > temp;
         opt.get("-nonlinear_chi1")->getMultiInts(temp);
         for( auto a : temp)
@@ -136,6 +139,7 @@ public:
     void save_parameters() const;
 
     std::vector<double>& freqs() { return freqs_; };
+    std::vector<double>& imgs() {return imgs_; };
     std::vector< int >& chi1s() { return chi1s_; };
     std::vector< std::array<int, 3> >& chi3s() { return chi3s_; };
     std::vector< std::array<int, 5> >& chi5s() { return chi5s_; };
@@ -150,6 +154,7 @@ private:
     std::vector< std::array<int, 3> > chi3s_;
     std::vector< std::array<int, 5> > chi5s_;
     std::vector< double > freqs_;
+    std::vector< double > imgs_;
 };
 
 std::string NonlinearParameters::print() const
@@ -173,6 +178,10 @@ std::string NonlinearParameters::print() const
             out << b << ",";
         out << std::endl;
     }
+    out << "nonlinear_img ";
+    for (auto a: imgs_)
+        out << a << ",";
+    out << std::endl;
     out << "nonlinear_freqs ";
     for (auto a : freqs_ )
         out << a << ",";
@@ -234,6 +243,14 @@ void NonlinearParameters::register_parameters()
             ',',
             "the frequencies that all \'runs\' will be done at.",
             std::string(prefix).append("freq\0").c_str()
+           );
+    opt.add(
+            ".0001",
+            0,
+            1,
+            ',',
+            "the imaginary part of the frequencies",
+            std::string(prefix).append("img\0").c_str()
            );
     opt.add(
             "",
