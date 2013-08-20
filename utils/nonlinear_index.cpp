@@ -80,12 +80,12 @@ int main( int argc, const char** argv )
     //std::vector< std::complex<double> > chi5;
     //chi5.reserve(frequencies.size());
 
-    std::vector< std::vector< std::complex<double> > > chi1_data( nparams.chi1s().size() * imgs.size() );
-    for( auto a : chi1_data) a.reserve( freqs.size() );
-    std::vector< std::vector< std::complex<double> > > chi3_data( nparams.chi3s().size() * imgs.size() );
-    for( auto a : chi3_data) a.reserve( freqs.size() );
-    std::vector< std::vector< std::complex<double> > > chi5_data( nparams.chi5s().size() * imgs.size() );
-    for( auto a : chi5_data) a.reserve( freqs.size() );
+    std::vector< std::vector< std::complex<double> > > chi1_data( nparams.chi1s().size());
+    for( auto a : chi1_data) a.reserve( freqs.size() * imgs.size());
+    std::vector< std::vector< std::complex<double> > > chi3_data( nparams.chi3s().size());
+    for( auto a : chi3_data) a.reserve( freqs.size() * imgs.size());
+    std::vector< std::vector< std::complex<double> > > chi5_data( nparams.chi5s().size());
+    for( auto a : chi5_data) a.reserve( freqs.size() * imgs.size());
 
     for(auto i : imgs)
     {
