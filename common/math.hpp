@@ -513,15 +513,20 @@ std::vector< std::tuple<PetscScalar, int> > VecFirstNSort(Vec a, size_t n, Compa
     VecRestoreArray(a, &array);
 
 
+    //std::cout << "[" << rank << "]" << "send " << std::endl;
     //send to rank 0, with a tag indictating if int or scalar
-    MPI_Send(outscalar.data(), n, MPIU_SCALAR, 0, 0, comm);
-    MPI_Send(outint.data(), n, MPIU_INT, 0, 1, comm);
+    if (rank != 0)
+    {
+        MPI_Send(outscalar.data(), n, MPIU_SCALAR, 0, 0, comm);
+        MPI_Send(outint.data(), n, MPIU_INT, 0, 1, comm);
+    }
 
     if (rank == 0)
     {
         std::vector< PetscScalar > allscalars( n * size );
         std::vector< int > allints( n * size );
 
+        //std::cout << "get" << std::endl;
         //loop over all senders:
         for (int senders = 1; senders < size; ++senders)
         {
@@ -529,25 +534,37 @@ std::vector< std::tuple<PetscScalar, int> > VecFirstNSort(Vec a, size_t n, Compa
             MPI_Recv(&allints[senders * n], n, MPIU_INT, senders, 1, comm, MPI_STATUS_IGNORE);
         }
 
+        std::copy(outscalar.begin(), outscalar.end(), allscalars.begin());
+        std::copy(outint.begin(), outint.end(), allints.begin());
+        //std::cout << "got" << std::endl;
+
+        //for (auto a : allscalars)
+            //std::cout << a << ",";
+        //std::cout << std::endl;
+
         //sort new list:
         for (int i = 0; i != n * size; ++i)
         {
-            for (auto outn = outscalar.begin(); outn != outscalar.end() ;  ++outn)
+            auto outn = outscalar.begin();
+            auto outm = outint.begin();
+            assert (outscalar.end() - outscalar.begin() == outint.end() - outint.begin());
+            for (; (outn != outscalar.end()) && (outm != outint.end()) ; ++outm, ++outn)
                 if (comp(allscalars[i],*outn))
                 {
-                    outscalar.emplace( outn, allscalars[i] );
-                    outint.emplace(outint.begin() + (outn - outscalar.begin()), allints[i] );
+                    outscalar.insert( outn, allscalars[i] );
+                    outint.insert( outm , allints[i] );
                     outscalar.erase( outscalar.end() - 1 );
                     outint.erase( outint.end() - 1 );
                     break;
                 }
         }
 
-        //send back out:
-
     }
+    //std::cout << "[" << rank << "]"<< "rebroadcast " << std::endl;
     MPI_Bcast(&outscalar[0], n, MPIU_SCALAR, 0, comm);
     MPI_Bcast(&outint[0], n, MPIU_INT, 0, comm);
+
+    //std::cout << "got!" << std::endl;
     for (int i = 0; i < n ;  ++i)
         out.push_back(std::make_tuple(outscalar[i], outint[i]));
 

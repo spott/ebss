@@ -354,58 +354,64 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::
         VecReciprocal(tmp);
         if( rank==0 ) std::cout << i << std::endl;
         int number = 10;
-        auto max = math::VecFirstNSort(tmp, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
-        if( rank==0 ) 
         {
-            std::cout << " rec max: ";
-            for (auto& m : max)
-                std::cout << VectorElement(m, prototype) << ",";
-            std::cout << std::endl;
-        }
-        auto min = math::VecFirstNSort(tmp, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
-        if( rank==0 ) 
-        {
-            std::cout << " rec min: ";
-            for (auto& m : min)
-                std::cout << VectorElement(m, prototype) << ",";
-            std::cout << std::endl;
+            auto max = math::VecFirstNSort(tmp, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
+            if( rank==0 ) 
+            {
+                std::cout << " rec max: ";
+                for (auto& m : max)
+                    std::cout << VectorElement(m, prototype) << ",";
+                std::cout << std::endl;
+            }
+            auto min = math::VecFirstNSort(tmp, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
+            if( rank==0 ) 
+            {
+                std::cout << " rec min: ";
+                for (auto& m : min)
+                    std::cout << VectorElement(m, prototype) << ",";
+                std::cout << std::endl;
+            }
         }
 
-        max = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
-        if( rank==0 ) 
         {
-            std::cout << " last max: ";
-            for (auto& m : max)
-                std::cout << VectorElement(m, prototype) << ",";
-            std::cout << std::endl;
-        }
-        min = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
-        if( rank==0 ) 
-        {
-            std::cout << " last min: ";
-            for (auto& m : min)
-                std::cout << VectorElement(m, prototype) << ",";
-            std::cout << std::endl;
+            auto max = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
+            if( rank==0 ) 
+            {
+                std::cout << " last max: ";
+                for (auto& m : max)
+                    std::cout << VectorElement(m, prototype) << ",";
+                std::cout << std::endl;
+            }
+            auto min = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
+            if( rank==0 ) 
+            {
+                std::cout << " last min: ";
+                for (auto& m : min)
+                    std::cout << VectorElement(m, prototype) << ",";
+                std::cout << std::endl;
+            }
         }
 
         VecPointwiseMult(out, tmp, out);
         VecPointwiseMult(out, mask, out);
 
-        max = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
-        if( rank==0 ) 
         {
-            std::cout << " term max: ";
-            for (auto& m : max)
-                std::cout << VectorElement(m, prototype) << ",";
-            std::cout << std::endl;
-        }
-        min = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
-        if( rank==0 ) 
-        {
-            std::cout << " term min: ";
-            for (auto& m : min)
-                std::cout << VectorElement(m, prototype) << ",";
-            std::cout << std::endl;
+            auto max = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
+            if( rank==0 ) 
+            {
+                std::cout << " term max: ";
+                for (auto& m : max)
+                    std::cout << VectorElement(m, prototype) << ",";
+                std::cout << std::endl;
+            }
+            auto min = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
+            if( rank==0 ) 
+            {
+                std::cout << " term min: ";
+                for (auto& m : min)
+                    std::cout << VectorElement(m, prototype) << ",";
+                std::cout << std::endl;
+            }
         }
     }
     
@@ -441,58 +447,64 @@ Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_
         VecReciprocal(tmp);
         if( rank==0 ) std::cout << i << std::endl;
         int number = 10;
-        auto max = math::VecFirstNSort(tmp, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
-        if( rank==0 ) 
         {
-            std::cout << " rec max: ";
-            for (auto& m : max)
-                std::cout << VectorElement(m, prototype) << ",";
-            std::cout << std::endl;
-        }
-        auto min = math::VecFirstNSort(tmp, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
-        if( rank==0 ) 
-        {
-            std::cout << " rec min: ";
-            for (auto& m : min)
-                std::cout << VectorElement(m, prototype) << ",";
-            std::cout << std::endl;
+            auto max = math::VecFirstNSort(tmp, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
+            if( rank==0 ) 
+            {
+                std::cout << " rec max: ";
+                for (auto& m : max)
+                    std::cout << VectorElement(m, prototype) << ",";
+                std::cout << std::endl;
+            }
+            auto min = math::VecFirstNSort(tmp, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
+            if( rank==0 ) 
+            {
+                std::cout << " rec min: ";
+                for (auto& m : min)
+                    std::cout << VectorElement(m, prototype) << ",";
+                std::cout << std::endl;
+            }
         }
 
-        max = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
-        if( rank==0 ) 
         {
-            std::cout << " last max: ";
-            for (auto& m : max)
-                std::cout << VectorElement(m, prototype) << ",";
-            std::cout << std::endl;
-        }
-        min = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
-        if( rank==0 ) 
-        {
-            std::cout << " last min: ";
-            for (auto& m : min)
-                std::cout << VectorElement(m, prototype) << ",";
-            std::cout << std::endl;
+            auto max = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
+            if( rank==0 ) 
+            {
+                std::cout << " last max: ";
+                for (auto& m : max)
+                    std::cout << VectorElement(m, prototype) << ",";
+                std::cout << std::endl;
+            }
+            auto min = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
+            if( rank==0 ) 
+            {
+                std::cout << " last min: ";
+                for (auto& m : min)
+                    std::cout << VectorElement(m, prototype) << ",";
+                std::cout << std::endl;
+            }
         }
 
         VecPointwiseMult(out, tmp, out);
         VecPointwiseMult(out, mask, out);
 
-        max = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
-        if( rank==0 ) 
         {
-            std::cout << " term max: ";
-            for (auto& m : max)
-                std::cout << VectorElement(m, prototype) << ",";
-            std::cout << std::endl;
-        }
-        min = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
-        if( rank==0 ) 
-        {
-            std::cout << " term min: ";
-            for (auto& m : min)
-                std::cout << VectorElement(m, prototype) << ",";
-            std::cout << std::endl;
+            auto max = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
+            if( rank==0 ) 
+            {
+                std::cout << " term max: ";
+                for (auto& m : max)
+                    std::cout << VectorElement(m, prototype) << ",";
+                std::cout << std::endl;
+            }
+            auto min = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
+            if( rank==0 ) 
+            {
+                std::cout << " term min: ";
+                for (auto& m : min)
+                    std::cout << VectorElement(m, prototype) << ",";
+                std::cout << std::endl;
+            }
         }
     }
 
