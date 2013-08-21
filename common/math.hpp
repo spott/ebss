@@ -467,6 +467,94 @@ std::tuple<PetscReal, int> VecAbsMin(Vec a)
     return std::make_tuple(m, loc);
 }
 
+//template < typename Func >
+//std::vector< std::tuple< PetscScalar, int > > VecSort(Vec a, Func comparator)
+//{
+    ////mergesort
+    //std::vector< int > outint();
+
+template< typename Comparator >
+std::vector< std::tuple<PetscScalar, int> > VecFirstNSort(Vec a, size_t n, Comparator comp)
+{
+    std::vector< PetscInt > outint( n , -1);
+    std::vector< PetscScalar > outscalar( n, PetscScalar() );
+    std::vector< std::tuple< PetscScalar, int> > out; out.reserve(n);
+    PetscScalar *array;
+    int low, high;
+
+    VecGetOwnershipRange(a,&low,&high);
+    VecGetArray(a, &array);
+
+    MPI_Comm comm;
+    int rank, size;
+    PetscObjectGetComm((PetscObject)a,&comm);
+    MPI_Comm_rank(comm, &rank);
+    MPI_Comm_size(comm, &size);
+
+
+    //std::cout << *(std::max_element(array, array+(high-low), [](PetscScalar a, PetscScalar b){ return a.real() < b.real(); } )) << std::endl;
+
+    for (int i = 0; i != high-low; ++i)
+    {
+        auto outn = outscalar.begin();
+        auto outm = outint.begin();
+        assert (outscalar.end() - outscalar.begin() == outint.end() - outint.begin());
+        for (; (outn != outscalar.end()) && (outm != outint.end()) ; ++outm, ++outn)
+            if (comp(array[i],*outn))
+            {
+                outscalar.insert( outn, array[i] );
+                outint.insert( outm , i+low );
+                outscalar.erase( outscalar.end() - 1 );
+                outint.erase( outint.end() - 1 );
+                break;
+            }
+    }
+
+    VecRestoreArray(a, &array);
+
+
+    //send to rank 0, with a tag indictating if int or scalar
+    MPI_Send(outscalar.data(), n, MPIU_SCALAR, 0, 0, comm);
+    MPI_Send(outint.data(), n, MPIU_INT, 0, 1, comm);
+
+    if (rank == 0)
+    {
+        std::vector< PetscScalar > allscalars( n * size );
+        std::vector< int > allints( n * size );
+
+        //loop over all senders:
+        for (int senders = 1; senders < size; ++senders)
+        {
+            MPI_Recv(&allscalars[senders * n], n, MPIU_SCALAR, senders, 0, comm, MPI_STATUS_IGNORE);
+            MPI_Recv(&allints[senders * n], n, MPIU_INT, senders, 1, comm, MPI_STATUS_IGNORE);
+        }
+
+        //sort new list:
+        for (int i = 0; i != n * size; ++i)
+        {
+            for (auto outn = outscalar.begin(); outn != outscalar.end() ;  ++outn)
+                if (comp(allscalars[i],*outn))
+                {
+                    outscalar.emplace( outn, allscalars[i] );
+                    outint.emplace(outint.begin() + (outn - outscalar.begin()), allints[i] );
+                    outscalar.erase( outscalar.end() - 1 );
+                    outint.erase( outint.end() - 1 );
+                    break;
+                }
+        }
+
+        //send back out:
+
+    }
+    MPI_Bcast(&outscalar[0], n, MPIU_SCALAR, 0, comm);
+    MPI_Bcast(&outint[0], n, MPIU_INT, 0, comm);
+    for (int i = 0; i < n ;  ++i)
+        out.push_back(std::make_tuple(outscalar[i], outint[i]));
+
+
+    return out;
+}
+
 //find the second derivative of a vector, maintaining the vectors size:
 template <typename T>
 std::vector<T> second_difference( const std::vector<T>& in, const T& h)
