@@ -17,6 +17,7 @@ extern "C" {
 #include<vector>
 #include<cmath>
 #include<cassert>
+#include<tuple>
 
 //gsl:
 #include<gsl/gsl_sf_coupling.h>
@@ -435,6 +436,35 @@ inline std::complex<double> Gamma_Lanczos (std::complex<double> z)
         return std::sqrt(2.*PI) * std::pow(t,z+0.5) * std::exp(-t) * x;
     }
 
+}
+
+std::tuple<PetscReal, int> VecMax(Vec a)
+{
+    int loc;
+    PetscReal m;
+    VecMax(a, &loc, &m);
+    return std::make_tuple(m, loc);
+}
+
+std::tuple<PetscReal, int> VecMin(Vec a)
+{
+    int loc;
+    PetscReal m;
+    VecMin(a, &loc, &m);
+    return std::make_tuple(m, loc);
+}
+
+std::tuple<PetscReal, int> VecAbsMin(Vec a)
+{
+    int loc;
+    PetscReal m;
+    Vec tmp;
+    VecDuplicate(a, &tmp);
+    VecCopy(a, tmp);
+    VecAbs(tmp);
+    VecMin(tmp, &loc, &m);
+    VecDestroy(&tmp);
+    return std::make_tuple(m, loc);
 }
 
 //find the second derivative of a vector, maintaining the vectors size:
