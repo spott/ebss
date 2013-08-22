@@ -359,7 +359,7 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::
         // tmp = 1/tmp
         VecReciprocal(tmp);
         if( rank==0 ) std::cout << i << std::endl;
-        int number = 10;
+        int number = 100;
         {
             auto max = math::VecFirstNSort(tmp, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
             if( rank==0 ) 
@@ -452,7 +452,7 @@ Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_
         }
         VecReciprocal(tmp);
         if( rank==0 ) std::cout << i << std::endl;
-        int number = 10;
+        int number = 100;
         {
             auto max = math::VecFirstNSort(tmp, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
             if( rank==0 ) 
