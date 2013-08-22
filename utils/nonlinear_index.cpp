@@ -58,6 +58,12 @@ int main( int argc, const char** argv )
     Mat D = params.read_dipole_matrix();
     Vec H0 = params.read_energy_eigenvalues();
 
+    Vec maximums;
+    VecDuplicate(H0, &maximums);
+    int* locations;
+    MatGetRowMax(D,maximums,locations);
+    VecView(maximums, PETSC_VIEWER_STDOUT_WORLD);
+
     //create a mask for bound states:
     Vec mask = common::map_function(H0, [](PetscScalar in) { return 1; });
 
