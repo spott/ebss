@@ -26,7 +26,7 @@ struct VectorElement {
 };
 
 std::ostream& operator<<( std::ostream& out, const VectorElement a) {
-    out << std::get<0>(a.el) << "@[" << a.proto[std::get<1>(a.el)].n << "," << a.proto[std::get<1>(a.el)].l << "]";
+    out << std::get<0>(a.el) << "\t" << a.proto[std::get<1>(a.el)].n << "\t" << a.proto[std::get<1>(a.el)].l;
     return out;
 }
 
@@ -364,17 +364,17 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::
             auto max = math::VecFirstNSort(tmp, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
             if( rank==0 ) 
             {
-                std::cout << " rec max: ";
+                std::cout << " rec max: " << std::endl;
                 for (auto& m : max)
-                    std::cout << VectorElement(m, prototype) << ",";
+                    std::cout << VectorElement(m, prototype) << std::endl;
                 std::cout << std::endl;
             }
             auto min = math::VecFirstNSort(tmp, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
             if( rank==0 ) 
             {
-                std::cout << " rec min: ";
+                std::cout << " rec min: " << std::endl;
                 for (auto& m : min)
-                    std::cout << VectorElement(m, prototype) << ",";
+                    std::cout << VectorElement(m, prototype) << std::endl;
                 std::cout << std::endl;
             }
         }
@@ -383,17 +383,17 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::
             auto max = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
             if( rank==0 ) 
             {
-                std::cout << " last max: ";
+                std::cout << " last max: " << std::endl;
                 for (auto& m : max)
-                    std::cout << VectorElement(m, prototype) << ",";
+                    std::cout << VectorElement(m, prototype) << std::endl;
                 std::cout << std::endl;
             }
             auto min = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
             if( rank==0 ) 
             {
-                std::cout << " last min: ";
+                std::cout << " last min: " << std::endl;
                 for (auto& m : min)
-                    std::cout << VectorElement(m, prototype) << ",";
+                    std::cout << VectorElement(m, prototype) << std::endl;
                 std::cout << std::endl;
             }
         }
@@ -405,17 +405,17 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::
             auto max = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
             if( rank==0 ) 
             {
-                std::cout << " term max: ";
+                std::cout << " term max: " << std::endl;
                 for (auto& m : max)
-                    std::cout << VectorElement(m, prototype) << ",";
+                    std::cout << VectorElement(m, prototype) << std::endl;
                 std::cout << std::endl;
             }
             auto min = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
             if( rank==0 ) 
             {
-                std::cout << " term min: ";
+                std::cout << " term min: " << std::endl;
                 for (auto& m : min)
-                    std::cout << VectorElement(m, prototype) << ",";
+                    std::cout << VectorElement(m, prototype) << std::endl;
                 std::cout << std::endl;
             }
         }
@@ -457,17 +457,17 @@ Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_
             auto max = math::VecFirstNSort(tmp, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
             if( rank==0 ) 
             {
-                std::cout << " rec max: ";
+                std::cout << " rec max: " << std::endl;
                 for (auto& m : max)
-                    std::cout << VectorElement(m, prototype) << ",";
+                    std::cout << VectorElement(m, prototype) << std::endl;
                 std::cout << std::endl;
             }
             auto min = math::VecFirstNSort(tmp, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
             if( rank==0 ) 
             {
-                std::cout << " rec min: ";
+                std::cout << " rec min: " << std::endl;
                 for (auto& m : min)
-                    std::cout << VectorElement(m, prototype) << ",";
+                    std::cout << VectorElement(m, prototype) << std::endl;
                 std::cout << std::endl;
             }
         }
@@ -476,17 +476,17 @@ Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_
             auto max = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
             if( rank==0 ) 
             {
-                std::cout << " last max: ";
+                std::cout << " last max: " << std::endl;
                 for (auto& m : max)
-                    std::cout << VectorElement(m, prototype) << ",";
+                    std::cout << VectorElement(m, prototype) << std::endl;
                 std::cout << std::endl;
             }
             auto min = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
             if( rank==0 ) 
             {
-                std::cout << " last min: ";
+                std::cout << " last min: " << std::endl;
                 for (auto& m : min)
-                    std::cout << VectorElement(m, prototype) << ",";
+                    std::cout << VectorElement(m, prototype) << std::endl;
                 std::cout << std::endl;
             }
         }
@@ -498,17 +498,17 @@ Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_
             auto max = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
             if( rank==0 ) 
             {
-                std::cout << " term max: ";
+                std::cout << " term max: " << std::endl;
                 for (auto& m : max)
-                    std::cout << VectorElement(m, prototype) << ",";
+                    std::cout << VectorElement(m, prototype) << std::endl;
                 std::cout << std::endl;
             }
             auto min = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() < b.real(); });
             if( rank==0 ) 
             {
-                std::cout << " term min: ";
+                std::cout << " term min: " << std::endl;
                 for (auto& m : min)
-                    std::cout << VectorElement(m, prototype) << ",";
+                    std::cout << VectorElement(m, prototype) << std::endl;
                 std::cout << std::endl;
             }
         }
