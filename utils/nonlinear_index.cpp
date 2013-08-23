@@ -58,11 +58,11 @@ int main( int argc, const char** argv )
     Mat D = params.read_dipole_matrix();
     Vec H0 = params.read_energy_eigenvalues();
 
-    Vec maximums;
-    VecDuplicate(H0, &maximums);
-    int* locations;
-    MatGetRowMax(D,maximums,locations);
-    VecView(maximums, PETSC_VIEWER_STDOUT_WORLD);
+    //Vec maximums;
+    //VecDuplicate(H0, &maximums);
+    //int* locations;
+    //MatGetRowMax(D,maximums,PETSC_NULL);
+    //VecView(maximums, PETSC_VIEWER_STDOUT_WORLD);
 
     //create a mask for bound states:
     Vec mask = common::map_function(H0, [](PetscScalar in) { return 1; });
@@ -75,7 +75,16 @@ int main( int argc, const char** argv )
     VecAssemblyBegin(psi0);
     VecAssemblyEnd(psi0);
 
-    //find wg (the ground state energy)
+    //find the resonances:
+    PetscScalar wg;
+    VecDot(H0, psi0, &wg);
+    Vec resonances;
+    VecDuplicate(H0, &resonances);
+    VecSet(resonances, wg);
+    VecAXPY(resonances, -1., H0); //single resonances
+
+    //double, triple, quadruple, and quituple resonances are also possible.
+    //so, the minimum of the list that contains all of these (with respect to zero) are the smallest resonances.
 
     //the size of the frequency run:
     const int num_freqs = 200;
@@ -84,12 +93,21 @@ int main( int argc, const char** argv )
     // get the frequencies list from nonlinear params:
     auto freqs = nparams.freqs();
 
+    try {
+    common::export_vector_binary( std::string("./frequencies.dat"), freqs);
+    } catch (...) {
+        std::cout << "error in export_vector_binary" << std::endl;
+    }
+
+
     std::vector< std::vector< std::complex<double> > > chi1_data( nparams.chi1s().size());
     for( auto a : chi1_data) a.reserve( freqs.size() * imgs.size());
     std::vector< std::vector< std::complex<double> > > chi3_data( nparams.chi3s().size());
     for( auto a : chi3_data) a.reserve( freqs.size() * imgs.size());
     std::vector< std::vector< std::complex<double> > > chi5_data( nparams.chi5s().size());
     for( auto a : chi5_data) a.reserve( freqs.size() * imgs.size());
+    std::vector< std::vector< std::complex<double> > > chi7_data( nparams.chi7s().size());
+    for( auto a : chi7_data) a.reserve( freqs.size() * imgs.size());
 
     for(auto i : imgs)
     {
@@ -100,7 +118,7 @@ int main( int argc, const char** argv )
 
         for( int f = 0; f < freqs.size(); ++f)
         {
-            PetscScalar t1,t2,t3,t4,t5,t6;
+            PetscScalar t1,t2,t3,t4,t5,t6,t7,t8;
             Vec c;
             VecDuplicate(H0, &c);
             //we need to loop through all permutations of all chi types:
@@ -183,8 +201,7 @@ int main( int argc, const char** argv )
                 } while (std::next_permutation( (*i).begin(), (*i).end() ) );
                 chi3_data[i-nparams.chi3s().begin()].push_back(result * static_cast<double>(multiplicity) / static_cast<double>(math::factorial(3)));
             }
-            
-            //Chi5
+            //chi5
             for (auto i = nparams.chi5s().begin(); i != nparams.chi5s().end(); ++i)
             {
                 if (params.rank() == 0) std::cout << "=========================================" << std::endl << *i << std::endl;
@@ -267,6 +284,103 @@ int main( int argc, const char** argv )
                 if (params.rank() == 0) std::cout << "final: " << result << std::endl;
                 chi5_data[i-nparams.chi5s().begin()].push_back( result * static_cast<double>(multiplicity) / static_cast<double>(math::factorial(5)));
             }
+            //Chi7
+            for (auto i = nparams.chi7s().begin(); i != nparams.chi7s().end(); ++i)
+            {
+                if (params.rank() == 0) std::cout << "=========================================" << std::endl << *i << std::endl;
+                std::sort((*i).begin(), (*i).end());
+                size_t multiplicity = 1;
+                std::array<int, 3> ts{0,0,0};
+                for(auto m : (*i))
+                {
+                    if (m == -1)
+                        ts[0]++;
+                    if (m == 0)
+                        ts[1]++;
+                    if (m == 1)
+                        ts[2]++;
+                }
+                for (auto m: ts)
+                    multiplicity *= math::factorial(m);
+                PetscScalar result;
+                do {
+                    std::vector< double > freq{(*i)[0] * freqs[f], (*i)[1] * freqs[f], (*i)[2] * freqs[f], (*i)[3] * freqs[f], (*i)[4] * freqs[f], (*i)[5] * freqs[f], (*i)[6] * freqs[f]};
+                    Vec p7  = psi(7, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
+                    Vec p6  = psi(6, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
+                    //if (params.rank() == 0) std::cout << "p5: " << std::endl;
+                    Vec p5  = psi(5, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
+                    //if (params.rank() == 0) std::cout << "p4: " << std::endl;
+                    Vec p4  = psi(4, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
+                    //if (params.rank() == 0) std::cout << "p3: " << std::endl;
+                    Vec p3  = psi(3, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
+                    //if (params.rank() == 0) std::cout << "p2: " << std::endl;
+                    Vec p2  = psi(2, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
+                    //if (params.rank() == 0) std::cout << "p1: " << std::endl;
+                    Vec p1  = psi(1, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
+                    //if (params.rank() == 0) std::cout << "p0: " << std::endl;
+                    Vec p0  = psi(0, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
+                    //if (params.rank() == 0) std::cout << "p5c: " << std::endl;
+                    Vec p7c = psi_conjugate(7, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
+                    Vec p6c = psi_conjugate(6, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
+                    Vec p5c = psi_conjugate(5, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
+                    //if (params.rank() == 0) std::cout << "p4c: " << std::endl;
+                    Vec p4c = psi_conjugate(4, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
+                    //if (params.rank() == 0) std::cout << "p3c: " << std::endl;
+                    Vec p3c = psi_conjugate(3, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
+                    //if (params.rank() == 0) std::cout << "p2c: " << std::endl;
+                    Vec p2c = psi_conjugate(2, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
+                    //if (params.rank() == 0) std::cout << "p1c: " << std::endl;
+                    Vec p1c = psi_conjugate(1, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
+                    //if (params.rank() == 0) std::cout << "p0c: " << std::endl;
+                    Vec p0c = psi_conjugate(0, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
+
+                    // chi7 = <\psi^(0) | D | \psi^(7)>
+                    MatMult(D, p7, c);
+                    VecDot(p0c ,c,  &t1);
+                    //      + <\psi^(1) | D | \psi^(6)>
+                    MatMult(D, p6, c);
+                    VecDot(p1c ,c,  &t2);
+                    //      + <\psi^(2) | D | \psi^(5)>
+                    MatMult(D, p5, c);
+                    VecDot(p2c ,c,  &t3);
+                    //      + <\psi^(3) | D | \psi^(4)>
+                    MatMult(D, p4, c);
+                    VecDot(p3c ,c,  &t4);
+                    //      + <\psi^(4) | D | \psi^(3)>
+                    MatMult(D, p3, c);
+                    VecDot(p4c ,c,  &t5);
+                    //      + <\psi^(5) | D | \psi^(2)>
+                    MatMult(D, p2, c);
+                    VecDot(p5c ,c,  &t6);
+                    //      + <\psi^(6) | D | \psi^(1)>
+                    MatMult(D, p1, c);
+                    VecDot(p6c ,c,  &t7);
+                    //      + <\psi^(7) | D | \psi^(0)>
+                    MatMult(D, p0, c);
+                    VecDot(p7c ,c,  &t8);
+                    if (params.rank() == 0) std::cout << "terms: " << t1 << ", " << t2 << ", " << t3 << ", " << t4 << std::endl;
+                    result += (t1 + t2 + t3 + t4 + t5 + t6 + t7 + t8);
+                    VecDestroy(&p7);
+                    VecDestroy(&p6);
+                    VecDestroy(&p5);
+                    VecDestroy(&p4);
+                    VecDestroy(&p3);
+                    VecDestroy(&p2);
+                    VecDestroy(&p1);
+                    VecDestroy(&p0);
+                    VecDestroy(&p7c);
+                    VecDestroy(&p6c);
+                    VecDestroy(&p5c);
+                    VecDestroy(&p4c);
+                    VecDestroy(&p3c);
+                    VecDestroy(&p2c);
+                    VecDestroy(&p1c);
+                    VecDestroy(&p0c);
+                } while (std::next_permutation( (*i).begin(), (*i).end() ) );
+
+                if (params.rank() == 0) std::cout << "final: " << result << std::endl;
+                chi7_data[i - nparams.chi7s().begin()].push_back( result * static_cast<double>(multiplicity) / static_cast<double>(math::factorial(5)));
+            }
 
             if (params.rank() == 0) std::cout << "..." << f << "(" << freqs[f] << ")" << std::flush;
             VecDestroy(&c);
@@ -300,6 +414,16 @@ int main( int argc, const char** argv )
     {
         ss << "chi5_" ;
         for( auto b : nparams.chi5s()[a - chi5_data.begin()])
+            ss << b << "_";
+        ss << ".dat";
+        common::export_vector_binary( ss.str(), *a);
+        ss.str("");
+    }
+    ss.str("");
+    for( auto a = chi7_data.begin(); a != chi7_data.end(); ++a)
+    {
+        ss << "chi7_" ;
+        for( auto b : nparams.chi7s()[a - chi7_data.begin()])
             ss << b << "_";
         ss << ".dat";
         common::export_vector_binary( ss.str(), *a);

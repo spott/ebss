@@ -549,10 +549,10 @@ std::vector< std::tuple<PetscScalar, int> > VecFirstNSort(Vec a, size_t n, Compa
             auto outm = outint.begin();
             assert (outscalar.end() - outscalar.begin() == outint.end() - outint.begin());
             for (; (outn != outscalar.end()) && (outm != outint.end()) ; ++outm, ++outn)
-                if (comp(allscalars[i],*outn))
+                if (comp(allscalars.at(i),*outn))
                 {
-                    outscalar.insert( outn, allscalars[i] );
-                    outint.insert( outm , allints[i] );
+                    outscalar.insert( outn, allscalars.at(i) );
+                    outint.insert( outm , allints.at(i) );
                     outscalar.erase( outscalar.end() - 1 );
                     outint.erase( outint.end() - 1 );
                     break;
@@ -566,7 +566,7 @@ std::vector< std::tuple<PetscScalar, int> > VecFirstNSort(Vec a, size_t n, Compa
 
     //std::cout << "got!" << std::endl;
     for (int i = 0; i < n ;  ++i)
-        out.push_back(std::make_tuple(outscalar[i], outint[i]));
+        out.push_back(std::make_tuple(outscalar.at(i), outint.at(i)));
 
 
     return out;
