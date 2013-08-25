@@ -237,23 +237,19 @@ namespace common
     }
     /* Merge Vectors... (and sort?) 
      * sorting requires the > and < operators to be overloaded*/
-    //template <typename T>
-    //std::vector<T> merge_vectors(const std::vector<T> &v1, const std::vector<T> &v2)
-    //{
-        //std::vector<T> out( v1.size() + v2.size() );
+    template <typename T>
+    std::vector<T> merge_vectors(const std::vector<T> &v1, const std::vector<T> &v2)
+    {
+        std::vector<T> out( v1.size() + v2.size() );
 
-        ////C++11 version... would be nice if I could get it to work...
-        //auto a = std::move(v1.begin(), v1.end(), out.begin());
-        //std::move(v2.begin(), v2.end(), a);
+        //C++11 version... would be nice if I could get it to work...
+        auto a = std::copy(v1.begin(), v1.end(), out.begin());
+        std::copy(v2.begin(), v2.end(), a);
 
-        ////delete v1 and v2?
-        //delete v1;
-        //delete v2;
+        std::sort(out.begin(),out.end());
 
-        //std::sort(out.begin(),out.end());
-
-        //return out;
-    //}
+        return out;
+    }
 
     template <typename T>
     void export_vector_binary(const std::string &filename, const std::vector<T>& out)

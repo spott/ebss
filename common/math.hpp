@@ -538,9 +538,9 @@ std::vector< std::tuple<PetscScalar, int> > VecFirstNSort(Vec a, size_t n, Compa
         std::copy(outint.begin(), outint.end(), allints.begin());
         //std::cout << "got" << std::endl;
 
-        //for (auto a : allscalars)
-            //std::cout << a << ",";
-        //std::cout << std::endl;
+        for (auto a : allscalars)
+            std::cout << a << ",";
+        std::cout << std::endl;
 
         //sort new list:
         for (int i = 0; i != n * size; ++i)
@@ -559,14 +559,23 @@ std::vector< std::tuple<PetscScalar, int> > VecFirstNSort(Vec a, size_t n, Compa
                 }
         }
 
+        //look at list:
+        for (auto a: outscalar)
+            std::cout << a << "[0], " << std::endl;
+
     }
+    //barrier?
+    MPI_Barrier(comm);
     //std::cout << "[" << rank << "]"<< "rebroadcast " << std::endl;
     MPI_Bcast(&outscalar[0], n, MPIU_SCALAR, 0, comm);
     MPI_Bcast(&outint[0], n, MPIU_INT, 0, comm);
 
     //std::cout << "got!" << std::endl;
     for (int i = 0; i < n ;  ++i)
+    {
+        std::cout << outscalar[i] << ", " << outint[i] << std::endl;
         out.push_back(std::make_tuple(outscalar.at(i), outint.at(i)));
+    }
 
 
     return out;
