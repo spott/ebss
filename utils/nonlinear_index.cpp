@@ -196,6 +196,7 @@ int main( int argc, const char** argv )
             //Chi1
             for (auto i = nparams.chi1s().begin(); i != nparams.chi1s().end(); ++i)
             {
+                if (params.rank() == 0) std::cout << "=========================================" << std::endl << *i << std::endl;
                 std::vector< double > freq{(*i) * freqs[f]};
                 Vec p0  = psi(0, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
                 Vec p1  = psi(1, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
@@ -210,6 +211,7 @@ int main( int argc, const char** argv )
                 VecDot(p1c, c , &t2);
                 chi1_data[i - nparams.chi1s().begin()].push_back((t1+t2));
                 if (params.rank() == 0) std::cout << "terms: " << t1 << ", " << t2 << std::endl;
+                if (params.rank() == 0) std::cout << "final: " << (t1 + t2) << std::endl;
                 VecDestroy(&p1);
                 VecDestroy(&p0);
                 VecDestroy(&p1c);
@@ -219,6 +221,7 @@ int main( int argc, const char** argv )
             //Chi3
             for (auto i = nparams.chi3s().begin(); i != nparams.chi3s().end(); ++i)
             {
+                if (params.rank() == 0) std::cout << "=========================================" << std::endl << *i << std::endl;
                 std::sort((*i).begin(), (*i).end());
                 size_t multiplicity = 1;
                 std::array<int, 3> ts{0,0,0};
@@ -270,6 +273,7 @@ int main( int argc, const char** argv )
                     VecDestroy(&p1c);
                     VecDestroy(&p0c);
                 } while (std::next_permutation( (*i).begin(), (*i).end() ) );
+                if (params.rank() == 0) std::cout << "final: " << result << std::endl;
                 chi3_data[i-nparams.chi3s().begin()].push_back(result * static_cast<double>(multiplicity) / static_cast<double>(math::factorial(3)));
             }
             //chi5
@@ -592,7 +596,7 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::
             //}
         //}
 
-        VecPointwiseMult(out, tmp, out);
+        //VecPointwiseMult(out, tmp, out);
         VecPointwiseMult(out, mask, out);
 
         //{
@@ -685,7 +689,7 @@ Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_
             //}
         //}
 
-        VecPointwiseMult(out, tmp, out);
+        //VecPointwiseMult(out, tmp, out);
         VecPointwiseMult(out, mask, out);
 
         //{
