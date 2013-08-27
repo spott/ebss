@@ -540,9 +540,9 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::
     for (int i = 1; i <= order; ++i)
     {
         // D \psi0 = tmp
-        MatMult(D, out, tmp);
+        //MatMult(D, out, tmp);
         // \psi0 = tmp
-        VecCopy(tmp, out);
+        //VecCopy(tmp, out);
         // tmp = H0
         VecCopy(H0, tmp);
         // tmp = tmp - wg
@@ -597,7 +597,7 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::
         //}
 
         //VecPointwiseMult(out, tmp, out);
-        VecPointwiseMult(out, mask, out);
+        //VecPointwiseMult(out, mask, out);
 
         //{
             //auto max = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
@@ -620,9 +620,9 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::
     }
     
     //destroy the temporary
-    VecDestroy(&tmp);
+    //VecDestroy(&tmp);
 
-    return out;
+    return tmp;
 }
 
 Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_begin, std::vector<double>::const_iterator frequencies_end, PetscScalar wg, Vec& H0, Mat& D, Vec& psi0, Vec& mask, std::vector<BasisID>& prototype)
@@ -640,8 +640,8 @@ Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_
 
     for (int i = 1; i <= order; ++i)
     {
-        MatMult(D, out, tmp);
-        VecCopy(tmp, out);
+        //MatMult(D, out, tmp);
+        //VecCopy(tmp, out);
         VecCopy(H0, tmp);
         VecShift(tmp, -wg);
         for (auto a = frequencies_begin + i - 1; a >= frequencies_begin; --a)
@@ -690,7 +690,7 @@ Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_
         //}
 
         //VecPointwiseMult(out, tmp, out);
-        VecPointwiseMult(out, mask, out);
+        //VecPointwiseMult(out, mask, out);
 
         //{
             //auto max = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
@@ -712,7 +712,7 @@ Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_
         //}
     }
 
-    VecDestroy(&tmp);
+    //VecDestroy(&tmp);
 
-    return out;
+    return tmp;
 }
