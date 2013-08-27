@@ -542,7 +542,9 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::
     VecDuplicate(H0, &tmp);
 
     //out starts as psi0
-    VecCopy(psi0, out);
+    //VecCopy(psi0, out);
+    //VecCopy(H0, tmp);
+    VecSet(out, 1.);
 
     //do this "order" times
     for (int i = 1; i <= order; ++i)
@@ -560,7 +562,6 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::
         for (auto a = frequencies_begin + order - i; a < frequencies_begin + order; ++a)
         {
             // tmp = tmp - \sum_a \omega_a
-            std::cout << (*a) << std::endl;
             VecShift(tmp, -(*a));
         }
         // tmp = 1/tmp
@@ -605,7 +606,7 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::
             //}
         //}
 
-        //VecPointwiseMult(out, tmp, out);
+        VecPointwiseMult(out, tmp, out);
         //VecPointwiseMult(out, mask, out);
 
         //{
@@ -629,9 +630,9 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::
     }
     
     //destroy the temporary
-    //VecDestroy(&tmp);
+    VecDestroy(&tmp);
 
-    return tmp;
+    return out;
 }
 
 Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_begin, std::vector<double>::const_iterator frequencies_end, PetscScalar wg, Vec& H0, Mat& D, Vec& psi0, Vec& mask, std::vector<BasisID>& prototype)
@@ -645,7 +646,8 @@ Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_
     MPI_Comm_rank(comm, &rank);
     VecDuplicate(psi0, &out);
     VecDuplicate(H0, &tmp);
-    VecCopy(psi0, out);
+    //VecCopy(psi0, out);
+    VecSet(out, 1.);
 
     for (int i = 1; i <= order; ++i)
     {
@@ -655,7 +657,7 @@ Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_
         VecShift(tmp, -wg);
         for (auto a = frequencies_begin + i - 1; a >= frequencies_begin; --a)
         {
-            std::cout << (*a) << std::endl;
+            //std::cout << (*a) << std::endl;
             VecShift(tmp, (*a) );
         }
         VecReciprocal(tmp);
@@ -699,7 +701,7 @@ Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_
             //}
         //}
 
-        //VecPointwiseMult(out, tmp, out);
+        VecPointwiseMult(out, tmp, out);
         //VecPointwiseMult(out, mask, out);
 
         //{
@@ -722,7 +724,7 @@ Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_
         //}
     }
 
-    //VecDestroy(&tmp);
+    VecDestroy(&tmp);
 
-    return tmp;
+    return out;
 }
