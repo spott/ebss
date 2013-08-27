@@ -186,6 +186,7 @@ int main( int argc, const char** argv )
 
         for( int f = 0; f < freqs.size(); ++f)
         {
+            if (params.rank() == 0) std::cout << f << "(" << freqs[f] << ")" << std::endl;
             PetscScalar t1,t2,t3,t4,t5,t6,t7,t8;
             Vec c;
             VecDuplicate(H0, &c);
@@ -208,6 +209,7 @@ int main( int argc, const char** argv )
                 MatMult(D, p0, c);
                 VecDot(p1c, c , &t2);
                 chi1_data[i - nparams.chi1s().begin()].push_back((t1+t2));
+                if (params.rank() == 0) std::cout << "terms: " << t1 << ", " << t2 << std::endl;
                 VecDestroy(&p1);
                 VecDestroy(&p0);
                 VecDestroy(&p1c);
@@ -258,6 +260,7 @@ int main( int argc, const char** argv )
                     MatMult(D, p0, c);
                     VecDot(p3c ,c,  &t4);
                     result += (t1 + t2 + t3 + t4);
+                    if (params.rank() == 0) std::cout << "terms: " << t1 << ", " << t2 << ", " << t3 << ", " << t4 << std::endl;
                     VecDestroy(&p3);
                     VecDestroy(&p2);
                     VecDestroy(&p1);
@@ -290,29 +293,29 @@ int main( int argc, const char** argv )
                 PetscScalar result;
                 do {
                     std::vector< double > freq{(*i)[0] * freqs[f], (*i)[1] * freqs[f], (*i)[2] * freqs[f], (*i)[3] * freqs[f], (*i)[4] * freqs[f]};
-                    if (params.rank() == 0) std::cout << "p5: " << std::endl;
+                    //if (params.rank() == 0) std::cout << "p5: " << std::endl;
                     Vec p5  = psi(5, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
-                    if (params.rank() == 0) std::cout << "p4: " << std::endl;
+                    //if (params.rank() == 0) std::cout << "p4: " << std::endl;
                     Vec p4  = psi(4, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
-                    if (params.rank() == 0) std::cout << "p3: " << std::endl;
+                    //if (params.rank() == 0) std::cout << "p3: " << std::endl;
                     Vec p3  = psi(3, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
-                    if (params.rank() == 0) std::cout << "p2: " << std::endl;
+                    //if (params.rank() == 0) std::cout << "p2: " << std::endl;
                     Vec p2  = psi(2, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
-                    if (params.rank() == 0) std::cout << "p1: " << std::endl;
+                    //if (params.rank() == 0) std::cout << "p1: " << std::endl;
                     Vec p1  = psi(1, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
-                    if (params.rank() == 0) std::cout << "p0: " << std::endl;
+                    //if (params.rank() == 0) std::cout << "p0: " << std::endl;
                     Vec p0  = psi(0, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
-                    if (params.rank() == 0) std::cout << "p5c: " << std::endl;
+                    //if (params.rank() == 0) std::cout << "p5c: " << std::endl;
                     Vec p5c = psi_conjugate(5, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
-                    if (params.rank() == 0) std::cout << "p4c: " << std::endl;
+                    //if (params.rank() == 0) std::cout << "p4c: " << std::endl;
                     Vec p4c = psi_conjugate(4, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
-                    if (params.rank() == 0) std::cout << "p3c: " << std::endl;
+                    //if (params.rank() == 0) std::cout << "p3c: " << std::endl;
                     Vec p3c = psi_conjugate(3, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
-                    if (params.rank() == 0) std::cout << "p2c: " << std::endl;
+                    //if (params.rank() == 0) std::cout << "p2c: " << std::endl;
                     Vec p2c = psi_conjugate(2, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
-                    if (params.rank() == 0) std::cout << "p1c: " << std::endl;
+                    //if (params.rank() == 0) std::cout << "p1c: " << std::endl;
                     Vec p1c = psi_conjugate(1, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
-                    if (params.rank() == 0) std::cout << "p0c: " << std::endl;
+                    //if (params.rank() == 0) std::cout << "p0c: " << std::endl;
                     Vec p0c = psi_conjugate(0, freq.cbegin(), freq.cend(), wg, H0, D, psi0, mask, prototype);
 
                     // chi5 = <\psi^(0) | D | \psi^(5)>
@@ -333,7 +336,7 @@ int main( int argc, const char** argv )
                     //      + <\psi^(5) | D | \psi^(0)>
                     MatMult(D, p0, c);
                     VecDot(p5c ,c,  &t6);
-                    if (params.rank() == 0) std::cout << "terms: " << t1 << ", " << t2 << ", " << t3 << ", " << t4 << std::endl;
+                    if (params.rank() == 0) std::cout << "terms: " << t1 << ", " << t2 << ", " << t3 << ", " << t4 << ", " << t5 << ", " << t6 << std::endl;
                     result += (t1 + t2 + t3 + t4);
                     VecDestroy(&p5);
                     VecDestroy(&p4);
@@ -426,7 +429,7 @@ int main( int argc, const char** argv )
                     //      + <\psi^(7) | D | \psi^(0)>
                     MatMult(D, p0, c);
                     VecDot(p7c ,c,  &t8);
-                    if (params.rank() == 0) std::cout << "terms: " << t1 << ", " << t2 << ", " << t3 << ", " << t4 << std::endl;
+                    if (params.rank() == 0) std::cout << "terms: " << t1 << ", " << t2 << ", " << t3 << ", " << t4 << ", " << t5 << ", " << t6 << ", " << t7 << ", " << t8 << std::endl;
                     result += (t1 + t2 + t3 + t4 + t5 + t6 + t7 + t8);
                     VecDestroy(&p7);
                     VecDestroy(&p6);
@@ -450,7 +453,6 @@ int main( int argc, const char** argv )
                 chi7_data[i - nparams.chi7s().begin()].push_back( result * static_cast<double>(multiplicity) / static_cast<double>(math::factorial(5)));
             }
 
-            if (params.rank() == 0) std::cout << "..." << f << "(" << freqs[f] << ")" << std::flush;
             VecDestroy(&c);
         }
         H0 = params.read_energy_eigenvalues();

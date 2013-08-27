@@ -39,6 +39,11 @@ def import_complex_vector( filename ):
         npy = numpy.fromfile(f, numpy.complex128, -1)
         return npy
 
+def import_vector( filename ):
+    with open (filename, "rb") as f:
+        npy = numpy.fromfile(f, numpy.float64, -1)
+        return npy
+
 def import_petsc_vec( filename ):
     with open(filename, "rb") as f:
         byte = f.read(8)
