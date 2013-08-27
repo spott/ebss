@@ -34,7 +34,7 @@ public:
             std::cout << fname << std::endl;
             if (! opt.importFile(fname.c_str(), '#'))
             {
-                std::cout << "file must exist!" << std::endl;
+                std::cerr << "file must exist!" << std::endl;
                 throw std::exception();
             }
         }
@@ -80,6 +80,7 @@ public:
             try {
             basis_ = new BasisParameters<write_type_, write_type_>(basis_config_, comm_);
             } catch (std::exception e) {
+                std::cerr << "couldn't create basisparams" << std::endl;
             }
 
         //std::cout << basis_config_ << std::endl;
