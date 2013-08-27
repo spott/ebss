@@ -61,9 +61,24 @@ int main( int argc, const char** argv )
     std::cout << std::scientific;
 
     //read in the matrices
-    Mat D = params.read_dipole_matrix();
+    //Mat D = params.read_dipole_matrix();
     Vec H0 = params.read_energy_eigenvalues();
+    std::cout << prototype.size() << std::endl;
+    int size;
+    VecGetSize(H0,&size);
+    std::cout << size << std::endl;
 
+    assert(size == prototype.size());
+    std::function<bool (int, int)> dipole_selection_rules = [prototype](int i, int j) {
+            return (std::abs(prototype[i].l - prototype[j].l) == 1 || i == j );
+        };
+   
+    Mat D = common::populate_matrix< std::complex<double> >(params, 
+                                    dipole_selection_rules, 
+                                    [](int i, int j) {return 1.; }, 
+                                    prototype.size(),
+                                    prototype.size(), true);
+    
     //Vec maximums;
     //VecDuplicate(H0, &maximums);
     //int* locations;
@@ -205,7 +220,6 @@ int main( int argc, const char** argv )
 
                 // chi1 = <\psi^(0) | D | \psi^(1)>
                 MatMult(D, p1, c);
-                VecCopy(p1, c);
                 VecDot(p0c, c, &t1);
                 // chi1 = <\psi^(1) | D | \psi^(0)>
                 MatMult(D, p0, c);
@@ -254,19 +268,15 @@ int main( int argc, const char** argv )
 
                     // chi3 = <\psi^(0) | D | \psi^(3)>
                     MatMult(D, p3, c);
-                    VecCopy(p3, c);
                     VecDot(p0c ,c,  &t1);
                     //      + <\psi^(1) | D | \psi^(2)>
                     MatMult(D, p2, c);
-                    VecCopy(p2, c);
                     VecDot(p1c ,c,  &t2);
                     //      + <\psi^(2) | D | \psi^(1)>
                     MatMult(D, p1, c);
-                    VecCopy(p1, c);
                     VecDot(p2c ,c,  &t3);
                     ////      + <\psi^(3) | D | \psi^(0)>
                     MatMult(D, p0, c);
-                    VecCopy(p0, c);
                     VecDot(p3c ,c,  &t4);
                     result += (t1 + t2 + t3 + t4);
                     if (params.rank() == 0) std::cout << "terms: " << t1 << ", " << t2 << ", " << t3 << ", " << t4 << std::endl;
@@ -330,27 +340,21 @@ int main( int argc, const char** argv )
 
                     // chi5 = <\psi^(0) | D | \psi^(5)>
                     MatMult(D, p5, c);
-                    VecCopy(p5, c);
                     VecDot(p0c ,c,  &t1);
                     //      + <\psi^(1) | D | \psi^(4)>
                     MatMult(D, p4, c);
-                    VecCopy(p4, c);
                     VecDot(p1c ,c,  &t2);
                     //      + <\psi^(2) | D | \psi^(3)>
                     MatMult(D, p3, c);
-                    VecCopy(p3, c);
                     VecDot(p2c ,c,  &t3);
                     //      + <\psi^(2) | D | \psi^(3)>
                     MatMult(D, p2, c);
-                    VecCopy(p2, c);
                     VecDot(p3c ,c,  &t4);
                     //      + <\psi^(4) | D | \psi^(1)>
                     MatMult(D, p1, c);
-                    VecCopy(p1, c);
                     VecDot(p4c ,c,  &t5);
                     //      + <\psi^(5) | D | \psi^(0)>
                     MatMult(D, p0, c);
-                    VecCopy(p0, c);
                     VecDot(p5c ,c,  &t6);
                     if (params.rank() == 0) std::cout << "terms: " << t1 << ", " << t2 << ", " << t3 << ", " << t4 << ", " << t5 << ", " << t6 << std::endl;
                     result += (t1 + t2 + t3 + t4);
@@ -411,35 +415,27 @@ int main( int argc, const char** argv )
 
                     // chi7 = <\psi^(0) | D | \psi^(7)>
                     MatMult(D, p7, c);
-                    VecCopy(p7, c);
                     VecDot(p0c ,c,  &t1);
                     //      + <\psi^(1) | D | \psi^(6)>
                     MatMult(D, p6, c);
-                    VecCopy(p6, c);
                     VecDot(p1c ,c,  &t2);
                     //      + <\psi^(2) | D | \psi^(5)>
                     MatMult(D, p5, c);
-                    VecCopy(p5, c);
                     VecDot(p2c ,c,  &t3);
                     //      + <\psi^(3) | D | \psi^(4)>
                     MatMult(D, p4, c);
-                    VecCopy(p4, c);
                     VecDot(p3c ,c,  &t4);
                     //      + <\psi^(4) | D | \psi^(3)>
                     MatMult(D, p3, c);
-                    VecCopy(p3, c);
                     VecDot(p4c ,c,  &t5);
                     //      + <\psi^(5) | D | \psi^(2)>
                     MatMult(D, p2, c);
-                    VecCopy(p2, c);
                     VecDot(p5c ,c,  &t6);
                     //      + <\psi^(6) | D | \psi^(1)>
                     MatMult(D, p1, c);
-                    VecCopy(p1, c);
                     VecDot(p6c ,c,  &t7);
                     //      + <\psi^(7) | D | \psi^(0)>
                     MatMult(D, p0, c);
-                    VecCopy(p0, c);
                     VecDot(p7c ,c,  &t8);
                     if (params.rank() == 0) std::cout << "terms: " << t1 << ", " << t2 << ", " << t3 << ", " << t4 << ", " << t5 << ", " << t6 << ", " << t7 << ", " << t8 << std::endl;
                     result += (t1 + t2 + t3 + t4 + t5 + t6 + t7 + t8);
@@ -542,17 +538,17 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::
     VecDuplicate(H0, &tmp);
 
     //out starts as psi0
-    //VecCopy(psi0, out);
+    VecCopy(psi0, out);
     //VecCopy(H0, tmp);
-    VecSet(out, 1.);
+    //VecSet(out, 1.);
 
     //do this "order" times
     for (int i = 1; i <= order; ++i)
     {
         // D \psi0 = tmp
-        //MatMult(D, out, tmp);
+        MatMult(D, out, tmp);
         // \psi0 = tmp
-        //VecCopy(tmp, out);
+        VecCopy(tmp, out);
         // tmp = H0
         VecCopy(H0, tmp);
         // tmp = tmp - wg
@@ -607,7 +603,7 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin, std::
         //}
 
         VecPointwiseMult(out, tmp, out);
-        //VecPointwiseMult(out, mask, out);
+        VecPointwiseMult(out, mask, out);
 
         //{
             //auto max = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
@@ -646,13 +642,13 @@ Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_
     MPI_Comm_rank(comm, &rank);
     VecDuplicate(psi0, &out);
     VecDuplicate(H0, &tmp);
-    //VecCopy(psi0, out);
-    VecSet(out, 1.);
+    VecCopy(psi0, out);
+    //VecSet(out, 1.);
 
     for (int i = 1; i <= order; ++i)
     {
-        //MatMult(D, out, tmp);
-        //VecCopy(tmp, out);
+        MatMult(D, out, tmp);
+        VecCopy(tmp, out);
         VecCopy(H0, tmp);
         VecShift(tmp, -wg);
         for (auto a = frequencies_begin + i - 1; a >= frequencies_begin; --a)
@@ -702,7 +698,7 @@ Vec psi_conjugate( int order, std::vector< double >::const_iterator frequencies_
         //}
 
         VecPointwiseMult(out, tmp, out);
-        //VecPointwiseMult(out, mask, out);
+        VecPointwiseMult(out, mask, out);
 
         //{
             //auto max = math::VecFirstNSort(out, number, []( PetscScalar a, PetscScalar b) { return a.real() > b.real(); });
