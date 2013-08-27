@@ -91,34 +91,39 @@ public:
 
         //If we are bigger than the basis we are using, shrink to fit, and print an error message:
         //create the prototype file:
+
         this->prototype_.resize(0);
         if (!analytic_)
         {
-            this->prototype_.reserve(this->basis_->basis_prototype()->size());
+            if (opt.isSet("-hamiltonian_config"))
+                this->prototype_ = common::import_vector_binary<BasisID>(this->prototype_filename());
+            else {
+                this->prototype_.reserve(this->basis_->basis_prototype()->size());
 
-            for(const auto i: *(this->basis_->basis_prototype()))
-            {
-                if (i.n < this->nmax() && i.l < this->lmax())
-                    this->prototype_.push_back(i);
-            }
-            if (this->nmax() > this->basis_->nmax() || this->lmax() > this->basis_->lmax() )
-            {
-                if (this->rank() == 0) 
+                for(const auto i: *(this->basis_->basis_prototype()))
                 {
-                    std::cerr << output::red;
-                    std::cerr << "======================ERROR========================" << std::endl;
-                    std::cerr << "=The basis you are attempting to use is smaller   =" << std::endl;
-                    std::cerr << "= than requested, your requested values have been =" << std::endl;
-                    std::cerr << "= changed to fit                                  =" << std::endl;
-                    std::cerr << "======================ERROR========================" << std::endl;
-                    std::cerr << output::reset;
+                    if (i.n < this->nmax() && i.l < this->lmax())
+                        this->prototype_.push_back(i);
                 }
-                if (nmax_ > this->basis_->nmax())
-                    nmax_ = this->basis_->nmax();
-                if (lmax_ > this->basis_->lmax())
-                    lmax_ = this->basis_->lmax();
+                if (this->nmax() > this->basis_->nmax() || this->lmax() > this->basis_->lmax() )
+                {
+                    if (this->rank() == 0) 
+                    {
+                        std::cerr << output::red;
+                        std::cerr << "======================ERROR========================" << std::endl;
+                        std::cerr << "=The basis you are attempting to use is smaller   =" << std::endl;
+                        std::cerr << "= than requested, your requested values have been =" << std::endl;
+                        std::cerr << "= changed to fit                                  =" << std::endl;
+                        std::cerr << "======================ERROR========================" << std::endl;
+                        std::cerr << output::reset;
+                    }
+                    if (nmax_ > this->basis_->nmax())
+                        nmax_ = this->basis_->nmax();
+                    if (lmax_ > this->basis_->lmax())
+                        lmax_ = this->basis_->lmax();
+                }
+                this->prototype_.shrink_to_fit();
             }
-            this->prototype_.shrink_to_fit();
         }
         else
         {
