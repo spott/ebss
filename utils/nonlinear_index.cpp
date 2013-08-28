@@ -61,7 +61,7 @@ int main( int argc, const char** argv )
     std::cout << std::scientific;
 
     //read in the matrices
-    //Mat D = params.read_dipole_matrix();
+    Mat D = params.read_dipole_matrix();
     Vec H0 = params.read_energy_eigenvalues();
     std::cout << prototype.size() << std::endl;
     int size;
@@ -73,11 +73,11 @@ int main( int argc, const char** argv )
             return (std::abs(prototype[i].l - prototype[j].l) == 1 || i == j );
         };
    
-    Mat D = common::populate_matrix< std::complex<double> >(params, 
-                                    dipole_selection_rules, 
-                                    [](int i, int j) {return 1.; }, 
-                                    prototype.size(),
-                                    prototype.size(), true);
+    //Mat D = common::populate_matrix< std::complex<double> >(params, 
+                                    //dipole_selection_rules, 
+                                    //[](int i, int j) {return 1.; }, 
+                                    //prototype.size(),
+                                    //prototype.size(), true);
     
     //Vec maximums;
     //VecDuplicate(H0, &maximums);
