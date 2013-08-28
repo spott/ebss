@@ -86,7 +86,7 @@ int main( int argc, const char** argv )
     //VecView(maximums, PETSC_VIEWER_STDOUT_WORLD);
 
     //create a mask for bound states:
-    Vec mask = common::map_function(H0, [](PetscScalar in) { return 1; });
+    Vec mask = common::map_function(H0, [](PetscScalar in) { return (std::abs(in + .5) <= 1e-8) ? 0 : 1; });
 
     auto imgs = nparams.imgs();
     //VecShift(H0, std::complex<double>(0,-.00001));
