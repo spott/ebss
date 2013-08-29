@@ -86,6 +86,19 @@ std::ostream& operator<<(std::ostream &out, const std::array<T, N> &b) //output 
     return out;
 }
 
+template< typename T, size_t N>
+bool operator<( const std::array<T, N> &a, const std::array<T, N> &b )
+{
+    for (size_t i = 0; i < N; ++i)
+    {
+        if (a[i] < b[i])
+            return true;
+        else if (a[i] > b[i])
+            return false;
+    }
+    return false;
+}
+
 namespace std {
 template<>
 struct hash< BasisID > {
