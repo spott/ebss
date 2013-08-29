@@ -101,6 +101,14 @@ public:
                 throw("chi7 arguments can only be 7 element long");
             chi7s_.push_back({{a[0], a[1], a[2], a[3], a[4], a[5], a[6]}});
         }
+        temp.clear();
+        opt.get("-nonlinear_chi9")->getMultiInts(temp);
+        for( auto a : temp)
+        {
+            if (a.size() != 9)
+                throw("chi9 arguments can only be 9 element long");
+            chi7s_.push_back({{a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]}});
+        }
 
         //sort them:
         std::sort(chi1s_.begin(), chi1s_.end());
@@ -174,6 +182,49 @@ public:
                     }
                 }});
 
+        std::sort(chi9s_.begin(), chi9s_.end(), [](std::array<int,9> a,std::array<int,9> b){ 
+                if (a[0] < b[0]) return true;
+                else if (a[0] >  b[0]) return false;
+                else if (a[0] == b[0])
+                {
+                    if (a[1] < b[1]) return true;
+                    else if (a[1] >  b[1]) return false;
+                    else if (a[1] == b[1])
+                    {
+                        if (a[2] < b[2]) return true;
+                        else if (a[2] >  b[2]) return false;
+                        else if (a[2] == b[2])
+                        {
+                            if (a[3] < b[3]) return true;
+                            else if (a[3] >  b[3]) return false;
+                            else if (a[3] == b[3])
+                            {
+                                if (a[4] < b[4]) return true;
+                                else if (a[4] >  b[4]) return false;
+                                else if (a[4] == b[4])
+                                {
+                                    if (a[5] < b[5]) return true;
+                                    else if (a[5] >  b[5]) return false;
+                                    else if (a[5] == b[5])
+                                    {
+                                        if (a[6] < b[6]) return true;
+                                        else if (a[6] >  b[6]) return false;
+                                        else if (a[6] == b[6])
+                                        {
+                                            if (a[7] < b[7]) return true;
+                                            else if (a[7] >  b[7]) return false;
+                                            else if (a[7] == b[7])
+                                            {
+                                                if (a[8] < b[8]) return true;
+                                                else if (a[8] >=  b[8]) return false;
+                                            }
+                                        }
+                                }
+                            }
+                        }
+                    }
+                }});
+
     };
 
     std::string print() const;
@@ -185,6 +236,7 @@ public:
     std::vector< std::array<int, 3> >& chi3s() { return chi3s_; };
     std::vector< std::array<int, 5> >& chi5s() { return chi5s_; };
     std::vector< std::array<int, 7> >& chi7s() { return chi7s_; };
+    std::vector< std::array<int, 9> >& chi9s() { return chi9s_; };
 
 
 private:
@@ -197,6 +249,7 @@ private:
     std::vector< std::array<int, 3> > chi3s_;
     std::vector< std::array<int, 5> > chi5s_;
     std::vector< std::array<int, 7> > chi7s_;
+    std::vector< std::array<int, 9> > chi9s_;
     std::vector< double > freqs_;
     std::vector< double > imgs_;
 };
@@ -225,6 +278,13 @@ std::string NonlinearParameters::print() const
     for( auto a : chi7s_ )
     {
         out << "nonlinear_chi7 ";
+        for (auto b : a)
+            out << b << ",";
+        out << std::endl;
+    }
+    for( auto a : chi9s_ )
+    {
+        out << "nonlinear_chi9 ";
         for (auto b : a)
             out << b << ",";
         out << std::endl;
@@ -294,6 +354,14 @@ void NonlinearParameters::register_parameters()
             ',',
             "the frequencies for a chi7 run (1, 0, -1) are the only allowed values, for example, third harmonic generation is 1,1,1 and n2 will use 1,0,0 or 1,-1,1",
             std::string(prefix).append("chi7\0").c_str()
+           );
+    opt.add(
+            "",
+            0,
+            9,
+            ',',
+            "the frequencies for a chi9 run (1, 0, -1) are the only allowed values, for example, third harmonic generation is 1,1,1 and n2 will use 1,0,0 or 1,-1,1",
+            std::string(prefix).append("chi9\0").c_str()
            );
     opt.add(
             "",
