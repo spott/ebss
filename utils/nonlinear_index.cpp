@@ -194,6 +194,8 @@ int main( int argc, const char** argv )
     for( auto a : chi7_data) a.reserve( freqs.size() * imgs.size());
     std::vector< std::vector< std::complex<double> > > chi9_data( nparams.chi9s().size());
     for( auto a : chi9_data) a.reserve( freqs.size() * imgs.size());
+    std::vector< std::vector< std::complex<double> > > chi11_data( nparams.chi11s().size());
+    for( auto a : chi11_data) a.reserve( freqs.size() * imgs.size());
 
     for(auto i : imgs)
     {
@@ -205,7 +207,7 @@ int main( int argc, const char** argv )
         for( int f = 0; f < freqs.size(); ++f)
         {
             if (params.rank() == 0) std::cout << f << "(" << freqs[f] << ")" << std::endl;
-            PetscScalar t1,t2,t3,t4,t5,t6,t7,t8, t9, t10;
+            PetscScalar t1,t2,t3,t4,t5,t6,t7,t8, t9, t10, t11, t12;
             Vec c;
             VecDuplicate(H0, &c);
             //we need to loop through all permutations of all chi types:
