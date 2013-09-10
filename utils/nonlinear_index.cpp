@@ -737,6 +737,17 @@ int main( int argc, const char** argv )
         common::export_vector_binary( ss.str(), *a);
         ss.str("");
     }
+    ss.str("");
+    for( auto a = chi11_data.begin(); a != chi11_data.end(); ++a)
+    {
+        ss << "chi11_" ;
+        for( auto b : nparams.chi11s()[a - chi11_data.begin()])
+            ss << b << "_";
+        ss << ".dat";
+        common::export_vector_binary( ss.str(), *a);
+        ss.str("");
+    }
+    ss.str("");
 
     std::cout << std::endl << "done with general code." <<std::endl;
 
