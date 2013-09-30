@@ -184,7 +184,7 @@ namespace numerov
                         }
                         if (!in_well)
                         {
-                            w = std::array<int,2>{int(i), -1};
+                            w = std::array<int,2>{{int(i), -1}};
                             in_well = true;
                         }
                     }

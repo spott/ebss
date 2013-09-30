@@ -5,6 +5,7 @@ include ../makefile.include
 
 #OMPI_CXX=g++
 
+OMPI_CXX=clang++-HEAD
 TESTS=bspline/bspline-test.cpp
 SOURCES=findbasis.cpp
 OBJECTS=$(SOURCES:.cpp=.o)

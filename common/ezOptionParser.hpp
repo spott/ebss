@@ -329,7 +329,7 @@ static char** CommandLineToArgvA(char* CmdLine, int* _argc) {
   i = 0;
   j = 0;
 
-  while( a = CmdLine[i] ) {
+  while( (a = CmdLine[i]) ) {
     if(in_QM) {
       if( (a == '\"') ||
           (a == '\'')) // rsz. Added single quote.
@@ -2114,7 +2114,7 @@ void ezOptionParser::prettyPrint(std::string & out) {
               sprintf(tmp, "%s%c", g->args[k]->at(j)->c_str(), g->delim);
               out += tmp;
             }
-            sprintf(tmp, "%s\n", g->args[k]->back()->c_str(), g->delim);
+            sprintf(tmp, "%s\n", g->args[k]->back()->c_str());
             out += tmp;
           }
         }
