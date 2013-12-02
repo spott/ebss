@@ -368,7 +368,7 @@ size_t factorial( size_t n, size_t acc = 1 )
 
 std::vector<double> gsl_coulomb_wave_function(const kBasisID& a, const std::vector<double>& grid)
 {
-    int Z = 1;
+    //int Z = 1;
     std::vector<double> cv;
     cv.reserve(grid.size());
     double* val = new double[1];

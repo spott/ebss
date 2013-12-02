@@ -36,7 +36,7 @@ main(int argc, const char ** argv)
     }
     PetscInitialize(&ac, &av, PETSC_NULL, PETSC_NULL);
 
-    PetscViewer view;
+    //PetscViewer view;
     PetscBool flg = PETSC_FALSE;
     char bagname[PETSC_MAX_PATH_LEN];
     PetscOptionsGetString(PETSC_NULL, "-hamiltonian_config", bagname, PETSC_MAX_PATH_LEN, &flg);
@@ -76,7 +76,7 @@ main(int argc, const char ** argv)
     Vec H; //The eigenvalues of the field free hamiltonian
     Vec wf; //The vec we are going to propagate
     Mat A; //The matrix we are using durring the solving
-    TS ts; //The timestep context
+    //TS ts; //The timestep context
     context* cntx = new context; //The context that we will pass around
 
     //fill the context:

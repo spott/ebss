@@ -381,7 +381,7 @@ namespace common
     template <typename T>
     std::vector<T> import_vector_ascii(const std::string &filename)
     {
-        char* buffer;
+        //char* buffer = nullptr;
         std::vector<T> vec;
         std::ifstream file;
         file.open(filename.c_str());
@@ -401,7 +401,7 @@ namespace common
             throw new std::exception();
         }
 
-        delete[] buffer;
+        //delete[] buffer;
         return vec;
    };
 

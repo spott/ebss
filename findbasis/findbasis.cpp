@@ -155,23 +155,3 @@ int main(int argc, const char **argv)
     SlepcFinalize();
     return 0;
 }
-
-
-/**************************************
- *
- * We need to design an interface for the 
- * basis finder.  The potential function,
- * sans the angular term, seems most appropriate.
- * It seems unlikely that I will ever be using this code 
- * (without major modification) on non-spherically
- * symmetric code.
- *
- * find_basis_set< ScalarType >( potential function, l_value , BasisParameters)
- *
- * This should be all that is needed.  So using different
- * find_basis functions, SHOULD make this fairly uniform.
- *
- * Different grids should be usable, but the grid should be in the
- * parameters class anyways.
- *
- **************************************/
