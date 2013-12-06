@@ -61,24 +61,30 @@ class PulsetrainParameters : public LaserParameters
 
 std::array<std::vector<double>, 2> PulsetrainParameters::test() const
 {
-    std::array<std::vector<double>, 2> out;
-    out[0].reserve( max_time() / this->dt() );
-    out[1].reserve( max_time() / this->dt() );
+    std::array<std::vector<double>, 2> out{
+        {std::vector<double>( max_time() / this->dt() ),
+         std::vector<double>( max_time() / this->dt() )}};
+
+
+    out[0].clear();
+    out[1].clear();
+    //out[0].reserve( max_time() / this->dt() );
+    //out[1].reserve( max_time() / this->dt() );
 
     double t = 0.0;
 
     while ( t < max_time() )
     {
-        if ( in_pulse(t) )
-        {
-            out[0].push_back(t);
-            out[1].push_back(this->efield(t).imag());
-            t += this->dt();
-        }
-        else
-        {
-            t = next_pulse_start(t);
-        }
+        //if ( in_pulse(t) )
+        //{
+        out[0].push_back(t);
+        out[1].emplace_back(this->efield(t).real());
+        t += this->dt();
+        //}
+        //else
+        //{
+            //t = next_pulse_start(t);
+        //}
     }
 
     out[0].shrink_to_fit();

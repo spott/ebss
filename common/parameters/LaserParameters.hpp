@@ -194,7 +194,7 @@ PetscScalar LaserParameters::envelope( PetscReal t, PetscReal t_start ) const
 {
     if ( t < t_start || t > t_start + pulse_length() ) return 0;
 
-    PetscReal efield;
+    PetscReal efield = 0.0;
     if ( t >= t_start && t < t_start + pulse_length() / 2. )
         efield = std::pow( std::sin( this->frequency() * ( t - t_start ) /
                                      ( this->cycles() * 2 ) ),
@@ -228,7 +228,7 @@ LaserParameters::read_efield( std::string filename ) const
 
 PetscScalar LaserParameters::efield( PetscReal t, PetscReal phase ) const
 {
-    if ( t < pulse_length() || t < 0)
+    if ( t > pulse_length() || t < 0)
         return 0.0;
     //if ( t * this->frequency() / ( this->cycles() * 2 ) > math::PI || t < 0 )
     PetscReal efield = std::sqrt( this->intensity() );
