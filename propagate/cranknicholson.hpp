@@ -177,7 +177,7 @@ solve(Vec *wf, context* cntx, Mat *A)
             //VecView(*wf, view);
         //}
 
-        if (!(step%10))
+        if (true) //(!(step%10))
         {
             time.push_back( t );
             efvec.push_back( ef.real() );
