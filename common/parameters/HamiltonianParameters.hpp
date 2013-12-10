@@ -100,11 +100,6 @@ public:
             else {
                 this->prototype_.reserve(this->basis_->basis_prototype()->size());
 
-                for(const auto i: *(this->basis_->basis_prototype()))
-                {
-                    if (i.n < this->nmax() && i.l < this->lmax())
-                        this->prototype_.push_back(i);
-                }
                 if (this->nmax() > this->basis_->nmax() || this->lmax() > this->basis_->lmax() )
                 {
                     if (this->rank() == 0) 
@@ -122,17 +117,73 @@ public:
                     if (lmax_ > this->basis_->lmax())
                         lmax_ = this->basis_->lmax();
                 }
+                //make the prototype... be sure to order by l's first, then j's then n's.
+
+                auto start = this->basis_->basis_prototype()->begin();
+                auto end = this->basis_->basis_prototype()->end();
+                if (fs_)
+                    for(int l = 0; l <= lmax_; ++l )
+                    {
+                        for (int j = 2 * l - 1 ; j <= 2*l+1; j+=2)
+                        {
+                            if (j < 0)
+                                continue;
+                            for (int n = 1; n <= nmax_; ++n)
+                            {
+                                if (l <= n-1)
+                                {
+                                    auto loc = std::find_if(
+                                            start, end, [n, l, j](const BasisID& a ) {
+                                            return a.n == n && a.l == l && a.j == j;
+                                            } );
+                                    if (loc == end)
+                                        throw std::out_of_range("didn't find the value we were looking for when making the prototype");
+                                    else
+                                        prototype_.push_back(*loc);
+                                }
+                                else continue;
+                            }
+                        }
+                    }
+                else
+                    for(int l = 0; l <= lmax_; ++l )
+                    {
+                        for (int n = 1; n <= nmax_; ++n)
+                        {
+                            if (l <= n-1)
+                            {
+                                auto loc = std::find_if(
+                                    start, end, [n, l](const BasisID& a ) {
+                                        return a.n == n && a.l == l;
+                                    } );
+                                if (loc == end)
+                                    throw std::out_of_range("didn't find the value we were looking for when making the prototype");
+                                else
+                                    prototype_.push_back(*loc);
+                            }
+                            else continue;
+                        }
+                    }
+                //for(const auto i: *(this->basis_->basis_prototype()))
+                //{
+                    //if (i.n < this->nmax() && i.l < this->lmax())
+                        //this->prototype_.push_back(i);
+                //}
                 this->prototype_.shrink_to_fit();
             }
         }
         else
         {
             //make the prototype:
-            for(int n = 1; n <= nmax_; ++n)
+            //go though l's first, then n's to reduce communication:
+            for(int l = 0; l <= lmax_; ++l )
             {
-                for(int l = 0; l <= std::min(n-1,lmax_); ++l)
+                for (int n = 1; n <= nmax_; ++n)
                 {
-                    prototype_.push_back( {n, l, 0, 0, std::complex<double>( -1./(2. * n * n), 0) } );
+                    if (l <= n-1)
+                        prototype_.push_back( {n, l, 0, 0, std::complex<double>( -1./(2. * n * n), 0) } );
+                    else
+                        continue;
                 }
             }
         }

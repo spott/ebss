@@ -36,9 +36,9 @@ solve(Vec *wf, context* cntx, Mat *A)
     Vec             prob;
     PetscReal       norm;
     PetscInt        zero = 0;
-    PetscInt        p = 0;
-    PetscReal       period = maxtime / (8 * cntx->laser->cycles()) ;
-    PetscReal       p0 = period;
+    //PetscInt        p = 0;
+    //PetscReal       period = maxtime / (8 * cntx->laser->cycles()) ;
+    //PetscReal       p0 = period;
 
     if (cntx->hparams->rank() == 0)
         std::cout << "maxtime: " << maxtime << " steps: " << maxtime/cntx->laser->dt() << " pulse length: " << cntx->laser->pulse_length() << std::endl;

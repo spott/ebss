@@ -29,7 +29,7 @@ extern "C" {
 namespace math{
 //Constants:
 
-constexpr PetscReal PI = std::atan(1.0)*4.0;
+const PetscReal PI = std::atan(1.0)*4.0;
 const PetscReal C = 137.035999;
 
 template <typename T> inline constexpr
@@ -300,7 +300,6 @@ scalar integrateTrapezoidRule(const std::vector<scalar> &psi1, const std::vector
 {
     //we assume that we only have one grid size that we ever integrate, so we create the difference grid:
     static const std::vector<scalar> dg = [&grid] {
-        std::cout << "creating the vector" << std::endl;
         std::vector<scalar> v;
         v.reserve(grid.size());
         v.push_back(grid[0]/2.);
@@ -359,16 +358,17 @@ std::vector< double > coulomb_wave_function(kBasisID a, const std::vector<double
     }
     return cv;
 }
-size_t factorial(size_t n)
+
+//tail call recursion for the win!
+size_t factorial( size_t n, size_t acc = 1 )
 {
-    if (n == 0)
-        return 1;
-    return n * factorial(n-1);
-};
+    if ( n == 0 ) return acc;
+    return factorial( n - 1, n * acc );
+}
 
 std::vector<double> gsl_coulomb_wave_function(const kBasisID& a, const std::vector<double>& grid)
 {
-    int Z = 1;
+    //int Z = 1;
     std::vector<double> cv;
     cv.reserve(grid.size());
     double* val = new double[1];
