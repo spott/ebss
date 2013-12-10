@@ -155,9 +155,9 @@ int main(int argc, const char ** argv)
     {
         dipole_selection_rules = [prototype](int i, int j) {
             // since j is multiplied by 2, need to have a 2 between them.
-            return ( std::abs(prototype[i].l - prototype[j].l) == 1 && (
-                        std::abs(prototype[i].j - prototype[j].j) == 2 || 
-                        prototype[i].j == prototype[j].j ) || 
+            return ( (std::abs(prototype[i].l - prototype[j].l) == 1 && 
+                        (std::abs(prototype[i].j - prototype[j].j) == 2 || 
+                        prototype[i].j == prototype[j].j )) || 
                     i == j);
         };
     } 
