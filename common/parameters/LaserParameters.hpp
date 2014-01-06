@@ -116,8 +116,12 @@ void LaserParameters::get_parameters()
 std::string LaserParameters::print() const
 {
     std::ostringstream out;
+	out << std::scientific;
+	out.precision(15);
     out << "laser_lambda: " << lambda_ << std::endl;
     out << "laser_intensity: " << intensity_ << std::endl;
+	out.unsetf ( std::ios::floatfield )
+	out.precision(5);
     out << "laser_cep: " << cep_ << std::endl;
     out << "laser_cycles: " << cycles_ << std::endl;
     out << "laser_dt: " << dt_ << std::endl;
@@ -131,9 +135,13 @@ std::string LaserParameters::print() const
 void LaserParameters::save_parameters() const
 {
     std::ofstream file;
-    file.open( std::string( "./Laser.config" ) );
+    file.open(std::string("./Laser.config"));
+	file << std::scientific;
+	file.precision(15);
     file << "-laser_lambda " << lambda_ << std::endl;
     file << "-laser_intensity " << intensity_ << std::endl;
+	file.unsetf ( std::ios::floatfield )
+	file.precision(5);
     file << "-laser_cep " << cep_ << std::endl;
     file << "-laser_cycles " << cycles_ << std::endl;
     file << "-laser_dt " << dt_ << std::endl;

@@ -217,7 +217,8 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
         // VecView(*wf, view);
         //}
 
-        if ( /* !( step % 10 ) */ true ) {
+        if (true) //(!(step%10))
+        {
             time.push_back( t );
             efvec.push_back( ef.real() );
             cntx->dipole->find_dipole_moment_decompositions( * (cntx->D ), *wf, dipole, cntx->hparams->prototype());
