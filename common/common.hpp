@@ -53,6 +53,28 @@ namespace common
         //return out;
     //}
     template <typename Func>
+    void map_function(Vec& vector, Func f, Vec& out)
+    {
+        PetscInt vstart, vend;
+        PetscInt ostart, oend;
+        PetscScalar* a;
+        PetscScalar* b;
+
+        VecGetOwnershipRange(vector,&vstart,&vend);
+        VecGetOwnershipRange(out,&ostart,&oend);
+        VecGetArray(vector, &a);
+        VecGetArray(out, &b);
+
+        if (ostart != vstart || oend != vend)
+            throw std::out_of_range("the two vectors don't have the same local structure");
+
+        for (int i = 0; i < oend - ostart; ++i)
+            b[i] = f(a[i], i);
+
+        VecRestoreArray(vector, &a);
+        VecRestoreArray(out, &b);
+    }
+    template <typename Func>
     Vec map_function(Vec& vector, Func f)
     {
         Vec out;
@@ -72,7 +94,7 @@ namespace common
             throw std::out_of_range("the two vectors don't have the same local structure");
 
         for (int i = 0; i < oend - ostart; ++i)
-            b[i] = f(a[i]);
+            b[i] = f(a[i], i);
 
         VecRestoreArray(vector, &a);
         VecRestoreArray(out, &b);

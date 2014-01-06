@@ -195,11 +195,11 @@ PetscScalar LaserParameters::envelope( PetscReal t, PetscReal t_start ) const
     if ( t < t_start || t > t_start + pulse_length() ) return 0;
 
     PetscReal efield = 0.0;
-    if ( t >= t_start && t < t_start + pulse_length() / 2. )
+    if ( t < t_start + pulse_length() / 2. )
         efield = std::pow( std::sin( this->frequency() * ( t - t_start ) /
                                      ( this->cycles() * 2 ) ),
                            laser_front_shape_ );
-    if ( t >= t_start + pulse_length() / 2. && t <= t_start + pulse_length() )
+    if ( t >= t_start + pulse_length() / 2. )
         efield = std::pow( std::sin( this->frequency() * ( t - t_start ) /
                                      ( this->cycles() * 2 ) ),
                            laser_back_shape_ );
