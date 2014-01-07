@@ -115,7 +115,8 @@ std::vector<double> PulsetrainParameters::spacing() const
 
 bool PulsetrainParameters::in_pulse( PetscReal t ) const
 {
-    if ( single_pulse ) return t <= pulse_length();
+    //if we are looking at a single pulse, we are always in a pulse
+    if ( single_pulse ) return true;
     double tot_time = 0;
     for ( size_t i = 0; i < s_au.size(); i++ ) {
         if ( t < tot_time + s_au[i] && t > pulse_length() + tot_time )
