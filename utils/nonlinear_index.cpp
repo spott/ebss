@@ -110,8 +110,8 @@ int main( int argc, const char** argv )
     // VecView(maximums, PETSC_VIEWER_STDOUT_WORLD);
 
     // create a mask for bound states:
-    Vec mask = common::map_function( H0, []( PetscReal a, PetscInt in ) {
-        return ( std::abs( a + .5 ) <= 1e-8 ) ? 0 : 1;
+    Vec mask = common::map_function( H0, []( PetscScalar a, PetscInt in ) {
+        return ( std::abs( a.real() + .5 ) <= 1e-8 ) ? 0 : 1;
     } );
     // Vec mask = common::map_function(H0, [](PetscScalar in) { return 1; });
 
@@ -257,7 +257,7 @@ int main( int argc, const char** argv )
                               << std::endl << *i << std::endl;
                 std::sort( ( *i ).begin(), ( *i ).end() );
                 size_t multiplicity = 1;
-                std::array<int, 3> ts{0, 0, 0};
+                std::array<int, 3> ts{{0, 0, 0}};
                 for ( auto m : ( *i ) ) {
                     if ( m == -1 ) ts[0]++;
                     if ( m == 1 ) ts[2]++;
@@ -384,7 +384,7 @@ int main( int argc, const char** argv )
                               << std::endl << *i << std::endl;
                 std::sort( ( *i ).begin(), ( *i ).end() );
                 size_t multiplicity = 1;
-                std::array<int, 3> ts{0, 0, 0};
+                std::array<int, 3> ts{ {0, 0, 0} };
                 for ( auto m : ( *i ) ) {
                     if ( m == -1 ) ts[0]++;
                     if ( m == 0 ) ts[1]++;
@@ -576,7 +576,7 @@ int main( int argc, const char** argv )
                               << std::endl << *i << std::endl;
                 std::sort( ( *i ).begin(), ( *i ).end() );
                 size_t multiplicity = 1;
-                std::array<int, 3> ts{0, 0, 0};
+                std::array<int, 3> ts{ {0, 0, 0} };
                 for ( auto m : ( *i ) ) {
                     if ( m == -1 ) ts[0]++;
                     if ( m == 0 ) ts[1]++;
@@ -798,7 +798,7 @@ int main( int argc, const char** argv )
                               << std::endl << *i << std::endl;
                 std::sort( ( *i ).begin(), ( *i ).end() );
                 size_t multiplicity = 1;
-                std::array<int, 3> ts{0, 0, 0};
+                std::array<int, 3> ts{ {0, 0, 0} };
                 for ( auto m : ( *i ) ) {
                     if ( m == -1 ) ts[0]++;
                     if ( m == 0 ) ts[1]++;
@@ -1070,7 +1070,7 @@ int main( int argc, const char** argv )
                               << std::endl << *i << std::endl;
                 std::sort( ( *i ).begin(), ( *i ).end() );
                 size_t multiplicity = 1;
-                std::array<int, 3> ts{0, 0, 0};
+                std::array<int, 3> ts{ {0, 0, 0} };
                 for ( auto m : ( *i ) ) {
                     if ( m == -1 ) ts[0]++;
                     if ( m == 0 ) ts[1]++;
