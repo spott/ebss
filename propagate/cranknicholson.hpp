@@ -219,8 +219,11 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
 
         if (true) //(!(step%10))
         {
-            time.push_back( t );
-            efvec.push_back( ef.real() );
+            if ( cntx->hparams->rank() == 0)
+            {
+                time.push_back( t );
+                efvec.push_back( ef.real() );
+            }
             cntx->dipole->find_dipole_moment_decompositions( * (cntx->D ), *wf, dipole, cntx->hparams->prototype());
             //dipole.push_back(
                 //cntx->dipole->find_dipole_moment( *( cntx->D ), *wf ) );
@@ -245,6 +248,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
         cntx->hparams->comm(), file_name.c_str(), FILE_MODE_WRITE, &view );
     VecView( *wf, view );
 
+    //we don't want to crash the nodes from lack of memory, so we only do this on the head node
     if ( cntx->hparams->rank() == 0 ) {
         try
         {
