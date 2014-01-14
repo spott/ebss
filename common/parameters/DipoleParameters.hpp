@@ -125,6 +125,8 @@ void DipoleParameters::find_dipole_moment_decompositions(
     Vec bound, continuum;
     VecDuplicate( psi, &bound );
     VecDuplicate( psi, &continuum );
+    PetscScalar bb, cc, bc;
+
 
     for ( auto split = decomp_splits.begin(); split < decomp_splits.end();
           ++split ) {
@@ -144,20 +146,22 @@ void DipoleParameters::find_dipole_moment_decompositions(
 
 
 
-        PetscScalar out;
         if ( tmp == PETSC_NULL ) VecDuplicate( psi, &tmp );
         VecCopy( bound, tmp );
         MatMult( dipole, bound, tmp );
-        VecDot( continuum, tmp, &out );
+        VecDot( continuum, tmp, &bc );
+        bb = this->find_dipole_moment( dipole, bound );
+        cc = this->find_dipole_moment( dipole, continuum );
+
 
         //only push back if rank == 0 to preven memory requirement blowup
         if ( rank() == 0) {
             output_vector[3 * ( split - decomp_splits.begin() ) + 1]
-                .push_back( this->find_dipole_moment( dipole, bound ) );
+                .push_back( bb );
             output_vector[3 * ( split - decomp_splits.begin() ) + 2]
-                .push_back( this->find_dipole_moment( dipole, continuum ) );
+                .push_back( cc );
             output_vector[3 * ( split - decomp_splits.begin() ) + 3]
-                .push_back( out.real() );
+                .push_back( bc.real() );
         }
     }
 }
