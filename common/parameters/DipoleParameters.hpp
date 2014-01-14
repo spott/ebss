@@ -150,8 +150,8 @@ void DipoleParameters::find_dipole_moment_decompositions(
         MatMult( dipole, bound, tmp );
         VecDot( continuum, tmp, &out );
 
-        //only push back if rank == 1 to preven memory requirement blowup
-        if ( rank() == 1) {
+        //only push back if rank == 0 to preven memory requirement blowup
+        if ( rank() == 0) {
             output_vector[3 * ( split - decomp_splits.begin() ) + 1]
                 .push_back( this->find_dipole_moment( dipole, bound ) );
             output_vector[3 * ( split - decomp_splits.begin() ) + 2]
