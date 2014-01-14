@@ -157,9 +157,9 @@ void DipoleParameters::find_dipole_moment_decompositions(
         //only push back if rank == 0 to preven memory requirement blowup
         if ( rank() == 0) {
             output_vector[3 * ( split - decomp_splits.begin() ) + 1]
-                .push_back( bb );
+                .push_back( bb.real() );
             output_vector[3 * ( split - decomp_splits.begin() ) + 2]
-                .push_back( cc );
+                .push_back( cc.real() );
             output_vector[3 * ( split - decomp_splits.begin() ) + 3]
                 .push_back( bc.real() );
         }
