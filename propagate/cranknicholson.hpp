@@ -67,7 +67,24 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
     VecAssemblyEnd( prob );
 
     std::vector<PetscReal> efvec;
-    std::vector< std::vector<PetscReal> > dipole( 3 * cntx->dipole->decompositions().size() + 1 );
+    std::vector< std::ofstream > dipole;
+    //dipol( 3 * cntx->dipole->decompositions().size() + 1 );
+    if (cntx->hparams->rank() == 0)
+    {
+        for ( auto a = 0; a < cntx->dipole->dipole_filename().size(); ++a)
+        {
+            try
+            {
+                dipole.push_back(std::ofstream(cntx->dipole->dipole_filename()[a], std::ios::binary));
+            }
+            catch ( ... )
+            {
+                std::cerr << "couldn't open the dipole file, oops... it won't be "
+                    "written to disk" << std::endl;
+            }
+        }
+    }
+    //std::vector< std::vector<PetscReal> > dipole( 3 * cntx->dipole->decompositions().size() + 1 );
     std::vector<PetscReal> time;
 
     PetscReal norm_lost = 0;
@@ -270,19 +287,6 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
                          "written to disk" << std::endl;
         }
 
-        for ( auto a = 0; a < cntx->dipole->dipole_filename().size(); ++a)
-        {
-            try
-            {
-                common::export_vector_binary( cntx->dipole->dipole_filename()[a],
-                                              dipole[a] );
-            }
-            catch ( ... )
-            {
-                std::cerr << "couldn't open the dipole file, oops... it won't be "
-                             "written to disk" << std::endl;
-            }
-        }
     }
 
     //dipole = math::second_difference( dipole, cntx->laser->dt() * 10 );

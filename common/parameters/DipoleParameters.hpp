@@ -66,7 +66,7 @@ class DipoleParameters : public Parameters
     void find_dipole_moment_decompositions(
         Mat& dipole,
         Vec& psi,
-        std::vector<std::vector<PetscReal>>& output_vector,
+        std::vector<std::ofstream>& output_vector,
         std::vector<BasisID>& prototype );
 
     virtual std::string print() const;
@@ -117,15 +117,17 @@ PetscReal DipoleParameters::find_dipole_moment( Mat& dipole, Vec& psi )
 void DipoleParameters::find_dipole_moment_decompositions(
     Mat& dipole,
     Vec& psi,
-    std::vector<std::vector<PetscReal>>& output_vector,
+    std::vector< std::ofstream >& output_vector,
     std::vector<BasisID>& prototype )
 {
-    output_vector[0].push_back( this->find_dipole_moment( dipole, psi ) );
+    PetscReal t = this->find_dipole_moment( dipole, psi );
+    if (rank() == 0)
+        output_vector[0].write( reinterpret_cast<char*>(&t), sizeof(PetscReal) );
 
     Vec bound, continuum;
     VecDuplicate( psi, &bound );
     VecDuplicate( psi, &continuum );
-    PetscScalar bb, cc, bc;
+    PetscReal bb, cc, bc;
 
 
     for ( auto split = decomp_splits.begin(); split < decomp_splits.end();
@@ -145,23 +147,25 @@ void DipoleParameters::find_dipole_moment_decompositions(
                               continuum );
 
 
+        PetscScalar temp_scalar;
 
         if ( tmp == PETSC_NULL ) VecDuplicate( psi, &tmp );
         VecCopy( bound, tmp );
         MatMult( dipole, bound, tmp );
-        VecDot( continuum, tmp, &bc );
+        VecDot( continuum, tmp, &temp_scalar );
         bb = this->find_dipole_moment( dipole, bound );
         cc = this->find_dipole_moment( dipole, continuum );
+        bc = temp_scalar.real();
 
 
         //only push back if rank == 0 to preven memory requirement blowup
         if ( rank() == 0) {
             output_vector[3 * ( split - decomp_splits.begin() ) + 1]
-                .push_back( bb.real() );
+                .write( reinterpret_cast<char*>(&bb), sizeof(PetscReal) );
             output_vector[3 * ( split - decomp_splits.begin() ) + 2]
-                .push_back( cc.real() );
+                .write( reinterpret_cast<char*>(&cc), sizeof(PetscReal) );
             output_vector[3 * ( split - decomp_splits.begin() ) + 3]
-                .push_back( bc.real() );
+                .write( reinterpret_cast<char*>(&bc), sizeof(PetscReal) );
         }
     }
 }
