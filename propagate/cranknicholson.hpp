@@ -70,14 +70,14 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
     VecAssemblyEnd( prob );
 
     std::vector<PetscReal> efvec;
-    std::vector<std::ofstream> dipole;
+    std::vector<std::ofstream*> dipole;
     // dipol( 3 * cntx->dipole->decompositions().size() + 1 );
     if ( cntx->hparams->rank() == 0 ) {
         for ( auto a = 0; a < cntx->dipole->dipole_filename().size();
               ++a ) {
             try
             {
-                dipole.emplace_back(
+                dipole.emplace_back( new
                     std::ofstream( cntx->dipole->dipole_filename()[a],
                                    std::ios::binary ) );
             }
@@ -254,7 +254,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
 
         // close the dipole files
         for ( auto &a : dipole ) {
-            a.close();
+            a->close();
         }
     }
 

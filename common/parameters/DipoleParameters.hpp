@@ -66,7 +66,7 @@ class DipoleParameters : public Parameters
     void find_dipole_moment_decompositions(
         Mat& dipole,
         Vec& psi,
-        std::vector<std::ofstream>& output_vector,
+        std::vector<std::ofstream*>& output_vector,
         std::vector<BasisID>& prototype );
 
     virtual std::string print() const;
@@ -117,12 +117,12 @@ PetscReal DipoleParameters::find_dipole_moment( Mat& dipole, Vec& psi )
 void DipoleParameters::find_dipole_moment_decompositions(
     Mat& dipole,
     Vec& psi,
-    std::vector< std::ofstream >& output_vector,
+    std::vector< std::ofstream *>& output_vector,
     std::vector<BasisID>& prototype )
 {
     PetscReal t = this->find_dipole_moment( dipole, psi );
     if (rank() == 0)
-        output_vector[0].write( reinterpret_cast<char*>(&t), sizeof(PetscReal) );
+        output_vector[0]->write( reinterpret_cast<char*>(&t), sizeof(PetscReal) );
 
     Vec bound, continuum;
     VecDuplicate( psi, &bound );
@@ -161,11 +161,11 @@ void DipoleParameters::find_dipole_moment_decompositions(
         //only push back if rank == 0 to preven memory requirement blowup
         if ( rank() == 0) {
             output_vector[3 * ( split - decomp_splits.begin() ) + 1]
-                .write( reinterpret_cast<char*>(&bb), sizeof(PetscReal) );
+                ->write( reinterpret_cast<char*>(&bb), sizeof(PetscReal) );
             output_vector[3 * ( split - decomp_splits.begin() ) + 2]
-                .write( reinterpret_cast<char*>(&cc), sizeof(PetscReal) );
+                ->write( reinterpret_cast<char*>(&cc), sizeof(PetscReal) );
             output_vector[3 * ( split - decomp_splits.begin() ) + 3]
-                .write( reinterpret_cast<char*>(&bc), sizeof(PetscReal) );
+                ->write( reinterpret_cast<char*>(&bc), sizeof(PetscReal) );
         }
     }
 }
