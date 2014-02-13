@@ -337,7 +337,7 @@ basis<scalar> find_basis( const BasisID state,
         if ( current.nodes - ( state.n - state.l - 1 ) >= 1 &&
              !current.upper_converged ) {
             std::cerr << "we are too high in energy: " << std::endl;
-            if ( std::abs( current.de ) < 1e-18 && current.de == current.de ) {
+            if ( std::abs( current.de / current.energy ) < 1e-10 && current.de == current.de ) {
                 std::cerr << "subtract by de" << std::endl;
                 current.energy -= std::abs( current.de );
                 continue;
@@ -671,7 +671,7 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
     scalar xmax = std::log( params.rmax() );
     std::vector<scalar> xgrid( params.points() );
     for ( size_t i = 0; i < xgrid.size(); i++ )
-        xgrid[i] = xmin + i * ( xmax - xmin ) / params.points();
+        xgrid[i] = xmin + i * ( xmax - xmin ) / (params.points() - 1);
     scalar dx = xgrid[1] - xgrid[0];
 
     // get rgrid vector pointer from parameters and screw with it.

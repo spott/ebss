@@ -216,6 +216,10 @@ std::string DipoleParameters::print() const
     out << "dipole_after_filename " << after_filename_ << std::endl;
     out << "dipole_dt " << dt_ << std::endl;
     out << "dipole_t_after " << t_after_ << std::endl;
+    out << "dipole_decomposition ";
+    for( auto i : decomp_splits )
+        out << i << ",";
+    out << std::endl;
     return out.str();
 }
 void DipoleParameters::save_parameters() const
@@ -226,6 +230,10 @@ void DipoleParameters::save_parameters() const
     file << "-dipole_after_filename " << after_filename_ << std::endl;
     file << "-dipole_dt " << dt_ << std::endl;
     file << "-dipole_t_after " << t_after_ << std::endl;
+    file << "-dipole_decomposition ";
+    for( auto i : decomp_splits )
+        file << i << ",";
+    file << std::endl;
     file.close();
 }
 
