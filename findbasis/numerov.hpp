@@ -337,7 +337,7 @@ basis<scalar> find_basis( const BasisID state,
         if ( current.nodes - ( state.n - state.l - 1 ) >= 1 &&
              !current.upper_converged ) {
             std::cerr << "we are too high in energy: " << std::endl;
-            if ( std::abs( current.de / current.energy ) < 1e-10 && current.de == current.de ) {
+            if ( std::abs( current.de ) < 1e-18 && current.de == current.de ) {
                 std::cerr << "subtract by de" << std::endl;
                 current.energy -= std::abs( current.de );
                 continue;
@@ -542,7 +542,7 @@ basis<scalar> find_basis( const BasisID state,
     }
     if ( !converged ) {
         std::cerr << "didn't converge, returning anyways" << std::endl;
-        std::cout << current.turnover;
+        std::cout << current.turnover << "*" << current.de << " ";
     }
 
     for ( size_t i = 0; i < wf.size(); i++ ) {

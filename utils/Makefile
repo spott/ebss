@@ -3,12 +3,15 @@ include ../makefile.include
 # To generate .clang_complete:
 # make make PCC='~/.vim/bundle/clang_complete/bin/cc_args.py /opt/local/petsc-3.3-gcc-debug/bin/mpicxx' -B <target>
 
-SOURCES=nonlinear_index.cpp
+SOURCES=nonlinear_index.cpp mat_diff.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=nonlinear
 DEFAULT=all
 
 all: $(SOURCES) $(EXECUTABLE)
+
+mat_diff: mat_diff.o chkopts
+	-${CLINKER} -o ${BINDIR}/mat_diff mat_diff.o ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
 
 fourier: fourier.o chkopts
 	-${CLINKER} -o ${BINDIR}/fourier fourier.o ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
