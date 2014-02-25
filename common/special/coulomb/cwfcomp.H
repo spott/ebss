@@ -1,4 +1,5 @@
 #pragma once
+#pragma GCC diagnostic ignored "-Wall"
 
 #include<common/special/coulomb/complex_functions.H>
 

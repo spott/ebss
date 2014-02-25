@@ -14,6 +14,7 @@ v0.1.4 20120629 Enforced MIT license on all files.
 */
 #ifndef EZ_OPTION_PARSER_H
 #define EZ_OPTION_PARSER_H
+#pragma GCC diagnostic ignored "-Wall"
 
 #include <stdlib.h>
 #include <vector>

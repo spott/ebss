@@ -1,4 +1,6 @@
 #pragma once
+#pragma GCC diagnostic ignored "-Wall"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #include<complex>
 #include<iostream>
 
