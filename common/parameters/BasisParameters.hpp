@@ -101,8 +101,8 @@ public:
     void save_parameters();
     void init_from_file(std::string filename);
 
-    std::vector<compute_type> * grid();
-    std::vector<BasisID> * basis_prototype();
+    std::vector<compute_type>& grid();
+    std::vector<BasisID>& basis_prototype();
 
 private:
     std::vector<BasisID> basis_prototype_;
@@ -124,17 +124,17 @@ private:
 };
 
 template<typename compute_type_, typename write_type_ >
-std::vector<compute_type_> * 
+std::vector<compute_type_>&  
 BasisParameters<compute_type_, write_type_>::grid()
 {
-    return &grid_;
+    return grid_;
 }
 
 template<typename compute_type_, typename write_type_ >
-std::vector<BasisID> * 
+std::vector<BasisID>&  
 BasisParameters<compute_type_, write_type_>::basis_prototype()
 {
-    return &basis_prototype_;
+    return basis_prototype_;
 }
 
 
