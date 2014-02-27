@@ -113,7 +113,7 @@ int main(int argc, const char ** argv)
         std::cout << params.print();
 
     //decltype( params.basis_parameters()->grid() ) grid;
-    std::vector<double>* grid;
+    std::vector<double> grid;
     auto prototype = params.prototype();
 
     if (! params.analytic() )  {
@@ -139,7 +139,7 @@ int main(int argc, const char ** argv)
     size_t per_basis_state = 0;
     if (! params.analytic() )
     {
-        per_basis_state = grid->size() * sizeof(double) + 100;
+        per_basis_state = grid.size() * sizeof(double) + 100;
         if (params.rank() == 0) std::cout << std::endl << "each basis state takes up: " << per_basis_state ;
     }
     else
@@ -204,7 +204,7 @@ int main(int argc, const char ** argv)
             PetscScalar radial = math::integrateTrapezoidRule(
                     *a,
                     *b,
-                    *grid );
+                    grid );
             PetscScalar angular = math::CGCoefficient<PetscScalar>(prototype[i],prototype[j]);
             //we are only considering spin up electrons.  so m_j always == +1/2 (since m_l is always 0)
             angular *= std::sqrt (
@@ -239,7 +239,7 @@ int main(int argc, const char ** argv)
             PetscScalar radial = math::integrateTrapezoidRule(
                     *a,
                     *b,
-                    *grid );
+                    grid );
             PetscScalar angular = math::CGCoefficient<PetscScalar>(prototype[i],prototype[j]);
             if (prototype[i].n == 2 && prototype[j].n == 2)
                 std::cout << "n = 2 transition: " << radial * angular << std::endl;

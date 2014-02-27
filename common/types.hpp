@@ -63,13 +63,13 @@ bool operator!=(const BasisID &a, const BasisID &b)
 std::istream& operator>>(std::istream &in, BasisID &b)     //input
 {
     PetscReal er, ei;
-    in >> b.n >> b.j >> b.l >> b.m >> er >> ei;
+    in >> b.n >> b.l >> b.j >> b.m >> er >> ei;
     b.e = std::complex<double>(er,ei);
     return in;
 }
 std::ostream& operator<<(std::ostream &out, const BasisID &b)     //output
 {
-    out << b.n << ", " << b.j << ", " << b.l << ", " << b.m << ", " << b.e.real();
+    out << b.n << ", " << b.l << ", " << b.j << ", " << b.m << ", " << b.e.real();
     return out;
 }
 

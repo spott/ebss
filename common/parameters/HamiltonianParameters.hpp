@@ -98,7 +98,7 @@ public:
             if (opt.isSet("-hamiltonian_config"))
                 this->prototype_ = common::import_vector_binary<BasisID>(this->prototype_filename());
             else {
-                this->prototype_.reserve(this->basis_->basis_prototype()->size());
+                this->prototype_.reserve(this->basis_->basis_prototype().size());
 
                 if (this->nmax() > this->basis_->nmax() || this->lmax() > this->basis_->lmax() )
                 {
@@ -119,8 +119,8 @@ public:
                 }
                 //make the prototype... be sure to order by l's first, then j's then n's.
 
-                auto start = this->basis_->basis_prototype()->begin();
-                auto end = this->basis_->basis_prototype()->end();
+                auto start = this->basis_->basis_prototype().begin();
+                auto end = this->basis_->basis_prototype().end();
                 if (fs_)
                     for(int l = 0; l <= lmax_; ++l )
                     {
