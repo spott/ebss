@@ -974,7 +974,7 @@ converged:
                 ( ( turnover > f.size() - 2 ) ? 0 : turnover ) ) ) );
         normalize( wf, rgrid, grid.dx() );
         auto e = derivatives( wf, f, it.turnover );
-        if ( std::abs(e[3] * e[0]) > 0.01 ) || std::abs( e[1] * e[4] ) > 0.01 ) {
+        if ( std::abs(e[3] * e[0]) > 0.01  || std::abs( e[1] * e[4] ) > 0.01 ) {
 #ifdef DEBUG
             display_function(
                 g,
@@ -1025,6 +1025,20 @@ converged:
                          it.energy_upper - it.energy_lower, it.it};
 }
 
+//template< typename scalar, typename write_type>
+//BasisID basis( BasisID state, const xgrid<scalar> grid, const std::function<scalar( scalar, BasisID) > pot, const scalar err)
+//{
+    //auto ret = find_basis( state, grid, pot, err);
+
+    //state.e = ret.energy;
+
+    //common::export_vector_binary(
+            //params.basis_function_filename( state ),
+            //common::vector_type_change<scalar, write_type>( ret.wf ) );
+
+    //return state;
+//}
+
 
 template <typename scalar, typename write_type>
 void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
@@ -1038,9 +1052,11 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
                                  std::log( params.rmax() ),
                                  static_cast<size_t>( params.points() )} );
 
-    std::vector<BasisID> energies = params.basis_prototype();
+    auto rgrid = make_rgrid(desired_grid);
+    std::swap(rgrid,params.grid());
+    std::vector<BasisID> energies;
     energies.resize(0);
-    params.save_parameters();
+    //params.save_parameters();
 
     basis<scalar> res;
     BasisID tmp;
@@ -1058,15 +1074,18 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
     auto ret = find_basis( tmp, desired_grid, pot, err );
     auto gsenergy = ret.energy;
     tmp.e = gsenergy;
+    energies.push_back(tmp);
     common::export_vector_binary(
             params.basis_function_filename( tmp ),
             common::vector_type_change<scalar, write_type>( ret.wf ) );
     // tmp = {2, 1, 1, 0, 0};
     // auto ret = find_basis( tmp, desired_grid, pot, err );
+    //std::vector< std::future< BasisID > > futures_que( num_threads );
 
     for ( int l = 0; l <= params.lmax(); l++ ) {
-        for ( int n = std::max( 2, l + 1 ); n <= params.nmax(); n++ ) {
+        for ( int n = std::max( 2, l + 1 ); n <= params.nmax(); n+=num_threads ) {
             tmp = {n, l, 1, 0, gsenergy};
+            //futures_que[i] = std::async( std::launch::async, basis<scalar, write_type>, state, grid, pot, err );
             ret = find_basis( tmp, desired_grid, pot, err );
             tmp.e = ret.energy;
             common::export_vector_binary(
@@ -1078,6 +1097,8 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
 
     std::sort( energies.begin(), energies.end() );
     for ( auto& a : energies ) std::cout << a << std::endl;
+    std::swap( params.basis_prototype(), energies);
+    //params.save_parameters();
 }
 }
 
