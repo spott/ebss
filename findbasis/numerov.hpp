@@ -1066,9 +1066,6 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
     iteration<scalar> it;
     scalar err = 1e-15;
 
-    size_t num_threads = params.procs();
-    std::cout << "Number of threads: " << num_threads << std::endl;
-
     // find ground state:
     tmp = {1, 0, 1, 0, 0};
     auto ret = find_basis( tmp, desired_grid, pot, err );
@@ -1078,14 +1075,10 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
     common::export_vector_binary(
             params.basis_function_filename( tmp ),
             common::vector_type_change<scalar, write_type>( ret.wf ) );
-    // tmp = {2, 1, 1, 0, 0};
-    // auto ret = find_basis( tmp, desired_grid, pot, err );
-    //std::vector< std::future< BasisID > > futures_que( num_threads );
 
     for ( int l = 0; l <= params.lmax(); l++ ) {
-        for ( int n = std::max( 2, l + 1 ); n <= params.nmax(); n+=num_threads ) {
+        for ( int n = std::max( 2, l + 1 ); n <= params.nmax(); n++ ) {
             tmp = {n, l, 1, 0, gsenergy};
-            //futures_que[i] = std::async( std::launch::async, basis<scalar, write_type>, state, grid, pot, err );
             ret = find_basis( tmp, desired_grid, pot, err );
             tmp.e = ret.energy;
             common::export_vector_binary(
@@ -1098,7 +1091,6 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
     std::sort( energies.begin(), energies.end() );
     for ( auto& a : energies ) std::cout << a << std::endl;
     std::swap( params.basis_prototype(), energies);
-    //params.save_parameters();
 }
 }
 
