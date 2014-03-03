@@ -97,6 +97,7 @@ public:
     std::string grid_filename() const { return std::string(folder_).append("/grid.dat\0"); };
     std::string print() const;
     std::string basis_function_filename(BasisID a) const;
+    std::string l_block_filename(int l) const;
     std::string basis_prototype_filename() const;
     void save_parameters();
     void init_from_file(std::string filename);
@@ -204,6 +205,18 @@ void BasisParameters<compute_type_, write_type_>::save_parameters()
     if (bo_)
         file << "-basis_bound_only" << std::endl;
     file.close();
+}
+
+template<typename compute_type_, typename write_type_ >
+std::string BasisParameters<compute_type_, write_type_>::l_block_filename(int l) const
+{
+    std::ostringstream ss;
+    ss << folder_;
+    if (fs_)
+        std::cerr << " not implemented yet " << std::endl;
+    else
+        ss << "/l_" << l << ".dat";
+    return ss.str();
 }
 
 template<typename compute_type_, typename write_type_ >

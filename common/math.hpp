@@ -56,18 +56,32 @@ scalar CGCoefficient(const BasisID &init, const BasisID &fin)
     return out;
 }
 
-//interpolation class: input an iterator
 
-//template <size_t order>
+
+// interpolation class
+// template <size_t order>
 class interpolate
 {
-    public:
-    interpolate( const std::vector< double > & y, const std::vector< double > & x ) : y_(y), x_(x), coefficient(x.size()) {
-        //we need to set up the second derivative vector?
-        coefficient.front() = 3 * ( (y_[1] - y_[0])/(std::pow(x_[1] - x_.front(),2) ) ); //natural boundary conditions.
-        coefficient.back() = 3 * ( (y_.back() - y_[y_.size() - 2])/(std::pow(x_.back() - x_[x_.size() - 2],2) ) ); //natural boundary conditions.
-        for( size_t i = 1; i < coefficient.size()-1; ++i)
-            coefficient[i] = 3 * ( (y_[i] - y_[i-1])/(std::pow(x_[i] - x_[i-1],2)) + (y_[i+1] - y_[i])/(std::pow(x_[i+1] - x_[i],2)) );
+  public:
+    interpolate( const std::vector<double>& y,
+                 const std::vector<double>& x )
+        : y_( y ), x_( x ), coefficient( x.size() )
+    {
+        // we need to set up the second derivative vector?
+        coefficient.front() =
+            3 * ( ( y_[1] - y_[0] ) /
+                  ( std::pow( x_[1] - x_.front(),
+                              2 ) ) ); // natural boundary conditions.
+        coefficient.back() =
+            3 * ( ( y_.back() - y_[y_.size() - 2] ) /
+                  ( std::pow( x_.back() - x_[x_.size() - 2],
+                              2 ) ) ); // natural boundary conditions.
+        for ( size_t i = 1; i < coefficient.size() - 1; ++i )
+            coefficient[i] =
+                3 * ( ( y_[i] - y_[i - 1] ) /
+                          ( std::pow( x_[i] - x_[i - 1], 2 ) ) +
+                      ( y_[i + 1] - y_[i] ) /
+                          ( std::pow( x_[i + 1] - x_[i], 2 ) ) );
 
         //populate and solve the tridiagonal system, saving the solution in coefficient_?
         std::vector<double> u(x_.size()); //upper
@@ -255,7 +269,6 @@ scalar integrateSimpsonsRule(const std::vector<scalar> &psi1, const std::vector<
 
     return result;
 }
-
 template <typename scalar, typename Func >
 scalar integrateTrapezoidRule(const std::vector<scalar> &psi1, const std::vector<scalar> &psi2, const std::vector<scalar> &grid, Func f)
 {
@@ -294,7 +307,80 @@ scalar integrateTrapezoidRule(const std::vector<scalar> &psi1, const std::vector
     return result;
 }
 
+template <typename iterator,
+          typename Func,
+          typename scalar = typename iterator::value_type>
+scalar integrateTrapezoidRule( const Range<iterator> & psi1,
+                               const Range<iterator> & psi2,
+                               const std::vector<scalar> & grid,
+                               Func f )
+{
+    if (psi1.size() != psi2.size() || psi1.size() != grid.size() )
+    {
+        std::cerr << "integrateTrapezoidRule: the sizes are not the same" << std::endl;
+        throw (std::length_error( "integrateTrapezoidRule: the sizes are not the same" ));
+    }
+
+    static const std::vector<scalar> dg = [&grid] {
+        std::vector<scalar> v;
+        v.reserve(grid.size());
+        v.push_back(grid[0]/2.);
+        for( auto i = begin(grid) + 1; i < end(grid); ++i)
+            v.push_back( (*i - *(i - 1))/2.);
+        return v;
+    }();
+
+    scalar intermediate = psi1.begin[0] * psi2.begin[0] * f(grid[0]);
+    scalar result = intermediate * dg[0];
+    scalar intermediate1 = 0;
+
+    for (size_t i = 1; i < grid.size(); i++)
+    {
+        intermediate1 = psi1.begin[i] * f(grid[i]) * psi2.begin[i];
+        result += (intermediate1 + intermediate) * dg[i];
+        intermediate = intermediate1;
+    }
+
+    if (result != result || result == std::numeric_limits<scalar>::infinity() )
+    {
+        std::cerr << "integrateTrapezoidRule: results in NaN or infinity" << std::endl;
+        throw(std::out_of_range( "integrateTrapezoidRule: results in NaN" ));
+    }
+
+    return result;
+}
+
 //optimized for integrating <psi1|r|psi2>:
+template <typename iterator,
+          typename scalar = typename iterator::value_type>
+scalar integrateTrapezoidRule( const Range<iterator> & psi1,
+                               const Range<iterator> & psi2,
+                               const std::vector<scalar> & grid )
+{
+    //we assume that we only have one grid size that we ever integrate, so we create the difference grid:
+    //typedef scalar iterator::value_type;
+    static const std::vector<scalar> dg = [&grid] {
+        std::vector<scalar> v;
+        v.reserve(grid.size());
+        v.push_back(grid[0]/2.);
+        for( auto i = begin(grid) + 1; i < end(grid); ++i)
+            v.push_back( (*i - *(i - 1))/2.);
+        return v;
+    }();
+
+    scalar intermediate = psi1.begin[0] * psi2.begin[0] * grid[0];
+    scalar result = intermediate * dg[0];
+    scalar intermediate1 = 0;
+
+    for (size_t i = 1; i < grid.size(); i++)
+    {
+        intermediate1 = psi1.begin[i] * grid[i] * psi2.begin[i];
+        result += (intermediate1 + intermediate) * dg[i];
+        intermediate = intermediate1;
+    }
+
+    return result;
+}
 template <typename scalar>
 scalar integrateTrapezoidRule(const std::vector<scalar> &psi1, const std::vector<scalar> &psi2, const std::vector<scalar> &grid)
 {
@@ -472,6 +558,28 @@ std::tuple<PetscReal, int> VecAbsMin(Vec a)
 //{
     ////mergesort
     //std::vector< int > outint();
+template <typename iterator,
+                          typename scalar = typename iterator::value_type>
+void Grahm_Schmidt_Orthogonalize( std::vector<scalar>& v,
+                                  Range<iterator> rest,
+                                  const std::vector<scalar>& rgrid )
+{
+    size_t rest_size = (rest.end - rest.begin) / rgrid.size();
+    for (size_t vector = 0; vector < rest_size; ++vector)
+    {
+        scalar projection =
+            integrateTrapezoidRule( {v.begin(), v.end()},
+                                    {rest.begin + vector * rgrid.size(),
+                                     rest.begin + vector * rgrid.size() + rgrid.size()},
+                                    rgrid,
+                                    []( scalar r ) { return 1; } );
+        //std::cerr << " projection: " << projection << std::endl;
+        for (size_t i = 0; i < rgrid.size(); ++i)
+            v[i] -= projection * rest.begin[vector * rgrid.size() + i];
+    }
+
+    normalize( v, rgrid );
+}
 
 template< typename Comparator >
 std::vector< std::tuple<PetscScalar, int> > VecFirstNSort(Vec a, size_t n, Comparator comp)

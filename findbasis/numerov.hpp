@@ -1075,24 +1075,23 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
     auto gsenergy = ret.energy;
     tmp.e = gsenergy;
     energies.push_back(tmp);
-    common::export_vector_binary(
-            params.basis_function_filename( tmp ),
-            common::vector_type_change<scalar, write_type>( ret.wf ) );
-    // tmp = {2, 1, 1, 0, 0};
-    // auto ret = find_basis( tmp, desired_grid, pot, err );
-    //std::vector< std::future< BasisID > > futures_que( num_threads );
+    //std::vector< std::vector< write_type > > output_arrays( std::max( params.lmax() + 1, params.nmax()) );
 
-    for ( int l = 0; l <= params.lmax(); l++ ) {
-        for ( int n = std::max( 2, l + 1 ); n <= params.nmax(); n+=num_threads ) {
-            tmp = {n, l, 1, 0, gsenergy};
-            //futures_que[i] = std::async( std::launch::async, basis<scalar, write_type>, state, grid, pot, err );
+    for ( int l = 0; l <= std::min(params.lmax(), params.nmax()-1); l++ ) {
+        std::vector< scalar > output_array( ( params.nmax() - l) * params.grid().size() );
+        for ( int n = l + 1; n <= params.nmax(); n++ ) {
+            if (n != 1)
+                tmp = {n, l, 1, 0, gsenergy};
+            else
+                tmp = {n, l, 1, 0, 0};
             ret = find_basis( tmp, desired_grid, pot, err );
             tmp.e = ret.energy;
-            common::export_vector_binary(
-                params.basis_function_filename( tmp ),
-                common::vector_type_change<scalar, write_type>( ret.wf ) );
+            std::cerr << " orthogonalizing! " << std::endl;
+            math::Grahm_Schmidt_Orthogonalize( ret.wf, Range<typename std::vector<scalar>::iterator>{ output_array.begin(), output_array.begin() + (n - (l + 1)) * ret.wf.size()}, params.grid() );
+            std::copy( ret.wf.begin(), ret.wf.end(), output_array.begin() + (n - (l + 1)) * ret.wf.size() );
             energies.push_back(tmp);
         }
+        common::export_vector_binary( params.l_block_filename(l), common::vector_type_change<scalar, write_type>(output_array) );
     }
 
     std::sort( energies.begin(), energies.end() );

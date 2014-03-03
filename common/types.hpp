@@ -7,6 +7,12 @@
 #include<vector>
 #include<array>
 
+template <typename iterator>
+struct Range{
+    iterator begin;
+    iterator end;
+};
+
 struct kBasisID{
     PetscReal k;
     PetscInt l;
