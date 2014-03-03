@@ -205,6 +205,11 @@ int main( int argc, const char** argv )
             if ( prototype[i].n == 2 && prototype[j].n == 2 )
                 std::cout << "n = 2 transition: " << radial* angular
                           << std::endl;
+            if (angular != angular || radial != radial) //check for NaNs
+            {
+                std::cerr << " got a NaN @ (" << i << ", " << j << "): " << prototype[i] << " <=> " << prototype[j] << std::endl;
+                throw std::exception();
+            }
             return radial * angular;
         };
     } else {
@@ -222,6 +227,11 @@ int main( int argc, const char** argv )
             if ( prototype[i].n == 2 && prototype[j].n == 2 )
                 std::cout << "n = 2 transition: " << radial* angular
                           << std::endl;
+            if (angular != angular || radial != radial) //check for NaNs
+            {
+                std::cerr << " got a NaN @ (" << i << ", " << j << "): " << prototype[i] << " <=> " << prototype[j] << std::endl;
+                throw std::exception();
+            }
             return radial * angular;
         };
     }
