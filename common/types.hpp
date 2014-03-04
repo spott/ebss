@@ -35,7 +35,7 @@ struct BasisID {
     // j = 1 -> 1/2;
     // j = 3 -> 3/2;
     // j != 1,3 -> 0;
-    PetscInt n,l,m,j;
+    PetscInt n,l,j,m;
     PetscScalar e;
     bool operator<(const BasisID b) const
     {

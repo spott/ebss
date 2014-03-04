@@ -161,8 +161,8 @@ int main( int argc, const char** argv )
                 params.basis_parameters()->l_block_filename( a.l ) );
             b = false;
             return Range<iterator>{
-                l_block2.begin() + ( a.n - ( a.l + 1 ) ) * grid.size(),
-                l_block2.begin() + ( a.n - ( a.l + 1 ) ) * grid.size() +
+                l_block2.begin() + ( a.n - ( a.l + 1) ) * grid.size(),
+                l_block2.begin() + ( a.n - ( a.l + 1) ) * grid.size() +
                     grid.size()};
         } else if ( a.l != l1 && a.l != l2 && !b ) {
             l1 = a.l;

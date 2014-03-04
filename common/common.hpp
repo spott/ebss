@@ -25,6 +25,15 @@
 namespace common
 {
 
+    void wait_for_key()
+    {
+        std::cout << std::endl << "Press ENTER to continue..." << std::endl;
+
+        std::cin.clear();
+        std::cin.ignore( std::cin.rdbuf()->in_avail() );
+        std::cin.get();
+        return;
+    }
     //template <typename Func>
     //IS map_predicate(Vec& vector, Func p)
     //{

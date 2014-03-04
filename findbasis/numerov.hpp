@@ -1070,25 +1070,34 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
     std::cout << "Number of threads: " << num_threads << std::endl;
 
     // find ground state:
-    tmp = {1, 0, 1, 0, 0};
+    tmp = {1, 0, 0, 0, 0};
     auto ret = find_basis( tmp, desired_grid, pot, err );
     auto gsenergy = ret.energy;
-    tmp.e = gsenergy;
-    energies.push_back(tmp);
+    //tmp.e = gsenergy;
+    //energies.push_back(tmp);
     //std::vector< std::vector< write_type > > output_arrays( std::max( params.lmax() + 1, params.nmax()) );
 
     for ( int l = 0; l <= std::min(params.lmax(), params.nmax()-1); l++ ) {
         std::vector< scalar > output_array( ( params.nmax() - l) * params.grid().size() );
         for ( int n = l + 1; n <= params.nmax(); n++ ) {
             if (n != 1)
-                tmp = {n, l, 1, 0, gsenergy};
+                tmp = {n, l, 0, 0, gsenergy};
             else
-                tmp = {n, l, 1, 0, 0};
+                tmp = {n, l, 0, 0, 0};
             ret = find_basis( tmp, desired_grid, pot, err );
             tmp.e = ret.energy;
             std::cerr << " orthogonalizing! " << std::endl;
-            math::Grahm_Schmidt_Orthogonalize( ret.wf, Range<typename std::vector<scalar>::iterator>{ output_array.begin(), output_array.begin() + (n - (l + 1)) * ret.wf.size()}, params.grid() );
-            std::copy( ret.wf.begin(), ret.wf.end(), output_array.begin() + (n - (l + 1)) * ret.wf.size() );
+            math::Grahm_Schmidt_Orthogonalize(
+                ret.wf,
+                Range<typename std::vector<scalar>::iterator>{
+                    output_array.begin(),
+                    output_array.begin() +
+                        ( n - ( l + 1 ) ) * ret.wf.size()},
+                params.grid() );
+            std::copy( ret.wf.begin(),
+                       ret.wf.end(),
+                       output_array.begin() +
+                           ( n - ( l + 1 ) ) * ret.wf.size() );
             energies.push_back(tmp);
         }
         common::export_vector_binary( params.l_block_filename(l), common::vector_type_change<scalar, write_type>(output_array) );
