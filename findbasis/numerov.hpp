@@ -994,7 +994,7 @@ converged:
     }
 
     auto e = derivatives( wf, f, it.turnover, false );
-    if ( true || std::abs( e[0] ) > .1 || std::abs( e[1] ) > .1 ) {
+    if ( check || std::abs( e[0] ) > .1 || std::abs( e[1] ) > .1 ) {
         e = derivatives( wf, f, it.turnover, true );
         std::cerr << " 1st deriv: " << e[0] << " 2nd deriv: " << e[1]
                   << std::endl;
