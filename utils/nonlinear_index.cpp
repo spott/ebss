@@ -173,11 +173,11 @@ int main( int argc, const char** argv )
         nparams.chi11s().size() );
     for ( auto a : chi11_data ) a.reserve( freqs.size() * imgs.size() );
 
-    for ( auto i : imgs ) {
-        VecShift( H0, std::complex<double>( 0, -i ) );
+    for ( auto j : imgs ) {
+        VecShift( H0, std::complex<double>( 0, -j ) );
         PetscScalar wg;
         VecDot( psi0, H0, &wg );
-        if ( params.rank() == 0 ) std::cout << i << " wg: " << wg << std::endl;
+        if ( params.rank() == 0 ) std::cout << j << " wg: " << wg << std::endl;
 
         for ( int f = 0; f < freqs.size(); ++f ) {
             if ( params.rank() == 0 )

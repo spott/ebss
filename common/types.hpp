@@ -7,6 +7,9 @@
 #include<vector>
 #include<array>
 
+#include<boost/serialization/access.hpp>
+#include<boost/serialization/complex.hpp>
+
 template <typename iterator>
 struct Range{
     iterator begin;
@@ -49,6 +52,18 @@ struct BasisID {
             return true;
         else
             return false;
+    }
+
+//private:
+    //friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version)
+    {
+        ar & n;
+        ar & l;
+        ar & j;
+        ar & m;
+        ar & e;
     }
 };
 

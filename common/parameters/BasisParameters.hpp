@@ -179,32 +179,35 @@ void BasisParameters<compute_type_, write_type_>::init_from_file(std::string fil
 template<typename compute_type_, typename write_type_ >
 void BasisParameters<compute_type_, write_type_>::save_parameters()
 {
-    common::export_vector_binary(
-            grid_filename(), 
-            common::vector_type_change<compute_type_, write_type_>(this->grid_)
-            );
-    common::export_vector_binary(
-            this->basis_prototype_filename(), 
-            this->basis_prototype_);
+    if (this->rank() == 0)
+    {
+        common::export_vector_binary(
+                grid_filename(), 
+                common::vector_type_change<compute_type_, write_type_>(this->grid_)
+                );
+        common::export_vector_binary(
+                this->basis_prototype_filename(), 
+                this->basis_prototype_);
 
-    std::string f = std::string(folder_).append("/Basis.config\0");
+        std::string f = std::string(folder_).append("/Basis.config\0");
 
-    //write the file myself:
-    std::ofstream file;
-    file.open(f);
-    file << "-basis_nmax " << nmax_ << std::endl;
-    file << "-basis_lmax " << lmax_ << std::endl;
-    file << "-basis_rmax " << rmax_ << std::endl;
-    file << "-basis_rmin " << rmin_ << std::endl;
-    file << "-basis_points " << points_ << std::endl;
-    file << "-basis_folder " << folder_ << std::endl;
-    file << "-basis_atom " << atom_ << std::endl;
-    file << "-basis_charge " << charge_ << std::endl;
-    if (fs_)
-        file << "-basis_fs" << std::endl;
-    if (bo_)
-        file << "-basis_bound_only" << std::endl;
-    file.close();
+        //write the file myself:
+        std::ofstream file;
+        file.open(f);
+        file << "-basis_nmax " << nmax_ << std::endl;
+        file << "-basis_lmax " << lmax_ << std::endl;
+        file << "-basis_rmax " << rmax_ << std::endl;
+        file << "-basis_rmin " << rmin_ << std::endl;
+        file << "-basis_points " << points_ << std::endl;
+        file << "-basis_folder " << folder_ << std::endl;
+        file << "-basis_atom " << atom_ << std::endl;
+        file << "-basis_charge " << charge_ << std::endl;
+        if (fs_)
+            file << "-basis_fs" << std::endl;
+        if (bo_)
+            file << "-basis_bound_only" << std::endl;
+        file.close();
+    }
 }
 
 template<typename compute_type_, typename write_type_ >

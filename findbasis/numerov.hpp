@@ -16,9 +16,11 @@
 #include <common/math.hpp>
 #include <findbasis/single_active_electron.hpp>
 
+#include <boost/mpi.hpp>
+//#include <boost/serialization.hpp>
 //#define DEBUGFINAL
 // other
-#if defined(DEBUG) || defined(DEBUGFINAL)
+#if defined( DEBUG ) || defined( DEBUGFINAL )
 #include <../include/gnuplot_i.hpp>
 #endif
 
@@ -36,7 +38,7 @@ void wait_for_key()
     return;
 }
 
-#if defined(DEBUG) || defined(DEBUGFINAL)
+#if defined( DEBUG ) || defined( DEBUGFINAL )
 template <typename scalar>
 void display_function( Gnuplot& g,
                        const std::vector<scalar>& grid,
@@ -330,8 +332,9 @@ std::array<scalar, 4> derivatives( const std::vector<scalar> wf,
     }
 
 
-    return std::array<scalar, 4>{{( d11 - d12 ), ( d21 / d22 - 1 ), d11, d21 }};
-         //( d21 / d22 - 1 ) * std::abs( d21 - d22 )}};
+    return std::array<scalar, 4>{
+        {( d11 - d12 ), ( d21 / d22 - 1 ), d11, d21}};
+    //( d21 / d22 - 1 ) * std::abs( d21 - d22 )}};
 }
 
 
@@ -494,13 +497,14 @@ find_ground_state( const BasisID state,
         std::cout << it << std::endl;
 
 #ifdef DEBUG
-        display_function( g,
-                          rgrid,
-                          wf,
-                          it.turnover - 1,
-                          true,
-                          {static_cast<double>( rgrid[it.turnover] - 2 ),
-                           static_cast<double>( rgrid[it.turnover] + 2 )});
+        display_function(
+            g,
+            rgrid,
+            wf,
+            it.turnover - 1,
+            true,
+            {static_cast<double>( rgrid[it.turnover] - 2 ),
+             static_cast<double>( rgrid[it.turnover] + 2 )} );
 // display_function( g, rgrid, wf, it.turnover - 1, true );
 #endif
 
@@ -947,8 +951,7 @@ converged:
                       it.turnover - 1,
                       true,
                       {static_cast<double>( rgrid[it.turnover] - 2 ),
-                       static_cast<double>( rgrid[it.turnover] + 2 )}
-                      );
+                       static_cast<double>( rgrid[it.turnover] + 2 )} );
 #endif
 
     wf[0] = std::pow( rgrid.front(), state.l + 1 ) *
@@ -974,7 +977,8 @@ converged:
                 ( ( turnover > f.size() - 2 ) ? 0 : turnover ) ) ) );
         normalize( wf, rgrid, grid.dx() );
         auto e = derivatives( wf, f, it.turnover );
-        if ( std::abs(e[3] * e[0]) > 0.01  || std::abs( e[1] * e[4] ) > 0.01 ) {
+        if ( std::abs( e[3] * e[0] ) > 0.01 ||
+             std::abs( e[1] * e[4] ) > 0.01 ) {
 #ifdef DEBUG
             display_function(
                 g,
@@ -983,7 +987,7 @@ converged:
                 it.turnover - 1,
                 true,
                 {static_cast<double>( rgrid[it.turnover] - 2 ),
-                 static_cast<double>( rgrid[it.turnover] + 2 )});
+                 static_cast<double>( rgrid[it.turnover] + 2 )} );
 #endif
 
             it.turnover = ( it.turnover + f.size() - 2 ) / 2;
@@ -1008,13 +1012,14 @@ converged:
                           it.turnover - 1,
                           true,
                           {0, static_cast<double>( rgrid.back() )} );
-        display_function( g2,
-                          rgrid,
-                          wf,
-                          it.turnover - 1,
-                          true,
-                          {static_cast<double>( rgrid[it.turnover] - 1 ),
-                           static_cast<double>( rgrid[it.turnover] + 1 )});
+        display_function(
+            g2,
+            rgrid,
+            wf,
+            it.turnover - 1,
+            true,
+            {static_cast<double>( rgrid[it.turnover] - 1 ),
+             static_cast<double>( rgrid[it.turnover] + 1 )} );
 #endif
     }
 
@@ -1025,18 +1030,19 @@ converged:
                          it.energy_upper - it.energy_lower, it.it};
 }
 
-//template< typename scalar, typename write_type>
-//BasisID basis( BasisID state, const xgrid<scalar> grid, const std::function<scalar( scalar, BasisID) > pot, const scalar err)
+// template< typename scalar, typename write_type>
+// BasisID basis( BasisID state, const xgrid<scalar> grid, const
+// std::function<scalar( scalar, BasisID) > pot, const scalar err)
 //{
-    //auto ret = find_basis( state, grid, pot, err);
+// auto ret = find_basis( state, grid, pot, err);
 
-    //state.e = ret.energy;
+// state.e = ret.energy;
 
-    //common::export_vector_binary(
-            //params.basis_function_filename( state ),
-            //common::vector_type_change<scalar, write_type>( ret.wf ) );
+// common::export_vector_binary(
+// params.basis_function_filename( state ),
+// common::vector_type_change<scalar, write_type>( ret.wf ) );
 
-    //return state;
+// return state;
 //}
 
 
@@ -1045,18 +1051,20 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
                      BasisParameters<scalar, write_type>& params,
                      sae<scalar> atom )
 {
-#if defined(DEBUG) || defined(DEBUGFINAL)
+#if defined( DEBUG ) || defined( DEBUGFINAL )
     Gnuplot::set_terminal_std( "qt" );
 #endif
     xgrid<scalar> desired_grid( {std::log( params.rmin() ),
                                  std::log( params.rmax() ),
                                  static_cast<size_t>( params.points() )} );
 
-    auto rgrid = make_rgrid(desired_grid);
-    std::swap(rgrid,params.grid());
+    auto rgrid = make_rgrid( desired_grid );
     std::vector<BasisID> energies;
-    energies.resize(0);
-    //params.save_parameters();
+    energies.resize( 0 );
+    // params.save_parameters();
+
+    boost::mpi::environment env;
+    boost::mpi::communicator world(PETSC_COMM_WORLD, boost::mpi::comm_attach);
 
     basis<scalar> res;
     BasisID tmp;
@@ -1073,40 +1081,83 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
     tmp = {1, 0, 0, 0, 0};
     auto ret = find_basis( tmp, desired_grid, pot, err );
     auto gsenergy = ret.energy;
-    //tmp.e = gsenergy;
-    //energies.push_back(tmp);
-    //std::vector< std::vector< write_type > > output_arrays( std::max( params.lmax() + 1, params.nmax()) );
+    // tmp.e = gsenergy;
+    // energies.push_back(tmp);
+    // std::vector< std::vector< write_type > > output_arrays( std::max(
+    // params.lmax() + 1, params.nmax()) );
 
-    for ( int l = 0; l <= std::min(params.lmax(), params.nmax()-1); l++ ) {
-        std::vector< scalar > output_array( ( params.nmax() - l) * params.grid().size() );
+    for ( int l = world.rank(); l <= std::min( params.lmax(), params.nmax() - 1 );
+          l+=world.size() ) {
+        std::vector<scalar> output_array( ( params.nmax() - l ) *
+                                          params.grid().size() );
+        //look at notes for explanation
+        //std::vector<scalar> Y( (params.nmax() - l) * (params.nmax() - l), 0);
+        std::future<void> block;
         for ( int n = l + 1; n <= params.nmax(); n++ ) {
-            if (n != 1)
+            if ( n != 1 )
                 tmp = {n, l, 0, 0, gsenergy};
             else
                 tmp = {n, l, 0, 0, 0};
             ret = find_basis( tmp, desired_grid, pot, err );
             tmp.e = ret.energy;
-            std::cerr << " orthogonalizing! " << std::endl;
-            math::Grahm_Schmidt_Orthogonalize(
-                ret.wf,
-                Range<typename std::vector<scalar>::iterator>{
-                    output_array.begin(),
-                    output_array.begin() +
-                        ( n - ( l + 1 ) ) * ret.wf.size()},
-                params.grid() );
-            std::copy( ret.wf.begin(),
-                       ret.wf.end(),
-                       output_array.begin() +
-                           ( n - ( l + 1 ) ) * ret.wf.size() );
-            energies.push_back(tmp);
+            // first time through: the future isn't valid.  Second time through, the future is valid,
+            // so the first term is false, then we wait, then the second term is true.
+            if (!block.valid() || (block.wait(),block.valid()))
+            {
+                block = std::async(
+                    std::launch::async,
+                    [n, l, &rgrid, &output_array](
+                        std::vector<scalar>&& wf ) {
+                        math::Grahm_Schmidt_Orthogonalize(
+                            wf,
+                            Range<typename std::vector<scalar>::iterator>{
+                                output_array.begin(),
+                                output_array.begin() +
+                                    ( n - ( l + 1 ) ) * wf.size()},
+                            rgrid);
+                        std::copy( wf.begin(),
+                                   wf.end(),
+                                   output_array.begin() +
+                                       ( n - ( l + 1 ) ) * wf.size() );
+                        return;
+                    },
+                    std::move(ret.wf) );
+            }
+            //std::cerr << "[" << world.rank() << "] pushing back " << tmp << std::endl;
+            energies.push_back( tmp );
         }
-        common::export_vector_binary( params.l_block_filename(l), common::vector_type_change<scalar, write_type>(output_array) );
+
+        common::export_vector_binary(
+            params.l_block_filename( l ),
+            common::vector_type_change<scalar, write_type>(
+                output_array ) );
+    }
+
+    std::vector< std::vector<BasisID> > all_energies;
+    energies.shrink_to_fit();
+
+    if (world.rank() == 0)
+        gather(world, energies, all_energies, 0);
+    else
+        gather(world, energies, 0);
+
+    energies.clear();
+
+    //auto ei = energies.begin();
+    for ( auto i = all_energies.begin(); i < all_energies.end(); ++i)
+    {
+        //std::cerr << (i - all_energies.begin()) << ": " << i->size() << std::endl;
+        //for ( auto& a : *i ) std::cerr << a << std::endl;
+        std::copy_if(i->begin(), i->end(), std::back_inserter(energies), [](BasisID a){ return a.n != 0; });
+        //ei += i->size();
     }
 
     std::sort( energies.begin(), energies.end() );
-    for ( auto& a : energies ) std::cout << a << std::endl;
-    std::swap( params.basis_prototype(), energies);
-    //params.save_parameters();
+    if (world.rank() == 0)
+        for ( auto& a : energies ) std::cerr << a << std::endl;
+    std::swap( rgrid, params.grid() );
+    std::swap( params.basis_prototype(), energies );
+    // params.save_parameters();
 }
 }
 
