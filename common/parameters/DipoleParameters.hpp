@@ -107,9 +107,9 @@ PetscReal DipoleParameters::find_dipole_moment( Mat& dipole, Vec& psi )
     VecCopy( psi, tmp );
     MatMult( dipole, psi, tmp );
     VecDot( psi, tmp, &out );
-    if ( std::abs( out.imag() ) > 1e-16 )
-        std::cerr << "dipole moment didn't produce real number: " << out.imag()
-                  << std::endl;
+//    if ( std::abs( out.imag() ) > 1e-16 )
+//       std::cerr << "dipole moment didn't produce real number: " << out.imag()
+//                << std::endl;
 
     return out.real();
 }

@@ -174,7 +174,7 @@ namespace common
     template<>
     Vec petsc_binary_read<Vec>(const std::string &filename, MPI_Comm comm)
     {
-        std::cerr << "importing " << filename << " into vector... " << std::endl;
+        //std::cerr << "importing " << filename << " into vector... " << std::endl;
         if (!file_exists(filename))
         {
             std::cerr << "file doesn't exist" << std::endl;
@@ -195,7 +195,7 @@ namespace common
     template<>
     Mat petsc_binary_read<Mat>(const std::string &filename, MPI_Comm comm)
     {
-        std::cerr << "importing " << filename.c_str() << " into matrix... " << std::endl;
+        //std::cerr << "importing " << filename.c_str() << " into matrix... " << std::endl;
         if (!file_exists(filename))
         {
             std::cerr << "file doesn't exist" << std::endl;
