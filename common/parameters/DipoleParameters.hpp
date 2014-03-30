@@ -168,6 +168,9 @@ void DipoleParameters::find_dipole_moment_decompositions(
                 ->write( reinterpret_cast<char*>(&bc), sizeof(PetscReal) );
         }
     }
+
+    VecDestroy( &bound );
+    VecDestroy( &continuum );
 }
 
 void DipoleParameters::get_parameters()
