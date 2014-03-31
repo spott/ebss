@@ -336,9 +336,10 @@ std::array<scalar, 6> derivatives( const std::vector<scalar> wf,
                   << ", d1 subtraction " << d12 - d11 << std::endl;
     }
 
+    auto sign = d11 * d12 < 0 ? math::signum(d11 * forward[0]) : 1;
 
     return std::array<scalar, 6>{
-        {( d11 - d12 ), ( d21 / d22 - 1 ), d11, d12, d21, d22}};
+        { ( d11/d12 - 1 ), ( d21 / d22 - 1 ), d11, d12, d21, d22}};
     //( d21 / d22 - 1 ) * std::abs( d21 - d22 )}};
 }
 
@@ -355,6 +356,9 @@ find_ground_state( const BasisID state,
 #ifdef DEBUGGROUND
     Gnuplot g( "wf" );
 #endif
+    err_out << "FINDING GROUND STATE" << std::endl;
+    err_out << "====================" << std::endl;
+    err_out << "====================" << std::endl;
     // Gnuplot g2( "f" );
     // create a new, smaller grid to iterate on initially:
     auto smallgrid( grid );
@@ -446,11 +450,11 @@ find_ground_state( const BasisID state,
         }
         if ( e[1] > 0 ) {
             it.lower_bound_bisect();
-            if ( std::abs( e[1] * e[0] ) < err ) break;
+            if ( std::abs( e[1] * (e[2] - e[3]) ) < err ) break;
         }
         if ( e[1] < 0 ) {
             it.upper_bound_bisect();
-            if ( std::abs( e[1] * e[0] ) < err ) break;
+            if ( std::abs( e[1] * (e[2] - e[3]) ) < err ) break;
         }
     }
 
@@ -461,6 +465,9 @@ find_ground_state( const BasisID state,
     wf = std::vector<scalar>( grid.points,
                               std::numeric_limits<scalar>::quiet_NaN() );
 
+    err_out << "FINDING GROUND STATE pt 2" << std::endl;
+    err_out << "====================" << std::endl;
+    err_out << "====================" << std::endl;
     while ( !converged && it.it < 1000 ) {
         it.it++;
         it.turnover = make_f( rgrid, state, it.energy, grid.dx(), pot, f );
@@ -525,6 +532,8 @@ find_ground_state( const BasisID state,
         if ( e[1] < 0 ) it.upper_bound_bisect();
         if ( e[1] == 0 && e[0] > 0 ) it.lower_bound_bisect();
         if ( e[1] == 0 && e[0] < 0 ) it.upper_bound_bisect();
+        if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] > 0 ) it.lower_bound_bisect();
+        if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] < 0) it.upper_bound_bisect();
     }
     return converged;
 }
@@ -547,6 +556,9 @@ converge_on_nodes( const BasisID state,
     Gnuplot g2( "f" );
 #endif
 
+    err_out << "CONVERGE ON NODES" << std::endl;
+    err_out << "====================" << std::endl;
+    err_out << "====================" << std::endl;
     auto rgrid = make_rgrid( grid );
 
     // create the wf and f function from rgrid.
@@ -560,7 +572,7 @@ converge_on_nodes( const BasisID state,
     while ( !converged && it.it < 100 ) {
         it.it++;
         it.turnover = make_f( rgrid, state, it.energy, grid.dx(), pot, f );
-        err_out << "turnover: " << it.turnover << std::endl;
+        //err_out << "turnover: " << it.turnover << std::endl;
         // display_function( g2,
         // rgrid,
         // f,
@@ -627,10 +639,10 @@ converge_on_nodes( const BasisID state,
             continue;
         }
         if ( it.nodes == correct_nodes ) {
-            if ( it.excited &&
-                 ( wf.back() - wf[wf.size() - 2] ) * wf.back() > 0 )
-                it.lower_bound_bisect();
-            else
+            //if ( it.excited &&
+                 //( wf[wf.size() - 2] - wf.back() ) * wf.back() > 0 )
+                //it.lower_bound_bisect();
+            //else
                 converged = true;
         }
     }
@@ -653,6 +665,10 @@ bool converge_excited( const BasisID state,
     Gnuplot g( "wf" );
     Gnuplot g2( "f" );
 #endif
+
+    err_out << "CONVERGE EXCITED" << std::endl;
+    err_out << "====================" << std::endl;
+    err_out << "====================" << std::endl;
 
     auto rgrid = make_rgrid( grid );
 
@@ -768,6 +784,10 @@ bool converge_bound( const BasisID state,
     Gnuplot g2( "f" );
 #endif
 
+    err_out << "CONVERGE BOUND" << std::endl;
+    err_out << "====================" << std::endl;
+    err_out << "====================" << std::endl;
+
     auto rgrid = make_rgrid( grid );
 
     // create the wf and f function from rgrid.
@@ -778,7 +798,7 @@ bool converge_bound( const BasisID state,
     it.energy = ( it.energy_upper + it.energy_lower ) / 2.;
     bool converged = false;
 
-    while ( !converged && it.it < 100 ) {
+    while ( !converged && it.it < 1000 ) {
         it.it++;
         it.turnover = make_f( rgrid, state, it.energy, grid.dx(), pot, f );
         err_out << "turnover: " << it.turnover << std::endl;
@@ -851,21 +871,12 @@ bool converge_bound( const BasisID state,
             continue;
         }
         if ( it.nodes == correct_nodes ) {
-            if ( e[1] > 0 ) {
-                it.lower_bound_bisect();
-            }
-            if ( e[1] < 0 ) {
-                it.upper_bound_bisect();
-            }
-            // else {
-            // it.lower_bound_bisect();
-            //}
-            if ( e[1] == 0 && e[0] > 0 ) {
-                it.lower_bound_bisect();
-            }
-            if ( e[1] == 0 && e[0] < 0 ) {
-                it.upper_bound_bisect();
-            }
+            if ( e[1] > 0 ) it.lower_bound_bisect();
+            if ( e[1] < 0 ) it.upper_bound_bisect();
+            if ( e[1] == 0 && e[0] > 0 ) it.lower_bound_bisect();
+            if ( e[1] == 0 && e[0] < 0 ) it.upper_bound_bisect();
+            if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] > 0 ) it.lower_bound_bisect();
+            if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] < 0) it.upper_bound_bisect();
             if ( it.energy_upper - it.energy_lower < err )
                 converged = true;
         }
