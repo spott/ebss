@@ -24,7 +24,10 @@ extern "C" {
 #include<gsl/gsl_sf_coulomb.h>
 #include<gsl/gsl_sf_legendre.h>
 
+//#include<OpenBlas/cblas.h>
+//#include <OpenBlas/common.h>
 
+//cblas_dsymm(OPENBLAS_CONST enum CBLAS_ORDER Order, OPENBLAS_CONST enum CBLAS_SIDE Side, OPENBLAS_CONST enum CBLAS_UPLO Uplo, OPENBLAS_CONST blasint M, OPENBLAS_CONST blasint N, OPENBLAS_CONST double alpha, OPENBLAS_CONST double *A, OPENBLAS_CONST blasint lda, OPENBLAS_CONST double *B, OPENBLAS_CONST blasint ldb, OPENBLAS_CONST double beta, double *C, OPENBLAS_CONST blasint ldc);
 
 namespace math{
 //Constants:
@@ -579,6 +582,29 @@ void Grahm_Schmidt_Orthogonalize( std::vector<scalar>& v,
     }
 
     normalize( v, rgrid );
+}
+
+template <typename iterator,
+                          typename scalar = typename iterator::value_type>
+void orthog_matrix( std::vector<scalar>& v,
+        std::vector<scalar>& Y,
+        Range<iterator> rest,
+        const std::vector<scalar>& rgrid, int index )
+{
+    size_t ysize = std::sqrt(Y.size());
+    size_t rest_size = (rest.end - rest.begin) / rgrid.size();
+    for (size_t vector = 0; vector < rest_size; ++vector)
+    {
+        scalar projection =
+            integrateTrapezoidRule( {v.begin(), v.end()},
+                                    {rest.begin + vector * rgrid.size(),
+                                     rest.begin + vector * rgrid.size() + rgrid.size()},
+                                    rgrid,
+                                    []( scalar r ) { return 1; } );
+        Y[ vector + ysize*index ] = projection; //symmetric
+        Y[ vector*ysize + index ] = projection; //symmetric
+    }
+    Y[ rest_size * ysize + rest_size ] = 1.;
 }
 
 template< typename Comparator >
