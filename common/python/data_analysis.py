@@ -233,7 +233,7 @@ class nonperturbative_set(object):
 
 
     @staticmethod
-    @ft.lru_cache(maxsize=10)
+    #@ft.lru_cache(maxsize=10)
     def get_prototype( filename = "prototype.csv" ):
         prototype_f = file( filename )
         n = []

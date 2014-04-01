@@ -339,7 +339,7 @@ std::array<scalar, 6> derivatives( const std::vector<scalar> wf,
     auto sign = d11 * d12 < 0 ? math::signum(d11 * forward[0]) : 1;
 
     return std::array<scalar, 6>{
-        { ( d11/d12 - 1 ), ( d21 / d22 - 1 ), d11, d12, d21, d22}};
+        { -( d11/d12 - 1 ), ( d21 / d22 - 1 ), d11, d12, d21, d22}};
     //( d21 / d22 - 1 ) * std::abs( d21 - d22 )}};
 }
 
@@ -528,12 +528,16 @@ find_ground_state( const BasisID state,
             it.upper_bound_bisect();
             continue;
         }
-        if ( e[1] > 0 ) it.lower_bound_bisect();
-        if ( e[1] < 0 ) it.upper_bound_bisect();
-        if ( e[1] == 0 && e[0] > 0 ) it.lower_bound_bisect();
-        if ( e[1] == 0 && e[0] < 0 ) it.upper_bound_bisect();
-        if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] > 0 ) it.lower_bound_bisect();
-        if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] < 0) it.upper_bound_bisect();
+        scalar d = std::abs(e[1]) > std::abs(e[0]) ? e[1] : e[0];
+
+        if ( d > 0 ) it.lower_bound_bisect();
+        if ( d < 0 ) it.upper_bound_bisect();
+        //if ( e[1] > 0 ) it.lower_bound_bisect();
+        //if ( e[1] < 0 ) it.upper_bound_bisect();
+        //if ( e[1] == 0 && e[0] > 0 ) it.lower_bound_bisect();
+        //if ( e[1] == 0 && e[0] < 0 ) it.upper_bound_bisect();
+        //if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] > 0 ) it.lower_bound_bisect();
+        //if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] < 0) it.upper_bound_bisect();
     }
     return converged;
 }
@@ -639,10 +643,10 @@ converge_on_nodes( const BasisID state,
             continue;
         }
         if ( it.nodes == correct_nodes ) {
-            //if ( it.excited &&
-                 //( wf[wf.size() - 2] - wf.back() ) * wf.back() > 0 )
-                //it.lower_bound_bisect();
-            //else
+            if ( it.excited &&
+                 ( wf.back() - wf[wf.size() - 2] ) * wf.back() > 0 )
+                it.lower_bound_bisect();
+            else
                 converged = true;
         }
     }
@@ -801,7 +805,7 @@ bool converge_bound( const BasisID state,
     while ( !converged && it.it < 1000 ) {
         it.it++;
         it.turnover = make_f( rgrid, state, it.energy, grid.dx(), pot, f );
-        err_out << "turnover: " << it.turnover << std::endl;
+        //err_out << "turnover: " << it.turnover << std::endl;
         // display_function( g2,
         // rgrid,
         // f,
@@ -849,8 +853,6 @@ bool converge_bound( const BasisID state,
                 << " 2nd deriv: " << e[1] << ": " << e[4] << "," << e[5] << std::endl;
         err_out << " nodes: " << it.nodes
                   << ", correct_nodes: " << correct_nodes;
-        err_out << " de: " << it.energy_upper - it.energy_lower
-                  << std::endl;
         err_out << it << std::endl;
 
 #ifdef DEBUGBOUND
@@ -871,12 +873,14 @@ bool converge_bound( const BasisID state,
             continue;
         }
         if ( it.nodes == correct_nodes ) {
-            if ( e[1] > 0 ) it.lower_bound_bisect();
-            if ( e[1] < 0 ) it.upper_bound_bisect();
-            if ( e[1] == 0 && e[0] > 0 ) it.lower_bound_bisect();
-            if ( e[1] == 0 && e[0] < 0 ) it.upper_bound_bisect();
-            if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] > 0 ) it.lower_bound_bisect();
-            if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] < 0) it.upper_bound_bisect();
+            scalar& d = std::abs(e[1]) > std::abs(e[0]) ? e[1] : e[0];
+
+            if ( d > 0 ) it.lower_bound_bisect();
+            if ( d < 0 ) it.upper_bound_bisect();
+            //if ( e[1] == 0 && e[0] > 0 ) it.lower_bound_bisect();
+            //if ( e[1] == 0 && e[0] < 0 ) it.upper_bound_bisect();
+            //if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] > 0 ) it.lower_bound_bisect();
+            //if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] < 0) it.upper_bound_bisect();
             if ( it.energy_upper - it.energy_lower < err )
                 converged = true;
         }
