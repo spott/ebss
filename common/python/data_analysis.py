@@ -5,6 +5,7 @@ import os
 import pandas as pd
 import math
 import functools as ft
+import struct
 
 
 ''' import a binary file of type 'd': '''
@@ -38,7 +39,7 @@ class atomic(object):
         return (math.gamma(.5 + 2.*n) / (np.sqrt(np.pi) * math.gamma(1.+2.*n))) * (i/atomic.intensity)**n
 
 class perturbative_set(object):
-    ''' holds the dataframe that has all the perturbative calculations. '''
+    ''' holds the dataframe that has all the perturbative chi calculations. '''
 
     chi_labels = ["1","-1,1,1","-1,-1,1,1,1","-1,-1,-1,1,1,1,1","-1,-1,-1,-1,1,1,1,1,1","-1,-1,-1,-1,-1,1,1,1,1,1,1"]
     def __init__(self, folder = None, df = None ):
@@ -207,6 +208,7 @@ class nonperturbative_set(object):
         def __init__(self, folder):
             if ( not os.path.exists(os.path.join(folder,"wf_final.dat"))):
                 raise Exception("folder doesn't have wf_final.dat", folder)
+            self.folder = folder
             with open(os.path.join(folder,"que"),'r') as q:
                 self.intensity = float()
                 line_of_interest = str()
@@ -241,6 +243,47 @@ class nonperturbative_set(object):
             mi = pd.MultiIndex.from_arrays([[self.cycles], [self.wavelength]], names=["cycles","wavelength"])
             self.data = pd.DataFrame( self.chi, columns = mi, index = [self.intensity] )
             self.data.index.name = "intensity"
+
+        def dipole_t(self):
+            with open(os.path.join(self.folder, "dipole.dat"), 'rb') as f:
+                dp = np.fromfile(f, 'd', -1)
+            with open(os.path.join(self.folder, "time.dat"), 'rb') as f:
+                time = np.fromfile(f, 'd', -1)
+
+            return (time, dp)
+
+        def dipole_f(self):
+            with open(os.path.join(self.folder, "dipole.dat"), 'rb') as f:
+                dp = np.fromfile(f, 'd', -1)
+                ft = (2. * np.abs(np.fft.rfft(dp)) / len(dp))
+                time = self.cycles * 2. * np.pi / atomic.from_wavelength(self.wavelength)
+                df = 2. * np.pi / ( time )
+            freq = np.arange(-len(dp)*df/2, len(dp)*df/2, df)
+
+            return (freq, ft)
+
+        def get_prototype(self):
+            n = []
+            l = []
+            j = []
+            m = []
+            e = []
+            with open( os.path.join( self.folder, "prototype.csv" ), 'r') as prototype_f:
+                for line in prototype_f:
+                    i = line.split(',')
+                    n.append(int(i[0]))
+                    l.append(int(i[1]))
+                    j.append(float( int( i[2] ) ) /2.)
+                    m.append(int(i[3]))
+                    e.append(float(i[4]))
+            return pd.MultiIndex.from_arrays([n,l,j,m,e], names=["n","l","j","m","e"])
+
+
+        def wf(self, n=-1):
+            if (n == -1):
+                wf = import_petsc_vec(os.path.join(self.folder, "wf_final.dat"))
+                return pd.DataFrame({"wf": wf}, index=self.get_prototype())
+
 
 
     @staticmethod
