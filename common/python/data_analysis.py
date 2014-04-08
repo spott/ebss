@@ -174,16 +174,25 @@ class nonperturbative_set(object):
 
     def __init__(self, folder):
         self.data = None
-        for f1 in filter( lambda x: os.path.isdir(os.path.join(folder,x)), os.listdir(folder)):
-            for f2 in filter( lambda x: os.path.isdir(os.path.join(folder,f1,x)) 
-                                and "wf_final.dat" in os.listdir(os.path.join(folder,f1,x)),
-                                os.listdir(os.path.join(folder,f1))):
-                if (self.data is None):
-                    self.data = pd.DataFrame(nonperturbative_set.nonperturbative( os.path.join(folder, f1, f2) ).data)
-                else:
-                    self.data = pd.concat([self.data,nonperturbative_set.nonperturbative( os.path.join(folder, f1, f2) ).data])
+        self.folders = []
+
+        os.path.walk(folder, nonperturbative_set.visit, self)
+        self.data = self.data.groupby(self.data.index).sum()
 
         self.data.sort_index(inplace=True)
+
+    def visit(self, dirname, names):
+        if not "wf_final.dat" in names:
+            return
+        try:
+            if (self.data is None):
+                self.data = pd.DataFrame(nonperturbative_set.nonperturbative( dirname ).data)
+                self.folders.append([dirname])
+            else:
+                self.data = pd.concat([self.data,nonperturbative_set.nonperturbative( dirname ).data])
+                self.folders.append([dirname])
+        except:
+            return
 
     def nl_chis(self):
         new_data = self.data.copy()
@@ -196,6 +205,8 @@ class nonperturbative_set(object):
     class nonperturbative(object):
 
         def __init__(self, folder):
+            if ( not os.path.exists(os.path.join(folder,"wf_final.dat"))):
+                raise Exception("folder doesn't have wf_final.dat", folder)
             with open(os.path.join(folder,"que"),'r') as q:
                 self.intensity = float()
                 line_of_interest = str()
@@ -259,7 +270,7 @@ class basis(object):
     
     def wf(self, n, l):
         with open(os.path.join(self.folder, "l_" + str(l) + ".dat"), 'rb') as f:
-            npy = numpy.fromfile(f, 'd', (n-(l))*self.points)[-self.points:]
+            npy = np.fromfile(f, 'd', (n-(l))*self.points)[-self.points:]
         return npy
     
     def prototype(self):
