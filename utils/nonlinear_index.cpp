@@ -137,6 +137,7 @@ int main( int argc, const char** argv )
 
     // get the frequencies list from nonlinear params:
     auto freqs = nparams.freqs();
+    std::sort(freqs.begin(), freqs.end());
 
     try
     {

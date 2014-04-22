@@ -250,6 +250,26 @@ int main( int argc, const char** argv )
     params.write_energy_eigenvalues();
 
     params.save_parameters();
+
+    auto maximum_n_it = std::find_if(prototype.begin(), prototype.end(), [&params]( BasisID a ) { return a.n == params.nmax() && a.l == 0; });
+    int loc = maximum_n_it - prototype.begin();
+    //find the appropriate absorber size vector:
+    Vec A, B;
+    MatGetVecs(H, &A, &B);
+    VecSetValue(A,loc,1.,INSERT_VALUES);
+    VecAssemblyBegin(A);
+    VecAssemblyEnd(A);
+
+    MatMult(H, A, B);
+
+    PetscViewer view;
+
+    PetscViewerBinaryOpen( params.comm(),
+            (params.hamiltonian_folder() + "/abs.dat").c_str(),
+            FILE_MODE_WRITE,
+            &view );
+    VecView( B, view );
+
     // delete params;
     PetscFinalize();
     return 0;
