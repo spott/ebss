@@ -122,7 +122,7 @@ class perturbative_set(object):
         return self.data.xs(freq, level="frequency").xs(max(self.nmax), level="nmax", axis=1).xs(max(self.npoints), level="npoints", axis=1)[max(self.rmax)].iloc[-1].T
 
     def dnwm(self, freq="0.056"):
-        return self.data.xs(freq, level="frequency").xs(max(self.nmax), level="nmax", axis=1).xs(max(self.npoints), level="npoints", axis=1)[max(self.rmax)][["1","-1,1,1","-1,-1,1,1,1","-1,-1,-1,1,1,1,1","-1,-1,-1,-1,1,1,1,1,1","-1,-1,-1,-1,-1,1,1,1,1,1,1"]].iloc[-1]
+        return self.data.xs(freq, level="frequency").xs(max(self.nmax), level="nmax", axis=1).xs(max(self.npoints), level="npoints", axis=1)[500][["1","-1,1,1","-1,-1,1,1,1","-1,-1,-1,1,1,1,1","-1,-1,-1,-1,1,1,1,1,1","-1,-1,-1,-1,-1,1,1,1,1,1,1"]].iloc[-1]
 
     def nlchi_vs_intensity(self, intensities, freq="0.056"):
         l = {}
@@ -261,6 +261,12 @@ class nonperturbative_set(object):
             freq = np.arange(-len(dp)*df/2, len(dp)*df/2, df)
 
             return (freq, ft)
+        def efield(self):
+            with open(os.path.join(self.folder, "efield.dat"), 'rb') as f:
+                ef = np.fromfile(f, 'd', -1)
+            with open(os.path.join(self.folder, "time.dat"), 'rb') as f:
+                time = np.fromfile(f, 'd', -1)
+            return (time,ef)
 
         def get_prototype(self):
             n = []
