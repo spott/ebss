@@ -42,6 +42,7 @@ class perturbative_set(object):
     ''' holds the dataframe that has all the perturbative chi calculations. '''
 
     chi_labels = ["1","-1,1,1","-1,-1,1,1,1","-1,-1,-1,1,1,1,1","-1,-1,-1,-1,1,1,1,1,1","-1,-1,-1,-1,-1,1,1,1,1,1,1"]
+    third_labels = ["1,1,1","-1,1,1,1,1","-1,-1,1,1,1,1,1","-1,-1,-1,1,1,1,1,1,1"] #,"-1,-1,-1,-1,1,1,1,1,1,1,1"]
     def __init__(self, folder = None, df = None ):
         ''' parent folder is the input, containing at least a "rmax/npoints/nmax_nonlinear_DNWM" structure '''
         if (folder is None and df is None):
@@ -60,24 +61,30 @@ class perturbative_set(object):
                             lambda x: x.count("nonlinear") == 1 
                                 and os.path.isdir(os.path.join(folder,rmax,npoints,x)), 
                             os.listdir(os.path.join(folder,rmax,npoints))):
-                        #try:
-                        self.rmax += [int(rmax)]
-                        self.nmax += [int(nmax_folder.split("_")[0])]
-                        self.npoints += [int(npoints)]
-                        try:
-                            d = perturbative_set.perturbative( os.path.join(folder,rmax,npoints,nmax_folder), 
-                                    rmax, npoints, nmax_folder.split("_")[0])
-                            if self.data is None:
-                                self.data = d
-                            else:
-                                self.data = self.data.join(d)
-                        except:
-                            pass
-                        #except Exception as inst:
-                            #print(inst)
-                            #print(os.path.join(folder,rmax,npoints,nmax_folder))
-                            #print("==== failed ====")
-                            #continue
+                        if ( "frequencies.dat" in os.listdir(os.path.join(folder,rmax,npoints,nmax_folder))):
+                            try:
+                                self.rmax += [int(rmax)]
+                                self.nmax += [int(nmax_folder.split("_")[0])]
+                                self.npoints += [int(npoints)]
+                                #try:
+                                d = perturbative_set.perturbative( os.path.join(folder,rmax,npoints,nmax_folder), 
+                                        rmax, npoints, nmax_folder.split("_")[0])
+                                if self.data is None:
+                                    self.data = d
+                                else:
+                                    #try:
+                                    self.data = self.data.join(d, how="outer" )
+                                #except Exception as inst:
+                                    #print(d)
+                                    #print("\n")
+                                    #print(inst)
+                                    #print(os.path.join(folder,rmax,npoints,nmax_folder))
+                                    #print("==== join failed ====")
+                            except Exception as inst:
+                                print(os.path.join(folder,rmax,npoints,nmax_folder))
+                                print(inst)
+                                print("==== find failed ====")
+                                pass
         else:
             self.data = df
 
@@ -112,7 +119,14 @@ class perturbative_set(object):
             else:
                 s = s[1:-1]
             chis[",".join(s)] = get_file( os.path.join(folder,i), 'D')
-        data = pd.DataFrame( chis)
+        if not imgs:
+            raise Exception("imgs is empty", imgs, folder)
+        if not freqs:
+            raise Exception("freqs is empty", freqs, folder)
+        data = pd.DataFrame( chis )
+        #print data
+        #print imgs
+        #print freqs
         data.index = pd.MultiIndex.from_product([imgs,freqs], names=["epsilon","frequency"])
         data.columns = pd.MultiIndex.from_product([[rmax], [npoints], [nmax], data.columns], names=["rmax","npoints","nmax","chi"])
         return data
@@ -134,12 +148,30 @@ class perturbative_set(object):
 
         return pd.DataFrame(l, index=intensities)
 
-    def fractional_chis(self, intensities, compared_to=3, freq="0.056"):
+    def chi_vs_intensity(self, intensities, freq="0.056", harmonic=1):
         l = {}
         dnwm_data = self.dnwm(freq)
+        s = perturbative_set.chi_labels if harmonic == 1 else perturbative_set.third_labels
+        for m in range(0,len(s)):
+            #print(int(m/2))
+            ch = lambda i : sum([ dnwm_data[perturbative_set.chi_labels[j]] * atomic.averaged_intensity(i,j) for j in range(0,m+1) ])
+            l["chi" + str(m*2+1)] = [ ch(i) for i in intensities ]
+
+        return pd.DataFrame(l, index=intensities)
+
+    def fractional_chis(self, intensities, compared_to=3, freq="0.056", tot=False):
+        l = {}
+        dnwm_data = self.dnwm(freq)
+
+        comp_to = lambda i: i
+        if tot:
+            comp_to = lambda i: sum([ dnwm_data[int(c/2)] * atomic.averaged_intensity(i,int(c/2)) for c in range(1, compared_to+2, 2)])
+        else:
+            comp_to = lambda i: dnwm_data[int(compared_to/2)] * atomic.averaged_intensity(i,int(compared_to/2))
+
         for m in range(int(compared_to/2)+1,len(perturbative_set.chi_labels)):
             #print(int(m/2))
-            l["chi" + str(m*2+1)] = [ (dnwm_data[perturbative_set.chi_labels[m]] * atomic.averaged_intensity(i,m)) / (dnwm_data[int(compared_to/2)] * atomic.averaged_intensity(i,int(compared_to/2))) for i in intensities ]
+            l["chi" + str(m*2+1)] = [ (dnwm_data[perturbative_set.chi_labels[m]] * atomic.averaged_intensity(i,m)) / comp_to(i) for i in intensities ]
 
         return pd.DataFrame(l, index=intensities)
 
@@ -173,9 +205,10 @@ class perturbative_set(object):
 class nonperturbative_set(object):
     ''' the perturbative set of values '''
 
-    def __init__(self, folder):
+    def __init__(self, folder, n=1):
         self.data = None
         self.folders = []
+        self.n = n
 
         os.path.walk(folder, nonperturbative_set.visit, self)
         self.data = self.data.groupby(self.data.index).sum()
@@ -187,12 +220,13 @@ class nonperturbative_set(object):
             return
         try:
             if (self.data is None):
-                self.data = pd.DataFrame(nonperturbative_set.nonperturbative( dirname ).data)
+                self.data = pd.DataFrame(nonperturbative_set.nonperturbative( dirname, self.n ).data)
                 self.folders.append([dirname])
             else:
-                self.data = pd.concat([self.data,nonperturbative_set.nonperturbative( dirname ).data])
+                self.data = pd.concat([self.data,nonperturbative_set.nonperturbative( dirname, self.n).data])
                 self.folders.append([dirname])
-        except:
+        except Exception as inst:
+            print("Failed",dirname, inst)
             return
 
     def nl_chis(self):
@@ -203,9 +237,15 @@ class nonperturbative_set(object):
             new_data[c] = new_data[c] - y0
         return new_data
 
+    def ionizations(self, n=-1):
+        for i in nonp.folders:
+            s = data_analysis.nonperturbative_set.nonperturbative(i[0])
+            ionization[(s.intensity, s.wavelength, s.cycles)] = float(s.ionization(n))
+        return pd.DataFrame(ionization.values(), index=pd.MultiIndex.from_tuples(ionization.keys(),names=["intensity","wavelength","cycles"])).sort_index()
+
     class nonperturbative(object):
 
-        def __init__(self, folder):
+        def __init__(self, folder, n=1):
             if ( not os.path.exists(os.path.join(folder,"wf_final.dat"))):
                 raise Exception("folder doesn't have wf_final.dat", folder)
             self.folder = folder
@@ -232,13 +272,7 @@ class nonperturbative_set(object):
                     if (l.startswith("-laser_dt ")):
                         self.dt = float(l.split(" ")[1])
 
-            with open(os.path.join(folder, "dipole.dat"), 'rb') as f:
-                temp = np.fromfile(f, 'd', -1)
-                ft = (2. * np.abs(np.fft.rfft(temp)) / len(temp))
-                time = self.cycles * 2. * np.pi / atomic.from_wavelength(self.wavelength)
-                df = 2. * np.pi / ( time )
-                i = int(round( atomic.from_wavelength(self.wavelength) / df))
-                self.chi = 2. * ft[i] / np.sqrt(self.intensity / atomic.intensity)
+            self.chi = self.harmonic(n)
 
             mi = pd.MultiIndex.from_arrays([[self.cycles], [self.wavelength]], names=["cycles","wavelength"])
             self.data = pd.DataFrame( self.chi, columns = mi, index = [self.intensity] )
@@ -255,12 +289,31 @@ class nonperturbative_set(object):
         def dipole_f(self):
             with open(os.path.join(self.folder, "dipole.dat"), 'rb') as f:
                 dp = np.fromfile(f, 'd', -1)
-                ft = (2. * np.abs(np.fft.rfft(dp)) / len(dp))
+                ft = (2. * np.fft.rfft(dp) / len(dp))
                 time = self.cycles * 2. * np.pi / atomic.from_wavelength(self.wavelength)
                 df = 2. * np.pi / ( time )
-            freq = np.arange(-len(dp)*df/2, len(dp)*df/2, df)
+            freq = np.arange(0, len(dp)*df/2+df, df)
 
             return (freq, ft)
+
+        def efield(self):
+            with open(os.path.join(self.folder, "efield.dat"), 'rb') as f:
+                ef = np.fromfile(f, 'd', -1)
+            with open(os.path.join(self.folder, "time.dat"), 'rb') as f:
+                time = np.fromfile(f, 'd', -1)
+            return (time,ef)
+
+        def harmonic(self, n=1):
+            with open(os.path.join(self.folder, "dipole.dat"), 'rb') as f:
+                temp = np.fromfile(f, 'd', -1)
+                #ft = np.real(2. * np.exp( - complex(0,1) * np.pi / 2.) * np.fft.rfft(temp) / len(temp))
+                ft = (2. * np.fft.rfft(temp) / len(temp))
+
+                time = self.cycles * 2. * np.pi / atomic.from_wavelength(self.wavelength)
+                df = 2. * np.pi / ( time )
+                i = int(round( n * atomic.from_wavelength(self.wavelength) / df))
+                return 2. * np.real(ft[i] * np.exp( - complex(0,1) * np.pi / 2.)) / np.sqrt(self.intensity / atomic.intensity)
+
 
         def get_prototype(self):
             n = []
@@ -283,7 +336,24 @@ class nonperturbative_set(object):
             if (n == -1):
                 wf = import_petsc_vec(os.path.join(self.folder, "wf_final.dat"))
                 return pd.DataFrame({"wf": wf}, index=self.get_prototype())
+            elif (n < self.cycles*2):
+                wf = import_petsc_vec(os.path.join(self.folder, "wf_" + str(n) + ".dat"))
+                return pd.DataFrame({"wf": wf}, index=self.get_prototype())
+            else:
+                raise Exception(n, "n not less than " , self.cycles)
 
+        def gs_population(self, ns=-1):
+            w = self.wf(ns)
+            return w.apply(lambda x: abs(x)**2).query('n == 1').iloc[0]
+
+        def bound_population(self, n=-1):
+            w = self.wf(n)
+            return w.apply(lambda x: abs(x)**2).query('e < 0').sum()
+
+        def ionization(self, n=-1):
+            w = self.wf(n)
+            absorbed = 1 - w.apply(lambda x: abs(x)**2).sum()
+            return absorbed + w.apply(lambda x: abs(x)**2).query('e > 0').sum()
 
 
     @staticmethod
@@ -310,15 +380,30 @@ class basis(object):
         self.folder = folder
         self.grid = get_file( os.path.join(folder, "grid.dat"))
         self.points = len(self.grid)
-    
+
     def wf(self, n, l):
         with open(os.path.join(self.folder, "l_" + str(l) + ".dat"), 'rb') as f:
             npy = np.fromfile(f, 'd', (n-(l))*self.points)[-self.points:]
         return npy
-    
+
     def prototype(self):
         with open(os.path.join(self.folder, "prototype.dat"), 'rb') as f:
-            dt = numpy.dtype([('n', numpy.int32), ('l', numpy.int32), ('j', numpy.int32), 
-                          ('m', numpy.int32), ('e', numpy.complex128)])
-            npy = numpy.fromfile(f, dt)
+            dt = np.dtype([('n', np.int32), ('l', np.int32), ('j', np.int32), 
+                          ('m', np.int32), ('e', np.complex128)])
+            npy = np.fromfile(f, dt)
         return npy
+
+    def get_prototype(self):
+        n = []
+        l = []
+        j = []
+        m = []
+        e = []
+        prototype_f = self.prototype()
+        for a in prototype_f:
+            n.append(a['n'])
+            l.append(a['l'])
+            j.append(float( a['j'] /2.))
+            m.append(a['m'])
+            e.append(a['e'])
+        return pd.MultiIndex.from_arrays([n,l,j,m,e], names=["n","l","j","m","e"])
