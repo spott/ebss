@@ -10,6 +10,7 @@
 #include <limits>
 #include <future>
 #include <stdexcept>
+#include<csignal>
 
 // ebss
 #include <common/common.hpp>
@@ -29,6 +30,12 @@
 #include <../include/gnuplot_i.hpp>
 #endif
 
+volatile sig_atomic_t sig = 0;
+
+void signal_handler(int signal)
+{
+    sig = signal;
+}
 
 namespace numerov
 {
@@ -48,7 +55,7 @@ void wait_for_key()
 
 #if defined( DEBUG )
 template <typename scalar>
-void display_function( Gnuplot& g,
+oid display_function( Gnuplot& g,
                        const std::vector<scalar>& grid,
                        const std::vector<scalar>& wf,
                        int point = -1,
@@ -1077,7 +1084,8 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
     auto rgrid = make_rgrid( desired_grid );
     std::vector<BasisID> energies;
     energies.resize( 0 );
-    // params.save_parameters();
+
+            // params.save_parameters();
 
     boost::mpi::environment env;
     boost::mpi::communicator world( PETSC_COMM_WORLD,
@@ -1090,10 +1098,11 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
                  std::to_string( world.rank() ) + ".txt");
     reduced_out.open(fname , std::ios_base::out);
 
+    std::signal(SIGUSR1, signal_handler);
+
+
     basis<scalar> res;
     BasisID tmp;
-
-    energies.resize( 0 );
 
     iteration<scalar> it;
     scalar err = 1e-15;
@@ -1123,10 +1132,14 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
               : std::min( params.lmax(), params.nmax() - 1 ));
           l += world.size() ) {
         err_out << "making output array of size: " << ( params.nmax() - l ) * rgrid.size() << std::endl;
-        std::vector<scalar> output_array( ( params.nmax() - l ) *
-                                         rgrid.size() );
+        std::vector<scalar> output_array;
+        if (params.resume && common::file_exists(params.l_block_filename(l) ))
+            output_array = common::import_vector_binary<scalar>( params.l_block_filename( l ) );
+        output_array.reserve(( params.nmax() - l ) * rgrid.size() );
         std::future<void> block;
         for ( int n = params.n_only() ? params.n() : l + 1; n <= (params.n_only() ? params.n() : params.nmax()); n++ ) {
+            if ( output_array.size() / rgrid.size() > n + l + 1 )
+                n = output_array.size() / rgrid.size() + l + 1;
             err_out << "inner loop: " << n << ", " << l << std::endl;
             if ( n != 1 )
                 tmp = {n, l, 0, 0, gsenergy};
@@ -1147,20 +1160,37 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
                             wf,
                             Range<typename std::vector<scalar>::iterator>{
                                 output_array.begin(),
-                                output_array.begin() +
-                                    ( n - ( l + 1 ) ) * wf.size()},
-                            rgrid );
+                                output_array.end()},
+                                rgrid );
                         std::copy( wf.begin(),
                                    wf.end(),
-                                   output_array.begin() +
-                                       ( n - ( l + 1 ) ) * wf.size() );
+                                   std::back_inserter(output_array));
                         return;
                     },
                     std::move( ret.wf ) );
             }
             energies.push_back( tmp );
+            if (sig > 0)
+            {
+                reduced_out << "Signal received! " << sig << " shutting down" << std::endl;
+                err_out << "Signal received! " << sig << " shutting down" << std::endl;
+                std::cerr << "Signal received! " << sig << " shutting down" << std::endl;
+                block.wait();
+                break;
+            }
         }
 
+
+        if (sig > 0)
+        {
+            reduced_out << "Signal received! finished writing out l vectors" << std::endl;
+            err_out << "Signal received! finished writing out l vectors" << std::endl;
+            std::cerr << "Signal received! finished writing out l vectors" << std::endl;
+            common::export_vector_binary(
+                params.l_block_filename( l ), 
+                    output_array );
+            break;
+        }
         common::export_vector_binary(
             params.l_block_filename( l ),
             common::vector_type_change<scalar, write_type>(
@@ -1177,6 +1207,9 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
 
     energies.clear();
 
+    if (params.resume) {
+        all_energies.push_back(params.basis_prototype());
+    }
     // auto ei = energies.begin();
     for ( auto i = all_energies.begin(); i < all_energies.end(); ++i ) {
         std::copy_if( i->begin(),
