@@ -14,7 +14,7 @@ class BasisParameters : public Parameters
     BasisParameters( int argc, const char** argv, MPI_Comm comm )
         : Parameters( comm ), procs_( 0 ), fs_( false ), l_only_( false ), n_only_( false ),
           charge_( 0 ), nmax_( 0 ), lmax_( 0 ), l_( 0 ), n_(0), points_( 0 ),
-          rmax_( 0 ), rmin_( 0 ), bo_( false ), atom_( "hydrogen" )
+          rmax_( 0 ), rmin_( 0 ), bo_( false ), atom_( "hydrogen" ), resume(false)
     {
         register_parameters();
 
@@ -72,11 +72,16 @@ class BasisParameters : public Parameters
         } else
             procs_ = std::thread::hardware_concurrency();
 
-
         folder_ = common::absolute_path( folder_ );
 
-        grid_ = std::vector<compute_type>( points_ );
-        basis_prototype_ = std::vector<BasisID>();
+        if ( opt.isSet( "-basis_resume" ) ) {
+            resume = true;
+            init_from_file( folder_ + "/Basis.config");
+        }
+        else {
+            grid_ = std::vector<compute_type>( points_ );
+            basis_prototype_ = std::vector<BasisID>();
+        }
     };
 
     BasisParameters( std::string filename, MPI_Comm comm )
@@ -150,6 +155,7 @@ class BasisParameters : public Parameters
 
     std::vector<compute_type>& grid();
     std::vector<BasisID>& basis_prototype();
+    bool resume;
 
   private:
     std::vector<BasisID> basis_prototype_;
@@ -340,6 +346,12 @@ void BasisParameters<compute_type_, write_type_>::register_parameters()
              0,
              "charge of the atom",
              std::string( prefix ).append( "charge\0" ).c_str() );
+    opt.add( "",
+             0,
+             0,
+             0,
+             "resume last (possibly failed) run",
+             std::string( prefix ).append( "resume\0" ).c_str() );
     opt.add( "",
              0,
              0,
