@@ -1099,6 +1099,7 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
     reduced_out.open(fname , std::ios_base::out);
 
     std::signal(SIGUSR1, signal_handler);
+    std::signal(SIGTERM, signal_handler);
 
 
     basis<scalar> res;
