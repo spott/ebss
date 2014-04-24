@@ -282,7 +282,25 @@ namespace common
         return out;
     }
 
-    template <typename T>
+    //template <typename T>
+    //void export_vector_binary(const std::string &filename, const std::vector<T>& out)
+    //{
+        //std::ios::pos_type size;
+        //std::ofstream file;
+        //file.open(filename.c_str(), std::ios::binary | std::ios::out);
+        //if (file.is_open())
+        //{
+            //file.write(reinterpret_cast<const char*>(&out[0]), static_cast<size_t>(sizeof(T) * out.size() ));
+            //file.close();
+        //}
+        //else
+        //{
+            //std::cerr << "error opening file... does the folder exist?: " << filename << std::endl;
+            //throw new std::exception();
+        //}
+    //};
+
+    template <typename T, typename T2 = T, size_t block_size = 100>
     void export_vector_binary(const std::string &filename, const std::vector<T>& out)
     {
         std::ios::pos_type size;
@@ -290,7 +308,13 @@ namespace common
         file.open(filename.c_str(), std::ios::binary | std::ios::out);
         if (file.is_open())
         {
-            file.write(reinterpret_cast<const char*>(&out[0]), static_cast<size_t>(sizeof(T)* out.size()));
+            for (auto i = out.begin(); i < out.end(); i += block_size)
+            {
+                std::array<T2,block_size> ni;
+                for( auto j = i; j < ((out.end() - i < block_size) ? out.end() : i+block_size ); j++)
+                    ni[j - i] = static_cast<T2>(*j);
+                file.write(reinterpret_cast<const char*>(&ni), static_cast<size_t>(sizeof(T2) * ((out.end() - i < block_size) ? out.end() - i : block_size)));
+            }
             file.close();
         }
         else

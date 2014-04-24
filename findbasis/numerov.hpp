@@ -1099,7 +1099,6 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
     reduced_out.open(fname , std::ios_base::out);
 
     std::signal(SIGUSR1, signal_handler);
-    std::signal(SIGTERM, signal_handler);
 
 
     basis<scalar> res;
@@ -1181,7 +1180,7 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
             }
         }
 
-
+        block.wait();
         if (sig > 0)
         {
             reduced_out << "Signal received! finished writing out l vectors" << std::endl;
@@ -1192,10 +1191,9 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
                     output_array );
             break;
         }
-        common::export_vector_binary(
+        common::export_vector_binary<scalar, write_type>(
             params.l_block_filename( l ),
-            common::vector_type_change<scalar, write_type>(
-                output_array ) );
+                output_array );
     }
 
     std::vector<std::vector<BasisID>> all_energies;
