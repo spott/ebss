@@ -253,6 +253,8 @@ int main( int argc, const char** argv )
 
     auto maximum_n_it = std::find_if(prototype.begin(), prototype.end(), [&params]( BasisID a ) { return a.n == params.nmax() && a.l == 0; });
     int loc = maximum_n_it - prototype.begin();
+
+    std::cout << "location for max n: " << loc << std::endl;
     //find the appropriate absorber size vector:
     Vec A, B;
     MatGetVecs(H, &A, &B);
