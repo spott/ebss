@@ -175,10 +175,8 @@ int main( int argc, const char** argv )
                     grid.size()};
         else if ( a.l != l1 && a.l != l2 && b ) {
             l2 = a.l;
-            std::cerr << "importing new l_block: " << l2 << std::endl;
-            l_block2 = common::import_vector_binary<double>(
-                params.basis_parameters()->l_block_filename( a.l ) );
-            std::cerr << "done importing new l_block: " << l2 << std::endl;
+            common::import_binary_to_vector<double>(
+                params.basis_parameters()->l_block_filename( a.l ), l_block2 );
             b = false;
             return Range<iterator>{
                 l_block2.begin() + ( a.n - ( a.l + 1) ) * grid.size(),
@@ -186,10 +184,8 @@ int main( int argc, const char** argv )
                     grid.size()};
         } else if ( a.l != l1 && a.l != l2 && !b ) {
             l1 = a.l;
-            std::cerr << "importing new l_block: " << l1 << std::endl;
-            l_block1 = common::import_vector_binary<double>(
-                params.basis_parameters()->l_block_filename( a.l ) );
-            std::cerr << "done importing new l_block: " << l1 << std::endl;
+            l_block1 = common::import_binary_to_vector<double>(
+                params.basis_parameters()->l_block_filename( a.l ) , l_block1);
             b = true;
             return Range<iterator>{
                 l_block1.begin() + ( a.n - ( a.l + 1 ) ) * grid.size(),
