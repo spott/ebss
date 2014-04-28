@@ -148,13 +148,16 @@ class perturbative_set(object):
 
         return pd.DataFrame(l, index=intensities)
 
-    def chi_vs_intensity(self, intensities, freq="0.056", harmonic=1):
+    def chi_vs_intensity(self, intensities, freq="0.056", harmonic=1, averaged=True):
         l = {}
         dnwm_data = self.dnwm(freq)
         s = perturbative_set.chi_labels if harmonic == 1 else perturbative_set.third_labels
         for m in range(0,len(s)):
             #print(int(m/2))
-            ch = lambda i : sum([ dnwm_data[perturbative_set.chi_labels[j]] * atomic.averaged_intensity(i,j) for j in range(0,m+1) ])
+            if averaged:
+                ch = lambda i : sum([ dnwm_data[perturbative_set.chi_labels[j]] * atomic.averaged_intensity(i,j) for j in range(0,m+1) ])
+            else:
+                ch = lambda i : sum([ dnwm_data[perturbative_set.chi_labels[j]] * (i/atomic.intensity)**j for j in range(0,m+1) ])
             l["chi" + str(m*2+1)] = [ ch(i) for i in intensities ]
 
         return pd.DataFrame(l, index=intensities)
