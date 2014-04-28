@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <csignal>
 
 typedef struct
 {
@@ -14,6 +15,13 @@ typedef struct
 
 namespace cranknicholson
 {
+
+volatile sig_atomic_t sig = 0;
+
+void signal_handler(int signal)
+{
+    sig = signal;
+}
 
 PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
 {
@@ -79,7 +87,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
             {
                 dipole.emplace_back( new
                     std::ofstream( cntx->dipole->dipole_filename()[a],
-                                   std::ios::binary ) );
+                                   std::ios::binary | std::ios::ate ) );
             }
             catch ( ... )
             {
@@ -94,6 +102,8 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
     std::vector<PetscReal> time;
 
     PetscReal norm_lost = 0;
+
+    std::signal(SIGUSR1, signal_handler);
 
     while ( t < maxtime ) {
         MatCopy( *( cntx->D ), *A, SAME_NONZERO_PATTERN ); // A = D
@@ -221,6 +231,8 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
                           << " norm lost to absorbers: " << norm_lost
                           << std::endl;
         }
+        if (sig > 0)
+            break;
     }
     file_name = std::string( "./wf_final.dat" );
     PetscViewerBinaryOpen(

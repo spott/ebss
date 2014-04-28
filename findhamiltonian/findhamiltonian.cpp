@@ -15,12 +15,28 @@
 #include <unordered_map>
 #include <memory>
 #include <functional>
+#include <csignal>
 
 // gsl:
 #include <gsl/gsl_sf_coulomb.h>
 #include <gsl/gsl_integration.h>
 #include <gsl/gsl_errno.h>
 
+//backtrace:
+#include <execinfo.h>
+
+void handler(int sig) {
+  void *array[10];
+  size_t size;
+
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 10);
+
+  // print out all the frames to stderr
+  fprintf(stderr, "Error: signal %d:\n", sig);
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  exit(1);
+}
 
 template <typename ReturnType, typename Arg>
 std::function<ReturnType( Arg )>
@@ -108,6 +124,8 @@ int main( int argc, const char** argv )
 
     HamiltonianParameters<PetscReal> params( argc, argv, MPI_COMM_WORLD );
     if ( params.rank() == 0 ) std::cout << params.print();
+
+    std::signal(SIGSEGV, handler);
 
     // decltype( params.basis_parameters()->grid() ) grid;
     std::vector<double> grid;
