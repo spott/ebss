@@ -133,137 +133,147 @@ int main( int argc, const char** argv )
 
     grid = params.basis_parameters()->grid();
 
-    std::function<bool(int, int)> dipole_selection_rules;
-    if ( params.fs() ) {
-        dipole_selection_rules = [prototype]( int i, int j ) {
-            // since j is multiplied by 2, need to have a 2 between them.
-            return (
-                ( std::abs( prototype[i].l - prototype[j].l ) == 1 &&
-                  ( std::abs( prototype[i].j - prototype[j].j ) == 2 ||
-                    prototype[i].j == prototype[j].j ) ) ||
-                i == j );
-        };
-    } else {
-        dipole_selection_rules = [prototype]( int i, int j ) {
-            return ( std::abs( prototype[i].l - prototype[j].l ) == 1 ||
-                     i == j );
-        };
-    }
+    Mat H;
 
-    std::function<Range<typename std::vector<double>::iterator>( BasisID )>
-    import_wf = [&params,
-                 &grid ]( BasisID a )
-                            ->Range<typename std::vector<double>::iterator>
+
+    std::ofstream reduced_out;
+    std::string fname = std::string("./reduced_log_" +
+                 std::to_string( params.rank() ) + ".txt");
+    reduced_out.open(fname , std::ios_base::out);
     {
-        typedef typename std::vector<double>::iterator iterator;
-        static std::vector<double> l_block1;
-        static int l1 = -1;
-        static std::vector<double> l_block2;
-        static int l2 = -1;
-        static bool b = false;
-        // std::cout << "l1: " << l1 << " l2: " << l2 << " l " << a.l << "
-        // b " << b << std::endl;
-        if ( a.l == l1 )
-            return Range<iterator>{
-                l_block1.begin() + (a.n - ( a.l + 1 ) ) * grid.size(),
-                l_block1.begin() + (a.n - ( a.l + 1 ) ) * grid.size() +
-                    grid.size()};
-        else if ( a.l == l2 )
-            return Range<iterator>{
-                l_block2.begin() + ( a.n - ( a.l + 1 ) ) * grid.size(),
-                l_block2.begin() + ( a.n - ( a.l + 1 ) ) * grid.size() +
-                    grid.size()};
-        else if ( a.l != l1 && a.l != l2 && b ) {
-            l2 = a.l;
-            common::import_binary_to_vector<double>(
-                params.basis_parameters()->l_block_filename( a.l ), l_block2 );
-            b = false;
-            return Range<iterator>{
-                l_block2.begin() + ( a.n - ( a.l + 1) ) * grid.size(),
-                l_block2.begin() + ( a.n - ( a.l + 1) ) * grid.size() +
-                    grid.size()};
-        } else if ( a.l != l1 && a.l != l2 && !b ) {
-            l1 = a.l;
-            l_block1 = common::import_binary_to_vector<double>(
-                params.basis_parameters()->l_block_filename( a.l ) , l_block1);
-            b = true;
-            return Range<iterator>{
-                l_block1.begin() + ( a.n - ( a.l + 1 ) ) * grid.size(),
-                l_block1.begin() + ( a.n - ( a.l + 1 ) ) * grid.size() +
-                    grid.size()};
+        std::function<bool(int, int)> dipole_selection_rules;
+        if ( params.fs() ) {
+            dipole_selection_rules = [prototype]( int i, int j ) {
+                // since j is multiplied by 2, need to have a 2 between them.
+                return (
+                        ( std::abs( prototype[i].l - prototype[j].l ) == 1 &&
+                          ( std::abs( prototype[i].j - prototype[j].j ) == 2 ||
+                            prototype[i].j == prototype[j].j ) ) ||
+                        i == j );
+            };
+        } else {
+            dipole_selection_rules = [prototype]( int i, int j ) {
+                return ( std::abs( prototype[i].l - prototype[j].l ) == 1 ||
+                        i == j );
+            };
         }
-    };
+
+        std::function<Range<typename std::vector<double>::iterator>( BasisID )>
+            import_wf = [&params,
+                      &grid ]( BasisID a )
+                          ->Range<typename std::vector<double>::iterator>
+                          {
+                              typedef typename std::vector<double>::iterator iterator;
+                              static std::vector<double> l_block1;
+                              static int l1 = -1;
+                              static std::vector<double> l_block2;
+                              static int l2 = -1;
+                              static bool b = false;
+                              // std::cout << "l1: " << l1 << " l2: " << l2 << " l " << a.l << "
+                              // b " << b << std::endl;
+                              if ( a.l == l1 )
+                                  return Range<iterator>{
+                                      l_block1.begin() + (a.n - ( a.l + 1 ) ) * grid.size(),
+                                          l_block1.begin() + (a.n - ( a.l + 1 ) ) * grid.size() +
+                                              grid.size()};
+                              else if ( a.l == l2 )
+                                  return Range<iterator>{
+                                      l_block2.begin() + ( a.n - ( a.l + 1 ) ) * grid.size(),
+                                          l_block2.begin() + ( a.n - ( a.l + 1 ) ) * grid.size() +
+                                              grid.size()};
+                              else if ( a.l != l1 && a.l != l2 && b ) {
+                                  l2 = a.l;
+                                  common::import_binary_to_vector<double>(
+                                          params.basis_parameters()->l_block_filename( a.l ), l_block2 );
+                                  b = false;
+                                  return Range<iterator>{
+                                      l_block2.begin() + ( a.n - ( a.l + 1) ) * grid.size(),
+                                          l_block2.begin() + ( a.n - ( a.l + 1) ) * grid.size() +
+                                              grid.size()};
+                              } else if ( a.l != l1 && a.l != l2 && !b ) {
+                                  l1 = a.l;
+                                  l_block1 = common::import_binary_to_vector<double>(
+                                          params.basis_parameters()->l_block_filename( a.l ) , l_block1);
+                                  b = true;
+                                  return Range<iterator>{
+                                      l_block1.begin() + ( a.n - ( a.l + 1 ) ) * grid.size(),
+                                          l_block1.begin() + ( a.n - ( a.l + 1 ) ) * grid.size() +
+                                              grid.size()};
+                              }
+                          };
 
 
-    std::function<PetscScalar(int, int)> findvalue;
-    if ( params.fs() ) {
-        findvalue = [&prototype, &grid, &import_wf ]( int i, int j )
-                                                        ->PetscScalar
-        {
-            if ( i == j ) return 0.0;
-            auto a = import_wf( prototype[i] );
-            auto b = import_wf( prototype[j] );
-            int s = 0;
+        std::function<PetscScalar(int, int)> findvalue;
+        if ( params.fs() ) {
+            findvalue = [&prototype, &grid, &import_wf ]( int i, int j )
+                ->PetscScalar
+                {
+                    if ( i == j ) return 0.0;
+                    auto a = import_wf( prototype[i] );
+                    auto b = import_wf( prototype[j] );
+                    int s = 0;
 
-            PetscScalar radial =
-                math::integrateTrapezoidRule( a, b, grid );
-            PetscScalar angular = math::CGCoefficient<PetscScalar>(
-                prototype[i], prototype[j] );
-            // we are only considering spin up electrons.  so m_j always ==
-            // +1/2 (since m_l is always 0)
-            angular *= std::sqrt(
-                ( prototype[i].l +
-                  ( prototype[i].j - 2 * prototype[i].l ) * .5 * .5 +
-                  .5 ) *
-                ( prototype[j].l +
-                  ( prototype[j].j - 2 * prototype[j].l ) * .5 * .5 +
-                  .5 ) /
-                ( ( 2. * prototype[i].l + 1 ) *
-                  ( 2. * prototype[j].l + 1 ) ) );
-            if ( prototype[i].n == 2 && prototype[j].n == 2 )
-                std::cout << "n = 2 transition: " << radial* angular
-                          << std::endl;
-            if (angular != angular || radial != radial) //check for NaNs
-            {
-                std::cerr << " got a NaN @ (" << i << ", " << j << "): " << prototype[i] << " <=> " << prototype[j] << std::endl;
-                throw std::exception();
-            }
-            return radial * angular;
-        };
-    } else {
-        findvalue = [&prototype, &grid, &import_wf ]( int i, int j )
-                                                        ->PetscScalar
-        {
-            if ( i == j ) return 0.0;
-            auto a = import_wf( prototype[i] );
-            auto b = import_wf( prototype[j] );
+                    PetscScalar radial =
+                        math::integrateTrapezoidRule( a, b, grid );
+                    PetscScalar angular = math::CGCoefficient<PetscScalar>(
+                            prototype[i], prototype[j] );
+                    // we are only considering spin up electrons.  so m_j always ==
+                    // +1/2 (since m_l is always 0)
+                    angular *= std::sqrt(
+                            ( prototype[i].l +
+                              ( prototype[i].j - 2 * prototype[i].l ) * .5 * .5 +
+                              .5 ) *
+                            ( prototype[j].l +
+                              ( prototype[j].j - 2 * prototype[j].l ) * .5 * .5 +
+                              .5 ) /
+                            ( ( 2. * prototype[i].l + 1 ) *
+                              ( 2. * prototype[j].l + 1 ) ) );
+                    if ( prototype[i].n == 2 && prototype[j].n == 2 )
+                        std::cout << "n = 2 transition: " << radial* angular
+                            << std::endl;
+                    if (angular != angular || radial != radial) //check for NaNs
+                    {
+                        std::cerr << " got a NaN @ (" << i << ", " << j << "): " << prototype[i] << " <=> " << prototype[j] << std::endl;
+                        throw std::exception();
+                    }
+                    return radial * angular;
+                };
+        } else {
+            findvalue = [&prototype, &grid, &import_wf ]( int i, int j )
+                ->PetscScalar
+                {
+                    if ( i == j ) return 0.0;
+                    auto a = import_wf( prototype[i] );
+                    auto b = import_wf( prototype[j] );
 
-            PetscScalar radial =
-                math::integrateTrapezoidRule( a, b, grid );
-            PetscScalar angular = math::CGCoefficient<PetscScalar>(
-                prototype[i], prototype[j] );
-            if ( prototype[i].n == 2 && prototype[j].n == 2 )
-                std::cout << "n = 2 transition: " << radial* angular
-                          << std::endl;
-            if (angular != angular || radial != radial) //check for NaNs
-            {
-                std::cerr << " got a NaN @ (" << i << ", " << j << "): " << prototype[i] << " <=> " << prototype[j] << std::endl;
-                throw std::exception();
-            }
-            return radial * angular;
-        };
+                    PetscScalar radial =
+                        math::integrateTrapezoidRule( a, b, grid );
+                    PetscScalar angular = math::CGCoefficient<PetscScalar>(
+                            prototype[i], prototype[j] );
+                    if ( prototype[i].n == 2 && prototype[j].n == 2 )
+                        std::cout << "n = 2 transition: " << radial* angular
+                            << std::endl;
+                    if (angular != angular || radial != radial) //check for NaNs
+                    {
+                        std::cerr << " got a NaN @ (" << i << ", " << j << "): " << prototype[i] << " <=> " << prototype[j] << std::endl;
+                        throw std::exception();
+                    }
+                    return radial * angular;
+                };
+        }
+
+
+        H = common::populate_matrix<std::complex<double>>(
+                params,
+                dipole_selection_rules,
+                findvalue,
+                prototype.size(),
+                prototype.size(),
+                true, reduced_out);
+
     }
 
-
-    Mat H = common::populate_matrix<std::complex<double>>(
-        params,
-        dipole_selection_rules,
-        findvalue,
-        prototype.size(),
-        prototype.size(),
-        true );
-
-
+    std::cout << "writing out dipole matrix" << std::endl;
     params.write_dipole_matrix( H );
     params.write_energy_eigenvalues();
 

@@ -578,7 +578,7 @@ namespace common
    }
 
 
-   void printProgBar( double percent )
+   void printProgBar( double percent , std::ostream& os = std::cout)
    {
        percent *= 100;
        std::string bar;
@@ -593,9 +593,9 @@ namespace common
            }
        }
 
-       std::cout<< "\r" "[" << bar << "] ";
-       std::cout.width( 3 );
-       std::cout<< percent << "%     " << std::flush;
+       os << "\r" "[" << bar << "] ";
+       os.width( 3 );
+       os << percent << "%     " << std::flush;
    };
 
    template <typename T, typename Test, typename FindValue>
@@ -606,7 +606,8 @@ namespace common
                        const unsigned int mat_size_n,
                        //const unsigned int diagonal_storage,
                        //const unsigned int offdiag_storage,
-                       const bool symmetric=true)
+                       const bool symmetric=true,
+                       std::ostream& os = std::cout)
    {
        //if (!symmetric && params.rank() == 0)
            //std::cout << "Calculating for non-symmetric matrix" << std::endl;
@@ -667,10 +668,9 @@ namespace common
                        MatSetValue(H, j, i, value, INSERT_VALUES);
                }
            }
-           if (params.rank() == 0) 
-               printProgBar( double(i - rowstart)/ double(rowend-rowstart) );
+           printProgBar( double(i - rowstart)/ double(rowend-rowstart), os);
        }
-       if (params.rank() == 0) std::cout << std::endl;
+       os << std::endl;
 
        MatAssemblyBegin(H,MAT_FINAL_ASSEMBLY);
        MatAssemblyEnd(H,MAT_FINAL_ASSEMBLY);
