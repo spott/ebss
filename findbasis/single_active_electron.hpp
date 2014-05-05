@@ -49,9 +49,18 @@ T parameterized_finestructure_pot(const T r, const sae<T> &atom, const BasisID &
 }
 
 template <typename T>
+T helium_tf( const T r, const BasisID &state)
+{
+    T a = 1.0 + 1.231 * std::exp(- 0.662 * r) - 1.325 * r * std::exp(- 1.236 * r) - 0.231 * std::exp(-0.480 * r);
+    a *= -1.0;
+    a /= r;
+    return a;
+}
+
+template <typename T>
 std::function< T (const T, BasisID) >  memoized_pot(const sae<T> &atom)
 {
-    BasisID state;
+    //BasisID state;
     //auto cache = std::make_shared<std::unordered_map< T, T> >();
     auto func = std::bind(parameterized_pot<T>, std::placeholders::_1, std::cref(atom), std::placeholders::_2);
     return func;
@@ -78,7 +87,7 @@ std::function< T (const T, BasisID) >  memoized_pot(const sae<T> &atom)
 template <typename T>
 std::function< T (const T, BasisID) >  memoized_finestructure_pot(const sae<T> &atom)
 {
-    BasisID state;
+    //BasisID state;
     //auto cache = std::make_shared<std::unordered_map< T, T> >();
     auto func = std::bind(parameterized_finestructure_pot<T>, std::placeholders::_1, std::cref(atom), std::placeholders::_2);
     return func;
@@ -101,3 +110,4 @@ std::function< T (const T, BasisID) >  memoized_finestructure_pot(const sae<T> &
             //}
         //});
 }
+

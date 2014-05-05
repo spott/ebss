@@ -103,6 +103,10 @@ int main(int argc, const char **argv)
         else
             numerov::find_basis_set<scalar>( (memoized_pot<scalar>(helium)), params, helium);
     }
+    if (params.atom() == "helium_tf")
+    {
+        numerov::find_basis_set<scalar>( &helium_tf<scalar>, params, helium);
+    }
     else if (params.atom() == "argon")
     {
         argon.N -= params.charge();
