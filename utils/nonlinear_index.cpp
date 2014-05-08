@@ -111,7 +111,7 @@ int main( int argc, const char** argv )
 
     // create a mask for bound states:
     Vec mask = common::map_function( H0, []( PetscScalar a, PetscInt in ) {
-        return ( std::abs( a.real() + .5 ) <= 1e-4 ) ? 0 : 1;
+        return ( in == 0 ) ? 0 : 1;
     } );
     // Vec mask = common::map_function(H0, [](PetscScalar in) { return 1; });
 

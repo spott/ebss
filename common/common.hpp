@@ -77,7 +77,7 @@ namespace common
         if (ostart != vstart || oend != vend)
             throw std::out_of_range("the two vectors don't have the same local structure");
 
-        for (int i = 0; i < oend - ostart; ++i)
+        for (int i = ostart; i < oend; ++i)
             b[i] = f(a[i], i);
 
         VecRestoreArray(vector, &a);
@@ -103,7 +103,7 @@ namespace common
             throw std::out_of_range("the two vectors don't have the same local structure");
 
         for (int i = 0; i < oend - ostart; ++i)
-            b[i] = f(a[i], i);
+            b[i] = f(a[i], i+ostart);
 
         VecRestoreArray(vector, &a);
         VecRestoreArray(out, &b);
