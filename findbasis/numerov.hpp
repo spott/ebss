@@ -1181,6 +1181,8 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
         }
 
         block.wait();
+        reduced_out << "writing out vectors: " << std::endl;
+        err_out << "writing out vectors: " << std::endl;
         if (sig > 0)
         {
             reduced_out << "Signal received! finished writing out l vectors" << std::endl;
