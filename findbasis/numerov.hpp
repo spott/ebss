@@ -983,9 +983,9 @@ converged:
     wf[wf.size() - 3] = ( 12 - f[f.size() - 2] * 10 ) * wf[wf.size() - 2] /
                         f[wf.size() - 2];
     bool converged = false;
+    err_out << "FINAL CONVERGENCE: " << std::endl;
     while ( !converged && it.it < 1100 ) {
         err_out << it << std::endl;
-        err_out << "numerov: " << std::endl;
         numerov_from_both_sides(
             f,
             wf,
@@ -1181,6 +1181,7 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
         }
 
         block.wait();
+
         reduced_out << "writing out vectors: " << std::endl;
         err_out << "writing out vectors: " << std::endl;
         if (sig > 0)
