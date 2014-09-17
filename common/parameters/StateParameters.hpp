@@ -53,6 +53,15 @@ class StateParameters : public Parameters
             nobound = true;
         else
             nobound = false;
+        if ( opt.isSet( "-state_no_continuum" ) )
+            nocontinuum = true;
+        else
+            nocontinuum = false;
+
+        if ( opt.isSet( "-state_no_continuum_transitions" ) )
+            notransitions = true;
+        else
+            notransitions = false;
 
         std::vector<std::vector<int>> init;
         opt.get( "-state_init" )->getMultiInts( init );
@@ -88,11 +97,14 @@ class StateParameters : public Parameters
     void save_parameters() const;
 
     std::vector<int> empty_states_index( const std::vector<BasisID> prototype );
+    std::array< std::vector<int>, 2> disallowed_transitions( const std::vector<BasisID>& prototype );
     std::vector<BasisID> empty_states( const std::vector<BasisID> prototype );
     void initial_vector( Vec* v, const std::vector<BasisID> prototype );
 
   private:
     bool nobound;
+    bool nocontinuum;
+    bool notransitions;
     ez::ezOptionParser opt;
     void register_parameters();
     BasisID init_;
@@ -100,19 +112,22 @@ class StateParameters : public Parameters
     std::vector<BasisID> add_states;
     std::string filename_;
     std::string wavefunction_fname_;
+    std::vector< std::array<int, 2> > matrix_elements_;
 };
 
 std::vector<BasisID>
 StateParameters::empty_states( const std::vector<BasisID> prototype )
 {
-    if ( !nobound ) return empty_states_;
+    if ( !nobound && !nocontinuum ) return empty_states_;
 
     for ( auto p : prototype ) {
-        if ( p.e.real() < 0 &&
+        if ( p.e.real() < 0 && nobound &&
              !( p.n == init_.n && p.l == init_.l && p.j == init_.j ) ) {
             empty_states_.push_back( p );
-        } else
-            std::cout << std::endl;
+
+        } else if (p.e.real() > 0 && nocontinuum) {
+            empty_states_.push_back(p);
+        }
     }
 
     // auto add_states_it = add_states.begin();
@@ -126,8 +141,31 @@ StateParameters::empty_states( const std::vector<BasisID> prototype )
         }
     }
     nobound = false;
+    nocontinuum = false;
     return empty_states_;
 }
+
+std::array< std::vector<int>, 2 > StateParameters::disallowed_transitions( const std::vector<BasisID>& prototype )
+{
+    if (!notransitions) return std::array< std::vector<int>, 2>();
+    std::vector<int> from_states;
+    std::vector<int> to_states;
+
+    for (auto i = prototype.cbegin(); i < prototype.cend(); ++i)
+    {
+        for (auto j = prototype.cbegin(); j < prototype.cend(); ++j)
+        {
+            if (j->e.real() > 0.0 && i-> e.real() > 0.0)
+            {
+                from_states.push_back((i - prototype.cbegin()));
+                to_states.push_back((j - prototype.cbegin()));
+            }
+        }
+    }
+
+    return std::array<std::vector<int>, 2>{from_states, to_states};
+}
+
 std::vector<int>
 StateParameters::empty_states_index( const std::vector<BasisID> prototype )
 {
@@ -182,6 +220,7 @@ std::string StateParameters::print() const
     std::ostringstream out;
 
     out << "state_no_bound " << nobound << std::endl;
+    out << "state_no_continuum " << nocontinuum << std::endl;
     out << "state_filename " << filename_ << std::endl;
     out << "state_init " << init_ << std::endl;
 
@@ -211,6 +250,7 @@ void StateParameters::register_parameters()
 {
     std::string prefix = "-state_";
     opt.overview = "State Parameters";
+
     opt.add( "", // Default.
              0,  // Required?
              0,  // Number of args expected.
@@ -221,6 +261,7 @@ void StateParameters::register_parameters()
              "--help",                      // Flag token.
              "--usage"                      // Flag token.
              );
+
     opt.add( "",
              0,
              3,
@@ -228,48 +269,70 @@ void StateParameters::register_parameters()
              "add a specific state (n,l,j triplet), or set of states (if "
              "removed otherwise)",
              std::string( prefix ).append( "add\0" ).c_str() );
+
     opt.add( "",
              0,
              3,
              ',',
              "remove a specific state, or set of states (n,l,j pair)",
              std::string( prefix ).append( "rem\0" ).c_str() );
+
+    opt.add( "",
+             0,
+             0,
+             0,
+             "remove continuum transitions",
+             std::string(prefix).append( "no_continuum_transitions\0").c_str() );
+
     opt.add( "./empty_states.dat",
              0,
              0,
              0,
              "load from file",
              std::string( prefix ).append( "load\0" ).c_str() );
+
     opt.add( "1,0,1",
              0,
              3,
              ',',
              "initial state: (n,l,j pair)",
              std::string( prefix ).append( "init\0" ).c_str() );
+
     opt.add( "",
              0,
              1,
              0,
              "initial wavefunction filename (PetscVec binary file)",
              std::string( prefix ).append( "initial_wavefunction\0" ).c_str() );
+
     opt.add( "",
              0,
              0,
              0,
              "remove the bound states (toggle)",
              std::string( prefix ).append( "no_bound\0" ).c_str() );
+
+    opt.add( "",
+             0,
+             0,
+             0,
+             "remove the continuum states (toggle)",
+             std::string( prefix ).append( "no_continuum\0" ).c_str() );
+
     opt.add( "./empty_states.dat",
              0,
              1,
              0,
              "filename for states file",
              std::string( prefix ).append( "filename\0" ).c_str() );
+
     opt.add( "",
              0,
              1,
              0,
              "Config file to import",
              std::string( prefix ).append( "config\0" ).c_str() );
+
     opt.add(
         "", // Default.
         0,  // Required?

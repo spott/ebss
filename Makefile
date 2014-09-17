@@ -1,13 +1,16 @@
 include ./makefile.include
 
-SUBPROGRAMS=findbasis,findhamiltonian,propagate
+SUBPROGRAMS=findbasis findhamiltonian propagate
 
-$(SUBPROGRAMS):
-	$(MAKE) -C $(SUBPROGRAMS)
+findbasis:
+	$(MAKE) -C findbasis/
 
-all:
-	$(MAKE) -C $(SUBPROGRAMS) all
+findhamiltonian:
+	$(MAKE) -C $@
 
-.PHONEY: clean
-clean::
-	$(MAKE) -C $(SUBPROGRAMS) clean
+propagate:
+	$(MAKE) -C $@
+
+all: $(SUBPROGRAMS)
+
+.PHONY: all

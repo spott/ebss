@@ -109,14 +109,31 @@ int main( int argc, const char** argv )
                         0.0,
                         PETSC_NULL,
                         PETSC_NULL );
-    std::vector<PetscScalar> zeros( empty_states_index.size(), 0.0 );
-    if ( zeros.size() != 0 )
-        VecSetValues( H,
-                      empty_states_index.size(),
-                      empty_states_index.data(),
-                      zeros.data(),
-                      INSERT_VALUES );
 
+
+    {
+        std::vector<PetscScalar> zeros( empty_states_index.size(), 0.0 );
+        if ( zeros.size() != 0 )
+            VecSetValues( H,
+                          empty_states_index.size(),
+                          empty_states_index.data(),
+                          zeros.data(),
+                          INSERT_VALUES );
+    }
+
+    //transition stuff...
+    {
+        auto disallowed = sparams->disallowed_transitions( params->prototype() );
+        std::vector<PetscScalar> zeros(disallowed[0].size(), 0.0);
+        if (disallowed[0].size() != 0)
+            MatSetValues( D,
+                          disallowed[0].size(),
+                          disallowed[0].data(),
+                          disallowed[1].size(),
+                          disallowed[1].data(),
+                          zeros.data(),
+                          INSERT_VALUES);
+    }
 
     VecAssemblyBegin( H );
     MatAssemblyBegin( D, MAT_FINAL_ASSEMBLY );
