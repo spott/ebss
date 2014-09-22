@@ -1,7 +1,7 @@
 /*
 This file is part of ezOptionParser. See MIT-LICENSE.
 
-Copyright (C) 2011 Remik Ziemlinski <first d0t surname att gmail>
+Copyright (C) 2011,2012,2014 Remik Ziemlinski <first d0t surname att gmail>
 
 CHANGELOG
 
@@ -11,11 +11,13 @@ v0.1.1 20111012 rsz Fixed validation of ulonglong.
 v0.1.2 20111126 rsz Allow flag names start with alphanumeric (previously, flag had to start with alpha).
 v0.1.3 20120108 rsz Created work-around for unique id generation with IDGenerator that avoids retarded c++ translation unit linker errors with single-header static variables. Forced inline on all methods to please retard compiler and avoid multiple def errors.
 v0.1.4 20120629 Enforced MIT license on all files.
+v0.2.0 20121120 Added parseIndex to OptionGroup.
+v0.2.1 20130506 Allow disabling doublespace of OPTIONS usage descriptions.
+v0.2.2 20140504 Jose Santiago added compiler warning fixes.
+                Bruce Shankle added a crash fix in description printing.
 */
 #ifndef EZ_OPTION_PARSER_H
 #define EZ_OPTION_PARSER_H
-#pragma GCC diagnostic ignored "-Wall"
-#pragma GCC diagnostic ignored "-Wextra"
 
 #include <stdlib.h>
 #include <vector>
@@ -48,7 +50,7 @@ static T fromString(const char* s) {
   return t;
 };
 /* ################################################################### */
-static bool isdigit(const std::string & s, int i=0) {
+static inline bool isdigit(const std::string & s, int i=0) {
   int n = s.length();
   for(; i < n; ++i)
     switch(s[i]) {
@@ -81,12 +83,12 @@ For example, -d < --dimension < --dmn, and also lower come before upper. The def
 static bool CmpOptStringPtr(std::string * s1, std::string * s2) { 
   int c1,c2;
   const char *s=s1->c_str();
-  for(c1=0; c1 < s1->size(); ++c1)
+  for(c1=0; c1 < (long int)s1->size(); ++c1)
     if (isalnum(s[c1])) // locale sensitive.
       break;
       
   s=s2->c_str();
-  for(c2=0; c2 < s2->size(); ++c2)
+  for(c2=0; c2 < (long int)s2->size(); ++c2)
     if (isalnum(s[c2]))
       break;
 
@@ -228,67 +230,67 @@ static void ToD(std::string ** strings, double * out, int n) {
 };
 /* ################################################################### */
 static void StringsToInts(std::vector<std::string> & strings, std::vector<int> & out) {
-  for(int i=0; i < strings.size(); ++i) {
+  for(int i=0; i < (long int)strings.size(); ++i) {
     out.push_back(atoi(strings[i].c_str()));
   }
 };
 /* ################################################################### */
 static void StringsToInts(std::vector<std::string*> * strings, std::vector<int> * out) {
-  for(int i=0; i < strings->size(); ++i) {
+  for(int i=0; i < (long int)strings->size(); ++i) {
     out->push_back(atoi(strings->at(i)->c_str()));
   }
 };
 /* ################################################################### */
 static void StringsToLongs(std::vector<std::string> & strings, std::vector<long> & out) {
-  for(int i=0; i < strings.size(); ++i) {
+  for(int i=0; i < (long int)strings.size(); ++i) {
     out.push_back(atol(strings[i].c_str()));
   }
 };
 /* ################################################################### */
 static void StringsToLongs(std::vector<std::string*> * strings, std::vector<long> * out) {
-  for(int i=0; i < strings->size(); ++i) {
+  for(int i=0; i < (long int)strings->size(); ++i) {
     out->push_back(atol(strings->at(i)->c_str()));
   }
 };
 /* ################################################################### */
 static void StringsToULongs(std::vector<std::string> & strings, std::vector<unsigned long> & out) {
-  for(int i=0; i < strings.size(); ++i) {
+  for(int i=0; i < (long int)strings.size(); ++i) {
     out.push_back(strtoul(strings[i].c_str(),0,0));
   }
 };
 /* ################################################################### */
 static void StringsToULongs(std::vector<std::string*> * strings, std::vector<unsigned long> * out) {
-  for(int i=0; i < strings->size(); ++i) {
+  for(int i=0; i < (long int)strings->size(); ++i) {
     out->push_back(strtoul(strings->at(i)->c_str(),0,0));
   }
 };
 /* ################################################################### */
 static void StringsToFloats(std::vector<std::string> & strings, std::vector<float> & out) {
-  for(int i=0; i < strings.size(); ++i) {
+  for(int i=0; i < (long int)strings.size(); ++i) {
     out.push_back(atof(strings[i].c_str()));
   }
 };
 /* ################################################################### */
 static void StringsToFloats(std::vector<std::string*> * strings, std::vector<float> * out) {
-  for(int i=0; i < strings->size(); ++i) {
+  for(int i=0; i < (long int)strings->size(); ++i) {
     out->push_back(atof(strings->at(i)->c_str()));
   }
 };
 /* ################################################################### */
 static void StringsToDoubles(std::vector<std::string> & strings, std::vector<double> & out) {
-  for(int i=0; i < strings.size(); ++i) {
+  for(int i=0; i < (long int)strings.size(); ++i) {
     out.push_back(atof(strings[i].c_str()));
   }
 };
 /* ################################################################### */
 static void StringsToDoubles(std::vector<std::string*> * strings, std::vector<double> * out) {
-  for(int i=0; i < strings->size(); ++i) {
+  for(int i=0; i < (long int)strings->size(); ++i) {
     out->push_back(atof(strings->at(i)->c_str()));
   }
 };
 /* ################################################################### */
 static void StringsToStrings(std::vector<std::string*> * strings, std::vector<std::string> * out) {
-  for(int i=0; i < strings->size(); ++i) {
+  for(int i=0; i < (long int)strings->size(); ++i) {
     out->push_back( *strings->at(i) );
   }
 };
@@ -494,71 +496,71 @@ void ezOptionValidator::reset() {
   type = NOTYPE;
 };
 /* ------------------------------------------------------------------- */
-ezOptionValidator::ezOptionValidator(char _type) : insensitive(0), op(0), size(0), s1(0), type(_type), quiet(0) {
+ezOptionValidator::ezOptionValidator(char _type) : s1(0), op(0), quiet(0), type(_type), size(0), insensitive(0) {
   id = ezOptionParserIDGenerator::instance().next();
 };
 /* ------------------------------------------------------------------- */
-ezOptionValidator::ezOptionValidator(char _type, char _op, const char* list, int _size) : insensitive(0), op(_op), size(_size), s1(0), type(_type), quiet(0) {
+ezOptionValidator::ezOptionValidator(char _type, char _op, const char* list, int _size) : s1(0), op(_op), quiet(0), type(_type), size(_size), insensitive(0) {
   id = ezOptionParserIDGenerator::instance().next();
   s1 = new char[size];
   memcpy(s1, list, size);
 };
 /* ------------------------------------------------------------------- */
-ezOptionValidator::ezOptionValidator(char _type, char _op, const unsigned char* list, int _size) : insensitive(0), op(_op), size(_size), u1(0), type(_type), quiet(0) {
+ezOptionValidator::ezOptionValidator(char _type, char _op, const unsigned char* list, int _size) : u1(0), op(_op), quiet(0), type(_type), size(_size), insensitive(0) {
   id = ezOptionParserIDGenerator::instance().next();
   u1 = new unsigned char[size];
   memcpy(u1, list, size);
 };
 /* ------------------------------------------------------------------- */
-ezOptionValidator::ezOptionValidator(char _type, char _op, const short* list, int _size) : insensitive(0), op(_op), size(_size), s2(0), type(_type), quiet(0) {
+ezOptionValidator::ezOptionValidator(char _type, char _op, const short* list, int _size) : s2(0), op(_op), quiet(0), type(_type), size(_size), insensitive(0) {
   id = ezOptionParserIDGenerator::instance().next();
   s2 = new short[size];
   memcpy(s2, list, size*sizeof(short));
 };
 /* ------------------------------------------------------------------- */
-ezOptionValidator::ezOptionValidator(char _type, char _op, const unsigned short* list, int _size) : insensitive(0), op(_op), size(_size), u2(0), type(_type), quiet(0) {
+ezOptionValidator::ezOptionValidator(char _type, char _op, const unsigned short* list, int _size) : u2(0), op(_op), quiet(0), type(_type), size(_size), insensitive(0) {
   id = ezOptionParserIDGenerator::instance().next();
   u2 = new unsigned short[size];
   memcpy(u2, list, size*sizeof(unsigned short));
 };
 /* ------------------------------------------------------------------- */
-ezOptionValidator::ezOptionValidator(char _type, char _op, const int* list, int _size) : insensitive(0), op(_op), size(_size), s4(0), type(_type), quiet(0) {
+ezOptionValidator::ezOptionValidator(char _type, char _op, const int* list, int _size) : s4(0), op(_op), quiet(0), type(_type), size(_size), insensitive(0) {
   id = ezOptionParserIDGenerator::instance().next();
   s4 = new int[size];
   memcpy(s4, list, size*sizeof(int));
 };
 /* ------------------------------------------------------------------- */
-ezOptionValidator::ezOptionValidator(char _type, char _op, const unsigned int* list, int _size) : insensitive(0), op(_op), size(_size), u4(0), type(_type), quiet(0) {
+ezOptionValidator::ezOptionValidator(char _type, char _op, const unsigned int* list, int _size) : u4(0), op(_op), quiet(0), type(_type), size(_size), insensitive(0) {
   id = ezOptionParserIDGenerator::instance().next();
   u4 = new unsigned int[size];
   memcpy(u4, list, size*sizeof(unsigned int));
 };
 /* ------------------------------------------------------------------- */
-ezOptionValidator::ezOptionValidator(char _type, char _op, const long long* list, int _size) : insensitive(0), op(_op), size(_size), s8(0), type(_type), quiet(0) {
+ezOptionValidator::ezOptionValidator(char _type, char _op, const long long* list, int _size) : s8(0), op(_op), quiet(0), type(_type), size(_size), insensitive(0) {
   id = ezOptionParserIDGenerator::instance().next();
   s8 = new long long[size];
   memcpy(s8, list, size*sizeof(long long));
 };
 /* ------------------------------------------------------------------- */
-ezOptionValidator::ezOptionValidator(char _type, char _op, const unsigned long long* list, int _size) : insensitive(0), op(_op), size(_size), u8(0), type(_type), quiet(0) {
+ezOptionValidator::ezOptionValidator(char _type, char _op, const unsigned long long* list, int _size) : u8(0), op(_op), quiet(0), type(_type), size(_size), insensitive(0) {
   id = ezOptionParserIDGenerator::instance().next();
   u8 = new unsigned long long[size];
   memcpy(u8, list, size*sizeof(unsigned long long));
 };
 /* ------------------------------------------------------------------- */
-ezOptionValidator::ezOptionValidator(char _type, char _op, const float* list, int _size) : insensitive(0), op(_op), size(_size), f(0), type(_type), quiet(0) {
+ezOptionValidator::ezOptionValidator(char _type, char _op, const float* list, int _size) : f(0), op(_op), quiet(0), type(_type), size(_size), insensitive(0) {
   id = ezOptionParserIDGenerator::instance().next();
   f = new float[size];
   memcpy(f, list, size*sizeof(float));
 };
 /* ------------------------------------------------------------------- */
-ezOptionValidator::ezOptionValidator(char _type, char _op, const double* list, int _size) : insensitive(0), op(_op), size(_size), d(0), type(_type), quiet(0) {
+ezOptionValidator::ezOptionValidator(char _type, char _op, const double* list, int _size) : d(0), op(_op), quiet(0), type(_type), size(_size), insensitive(0) {
   id = ezOptionParserIDGenerator::instance().next();
   d = new double[size];
   memcpy(d, list, size*sizeof(double));
 };
 /* ------------------------------------------------------------------- */
-ezOptionValidator::ezOptionValidator(char _type, char _op, const char** list, int _size, bool _insensitive) : insensitive(_insensitive), op(_op), size(_size), t(0), type(_type), quiet(0) {
+ezOptionValidator::ezOptionValidator(char _type, char _op, const char** list, int _size, bool _insensitive) : t(0), op(_op), quiet(0), type(_type), size(_size), insensitive(_insensitive) {
   id = ezOptionParserIDGenerator::instance().next();
   t = new std::string*[size];
   int i=0;
@@ -573,7 +575,7 @@ _type: s1, u1, s2, u2, ..., f, d, t
 _op: lt, gt, ..., in
 _list: comma-delimited string
 */
-ezOptionValidator::ezOptionValidator(const char* _type, const char* _op, const char* _list, bool _insensitive) : insensitive(_insensitive), size(0), t(0), type(0), quiet(0) {
+ezOptionValidator::ezOptionValidator(const char* _type, const char* _op, const char* _list, bool _insensitive) : t(0), quiet(0), type(0), size(0), insensitive(_insensitive) {
   id = ezOptionParserIDGenerator::instance().next();
   
   switch(_type[0]) {
@@ -928,14 +930,15 @@ bool ezOptionValidator::isValid(const std::string * valueAsString) {
 /* ################################################################### */
 class OptionGroup {
 public:
-  OptionGroup() : delim(0), expectArgs(0), isSet(false), isRequired(false) { }
+  OptionGroup() : delim(0), expectArgs(0), isRequired(false), isSet(false) { }
 
   ~OptionGroup() {
-    int i, j;
-    for(i=0; i < flags.size(); ++i)
+    int i;
+    for(i=0; i < (long int)flags.size(); ++i)
       delete flags[i];
       
     flags.clear();
+    parseIndex.clear();
     clearArgs();
   };
 
@@ -977,12 +980,14 @@ public:
   bool isSet;
   // Lists of arguments, per flag instance, after splitting by delimiter.
   std::vector< std::vector< std::string* > * > args;
+  // Index where each group was parsed from input stream to track order.
+  std::vector<int> parseIndex;
 };
 /* ################################################################### */
 void OptionGroup::clearArgs() {
   int i,j;
-  for(i=0; i < args.size(); ++i) {
-    for(j=0; j < args[i]->size(); ++j)
+  for(i=0; i < (long int)args.size(); ++i) {
+    for(j=0; j < (long int)args[i]->size(); ++j)
       delete args[i]->at(j);
       
     delete args[i];
@@ -1202,7 +1207,7 @@ void OptionGroup::getMultiInts(std::vector< std::vector<int> >& out) {
   } else {
     if (!args.empty()) {
       int n = args.size();
-      if (out.size() < n) out.resize(n);
+      if ((long int)out.size() < n) out.resize(n);
       for(int i=0; i < n; ++i) {
         StringsToInts(args[i], &out[i]);
       }
@@ -1221,7 +1226,7 @@ void OptionGroup::getMultiLongs(std::vector< std::vector<long> >& out) {
   } else {
     if (!args.empty()) {
       int n = args.size();
-      if (out.size() < n) out.resize(n);
+      if ((long int)out.size() < n) out.resize(n);
       for(int i=0; i < n; ++i) {
         StringsToLongs(args[i], &out[i]);
       }
@@ -1240,7 +1245,7 @@ void OptionGroup::getMultiULongs(std::vector< std::vector<unsigned long> >& out)
   } else {
     if (!args.empty()) {
       int n = args.size();
-      if (out.size() < n) out.resize(n);
+      if ((long int)out.size() < n) out.resize(n);
       for(int i=0; i < n; ++i) {
         StringsToULongs(args[i], &out[i]);
       }
@@ -1259,7 +1264,7 @@ void OptionGroup::getMultiFloats(std::vector< std::vector<float> >& out) {
   } else {
     if (!args.empty()) {
       int n = args.size();
-      if (out.size() < n) out.resize(n);
+      if ((long int)out.size() < n) out.resize(n);
       for(int i=0; i < n; ++i) {
         StringsToFloats(args[i], &out[i]);
       }
@@ -1278,7 +1283,7 @@ void OptionGroup::getMultiDoubles(std::vector< std::vector<double> >& out) {
   } else {
     if (!args.empty()) {
       int n = args.size();
-      if (out.size() < n) out.resize(n);
+      if ((long int)out.size() < n) out.resize(n);
       for(int i=0; i < n; ++i) {
         StringsToDoubles(args[i], &out[i]);
       }
@@ -1297,10 +1302,10 @@ void OptionGroup::getMultiStrings(std::vector< std::vector<std::string> >& out) 
   } else {
     if (!args.empty()) {
       int n = args.size();
-      if (out.size() < n) out.resize(n);
+      if ((long int)out.size() < n) out.resize(n);
 
       for(int i=0; i < n; ++i) {
-        for(int j=0; j < args[i]->size(); ++j) 
+        for(int j=0; j < (long int)args[i]->size(); ++j) 
           out[i].push_back( *args[i]->at(j) );
       }
     }
@@ -1335,6 +1340,8 @@ public:
   inline void reset();
   inline void resetArgs();
     
+  // Insert extra empty line betwee each option's usage description.
+  char doublespace;
   // General description in human language on what the user's tool does.
   // It's the first section to get printed in the full usage message.
   std::string overview;
@@ -1366,20 +1373,22 @@ ezOptionParser::~ezOptionParser() {
 }
 /* ################################################################### */
 void ezOptionParser::reset() {
+  this->doublespace = 1;
+  
   int i;
-  for(i=0; i < groups.size(); ++i)
+  for(i=0; i < (long int)groups.size(); ++i)
     delete groups[i];
   groups.clear();
   
-  for(i=0; i < unknownArgs.size(); ++i)
+  for(i=0; i < (long int)unknownArgs.size(); ++i)
     delete unknownArgs[i];
   unknownArgs.clear();
   
-  for(i=0; i < firstArgs.size(); ++i)
+  for(i=0; i < (long int)firstArgs.size(); ++i)
     delete firstArgs[i];
   firstArgs.clear();
 
-  for(i=0; i < lastArgs.size(); ++i)
+  for(i=0; i < (long int)lastArgs.size(); ++i)
     delete lastArgs[i];
   lastArgs.clear();
   
@@ -1394,18 +1403,18 @@ void ezOptionParser::reset() {
 /* ################################################################### */
 void ezOptionParser::resetArgs() {
   int i;
-  for(i=0; i < groups.size(); ++i)
+  for(i=0; i < (long int)groups.size(); ++i)
     groups[i]->clearArgs();
   
-  for(i=0; i < unknownArgs.size(); ++i)
+  for(i=0; i < (long int)unknownArgs.size(); ++i)
     delete unknownArgs[i];
   unknownArgs.clear();
   
-  for(i=0; i < firstArgs.size(); ++i)
+  for(i=0; i < (long int)firstArgs.size(); ++i)
     delete firstArgs[i];
   firstArgs.clear();
 
-  for(i=0; i < lastArgs.size(); ++i)
+  for(i=0; i < (long int)lastArgs.size(); ++i)
     delete lastArgs[i];
   lastArgs.clear();  
 };
@@ -1529,7 +1538,7 @@ bool ezOptionParser::exportFile(const char * filename, bool all) {
   bool quote;
   
   // Export the first args, except the program name, so start from 1.
-  for(i=1; i < firstArgs.size(); ++i) {
+  for(i=1; i < (long int)firstArgs.size(); ++i) {
     quote = ((firstArgs[i]->find_first_of(" \t") != std::string::npos) && (firstArgs[i]->find_first_of("\'\"") == std::string::npos));
 
     if (quote)
@@ -1546,7 +1555,7 @@ bool ezOptionParser::exportFile(const char * filename, bool all) {
     out.append("\n");
   
   std::vector<std::string* > stringPtrs(groups.size());
-  int j,m;
+  int m;
   int n = groups.size();
   for(i=0; i < n; ++i) {
     stringPtrs[i] = groups[i]->flags[0];
@@ -1598,7 +1607,7 @@ bool ezOptionParser::exportFile(const char * filename, bool all) {
   }
   
   // Export the last args.
-  for(i=0; i < lastArgs.size(); ++i) {
+  for(i=0; i < (long int)lastArgs.size(); ++i) {
     quote = ( lastArgs[i]->find_first_of(" \t") != std::string::npos );
     if (quote)
       out.append("\"");
@@ -1793,18 +1802,18 @@ void ezOptionParser::getUsageDescriptions(std::string & usage, int width, Layout
   std::map<std::string*, int> stringPtrToIndexMap;
   std::vector<std::string* > stringPtrs(groups.size());
   
-  for(i=0; i < groups.size(); ++i) {
+  for(i=0; i < (long int)groups.size(); ++i) {
     std::sort(groups[i]->flags.begin(), groups[i]->flags.end(), CmpOptStringPtr);
     stringPtrToIndexMap[groups[i]->flags[0]] = i;
     stringPtrs[i] = groups[i]->flags[0];
   }
   
-  size_t j, k, n;
+  size_t j, k;
   std::string opts;
   std::vector<std::string> sortedOpts;
   // Sort first flag of each group with other groups.
   std::sort(stringPtrs.begin(), stringPtrs.end(), CmpOptStringPtr);
-   for(i=0; i < groups.size(); ++i) {
+   for(i=0; i < (long int)groups.size(); ++i) {
     //printf("DEBUG:%d: %d %d %s\n", __LINE__, i, stringPtrToIndexMap[stringPtrs[i]], stringPtrs[i]->c_str());
     k = stringPtrToIndexMap[stringPtrs[i]];
     opts.clear();
@@ -1812,7 +1821,7 @@ void ezOptionParser::getUsageDescriptions(std::string & usage, int width, Layout
       opts.append(*groups[k]->flags[j]);
       opts.append(", ");
       
-      if (opts.size() > width)
+      if ((long int)opts.size() > width)
         opts.append("\n");
     }
     // The last flag. No need to append comma anymore.
@@ -1840,8 +1849,8 @@ void ezOptionParser::getUsageDescriptions(std::string & usage, int width, Layout
   // Find longest opt flag string to set column start for help usage descriptions.
   int maxlen=0;
   if (layout == ALIGN) {
-    for(i=0; i < groups.size(); ++i) {
-      if (maxlen < sortedOpts[i].size())
+    for(i=0; i < (long int)groups.size(); ++i) {
+      if (maxlen < (long int)sortedOpts[i].size())
         maxlen = sortedOpts[i].size();
     }  
   }
@@ -1850,7 +1859,7 @@ void ezOptionParser::getUsageDescriptions(std::string & usage, int width, Layout
   int helpwidth;
   std::list<std::string*>::iterator cIter, insertionIter;
   size_t pos;
-  for(i=0; i < groups.size(); ++i) {
+  for(i=0; i < (long int)groups.size(); ++i) {
     k = stringPtrToIndexMap[stringPtrs[i]];
     
     if (layout == STAGGER)
@@ -1865,13 +1874,13 @@ void ezOptionParser::getUsageDescriptions(std::string & usage, int width, Layout
     for(insertionIter=desc.begin(), cIter=insertionIter++; 
         cIter != desc.end(); 
         cIter=insertionIter++) {
-      if ((*cIter)->size() > helpwidth) {
+      if ((long int)((*cIter)->size()) > helpwidth) {
         // Get pointer to next string to insert new strings before it.
         std::string *rem = *cIter;
         // Remove this line and add back in pieces.
         desc.erase(cIter);
         // Loop until remaining string is short enough.
-        while (rem->size() > helpwidth) {
+        while ((long int)rem->size() > helpwidth) {
           // Find whitespace to split before helpwidth.
           if (rem->at(helpwidth) == ' ') {
             // If word ends exactly at helpwidth, then split after it.
@@ -1899,36 +1908,37 @@ void ezOptionParser::getUsageDescriptions(std::string & usage, int width, Layout
       // Add whitespace between option names and description.
       usage.append(pad - sortedOpts[i].size(), ' ');
     else {
-      usage.append("\n\n");
+      usage.append("\n");
       usage.append(gutter, ' ');
     }
-    
-    // First line already padded above (before calling SplitDelim) after option flag names.
-    cIter = desc.begin();
-    usage.append(**cIter);
-    usage.append("\n");
-    // Now inject the pad for each line.
-    for(++cIter; cIter != desc.end(); ++cIter) {      
-      usage.append(pad, ' ');
+        
+    if (desc.size() > 0) { // Crash fix by Bruce Shankle.
+      // First line already padded above (before calling SplitDelim) after option flag names.
+      cIter = desc.begin();
       usage.append(**cIter);
       usage.append("\n");
-    }
+      // Now inject the pad for each line.
+      for(++cIter; cIter != desc.end(); ++cIter) {      
+        usage.append(pad, ' ');
+        usage.append(**cIter);
+        usage.append("\n");
+      }
 
-    usage.append("\n");
-    
-    if (desc.size()) {
+      if (this->doublespace) usage.append("\n");    
+      
       for(cIter=desc.begin(); cIter != desc.end(); ++cIter)    
         delete *cIter;
       
-      desc.clear();
+      desc.clear();      
     }
+    
   }  
 };
 /* ################################################################### */
 bool ezOptionParser::gotExpected(std::vector<std::string> & badOptions) {
   int i,j;
   
-  for(i=0; i < groups.size(); ++i) {
+  for(i=0; i < (long int)groups.size(); ++i) {
     OptionGroup *g = groups[i];
     // If was set, ensure number of args is correct.
     if (g->isSet) {
@@ -1937,8 +1947,8 @@ bool ezOptionParser::gotExpected(std::vector<std::string> & badOptions) {
         continue;
       }
       
-      for(j=0; j < g->args.size(); ++j) {
-        if ((g->expectArgs != -1) && (g->expectArgs != g->args[j]->size()))
+      for(j=0; j < (long int)g->args.size(); ++j) {
+        if ((g->expectArgs != -1) && (g->expectArgs != (long int)g->args[j]->size()))
           badOptions.push_back(*g->flags[0]);
       }
     }
@@ -1950,7 +1960,7 @@ bool ezOptionParser::gotExpected(std::vector<std::string> & badOptions) {
 bool ezOptionParser::gotRequired(std::vector<std::string> & badOptions) {
   int i;
   
-  for(i=0; i < groups.size(); ++i) {
+  for(i=0; i < (long int)groups.size(); ++i) {
     OptionGroup *g = groups[i];
     // Simple case when required but user never set it.
     if (g->isRequired && (!g->isSet)) {
@@ -1975,10 +1985,10 @@ bool ezOptionParser::gotValid(std::vector<std::string> & badOptions, std::vector
     ezOptionValidator *v = validators[validatorid];
     bool nextgroup = false;
     
-    for (int i = 0; i < g->args.size(); ++i) {
+    for (int i = 0; i < (long int)g->args.size(); ++i) {
       if (nextgroup) break;
       std::vector< std::string* > * args = g->args[i];
-      for (int j = 0; j < args->size(); ++j) {
+      for (int j = 0; j < (long int)args->size(); ++j) {
         if (!v->isValid(args->at(j))) {
           badOptions.push_back(*g->flags[0]);
           badArgs.push_back(*args->at(j));
@@ -2001,7 +2011,7 @@ void ezOptionParser::parse(int argc, const char * argv[]) {
     std::cout << (*it).first << " => " << (*it).second << std::endl;
   */
   
-  int found=0, i, k, firstOptIndex=0, lastOptIndex=0;
+  int i, k, firstOptIndex=0, lastOptIndex=0;
   std::string s;
   OptionGroup *g;
   
@@ -2036,6 +2046,8 @@ void ezOptionParser::parse(int argc, const char * argv[]) {
       k = optionGroupIds[s];
       g = groups[k];
       g->isSet = 1;
+      g->parseIndex.push_back(i);
+
       if (g->expectArgs) {
         // Read ahead to get args.
         ++i;
@@ -2054,9 +2066,8 @@ void ezOptionParser::parse(int argc, const char * argv[]) {
     if (optionGroupIds.count(s)) {
       k = optionGroupIds[s];
       g = groups[k];
-      g->isSet = 1;
       if (g->expectArgs) {
-        // Read ahead for args.
+        // Read ahead for args and skip them.
         ++i;
       }
     } else {
@@ -2077,7 +2088,7 @@ void ezOptionParser::prettyPrint(std::string & out) {
   int i,j,k;
   
   out += "First Args:\n";
-  for(i=0; i < firstArgs.size(); ++i) {
+  for(i=0; i < (long int)firstArgs.size(); ++i) {
     sprintf(tmp, "%d: %s\n", i+1, firstArgs[i]->c_str());
     out += tmp;
   }
@@ -2098,7 +2109,7 @@ void ezOptionParser::prettyPrint(std::string & out) {
     g = get(stringPtrs[i]->c_str());
     out += "\n";
     // The flag names:
-    for(j=0; j < g->flags.size()-1; ++j) {
+    for(j=0; j < (long int)g->flags.size()-1; ++j) {
       sprintf(tmp, "%s, ", g->flags[j]->c_str());
       out += tmp;
     }
@@ -2111,8 +2122,8 @@ void ezOptionParser::prettyPrint(std::string & out) {
           sprintf(tmp, "%s (default)\n", g->defaults.c_str());
           out += tmp;
         } else {
-          for(k=0; k < g->args.size(); ++k) {            
-            for(j=0; j < g->args[k]->size()-1; ++j) {
+          for(k=0; k < (long int)g->args.size(); ++k) {            
+            for(j=0; j < (long int)g->args[k]->size()-1; ++j) {
               sprintf(tmp, "%s%c", g->args[k]->at(j)->c_str(), g->delim);
               out += tmp;
             }
@@ -2131,13 +2142,13 @@ void ezOptionParser::prettyPrint(std::string & out) {
   }
   
   out += "\nLast Args:\n";
-  for(i=0; i < lastArgs.size(); ++i) {
+  for(i=0; i < (long int)lastArgs.size(); ++i) {
     sprintf(tmp, "%d: %s\n", i+1, lastArgs[i]->c_str());
     out += tmp;
   }
   
   out += "\nUnknown Args:\n";
-  for(i=0; i < unknownArgs.size(); ++i) {
+  for(i=0; i < (long int)unknownArgs.size(); ++i) {
     sprintf(tmp, "%d: %s\n", i+1, unknownArgs[i]->c_str());
     out += tmp;
   }
