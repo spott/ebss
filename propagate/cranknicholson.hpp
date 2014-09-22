@@ -127,7 +127,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
                                                 // * D + H_0 ] + 1
 
 
-        KSPSetOperators( ksp, *A, *A, SAME_NONZERO_PATTERN ); // Solve[ A x
+        KSPSetOperators( ksp, *A, *A); // Solve[ A x
                                                               // = tmp ]
                                                               // for x
 

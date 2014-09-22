@@ -115,11 +115,13 @@ double dipole_matrix_element( double r, void* params )
 int main( int argc, const char** argv )
 {
     int ac = argc;
-    char** av = new char* [argc];
+    char** av = new char* [argc+1];
     for ( size_t i = 0; i < argc; i++ ) {
         av[i] = new char[strlen( argv[i] )];
         std::copy( argv[i], argv[i] + strlen( argv[i] ), av[i] );
     }
+    av[argc] = NULL;
+
     PetscInitialize( &ac, &av, PETSC_NULL, PETSC_NULL );
 
     HamiltonianParameters<PetscReal> params( argc, argv, MPI_COMM_WORLD );
@@ -239,9 +241,15 @@ int main( int argc, const char** argv )
                     return radial * angular;
                 };
         } else {
-            findvalue = [&prototype, &grid, &import_wf ]( int i, int j )
+            findvalue = [&prototype, &grid, &import_wf, &reduced_out ]( int i, int j )
                 ->PetscScalar
                 {
+                    //static BasisID ab1{1,0,0,0,0};
+                    //static BasisID ab2{1,0,0,0,0};
+                    //static PetscScalar afin = 0;
+                    //static BasisID bb1{1,0,0,0,0};
+                    //static BasisID bb2{1,0,0,0,0};
+                    //static PetscScalar bfin = 0;
                     if ( i == j ) return 0.0;
                     auto a = import_wf( prototype[i] );
                     auto b = import_wf( prototype[j] );
@@ -258,6 +266,23 @@ int main( int argc, const char** argv )
                         std::cerr << " got a NaN @ (" << i << ", " << j << "): " << prototype[i] << " <=> " << prototype[j] << std::endl;
                         throw std::exception();
                     }
+                    //PetscScalar fin = radial * angular;
+                    //if ( prototype[i].n != prototype[j].n && prototype[i].n > 100 && prototype[j].n > 100 && prototype[i].n == ab1.n && ab1.l == prototype[i].l && ab2.l == prototype[j].l && prototype[j].n < ab2.n && std::abs(afin.real()) < std::abs(fin.real()) )
+                    //{
+                        //reduced_out << "basis: " << prototype[i] << "; " << prototype[j] << std::endl;
+                        //reduced_out << " last < current " << afin << ", " << fin << std::endl;
+                    //}
+                    //else if (prototype[i].n != prototype[j].n && prototype[i].n > 100 && prototype[j].n > 100 && prototype[i].n == ab1.n && ab1.l == prototype[i].l && ab2.l == prototype[j].l && prototype[j].n > ab2.n && std::abs(afin.real()) < std::abs(fin.real()) )
+                    //{
+                        //reduced_out << "basis: " << prototype[i] << "; " << prototype[j] << std::endl;
+                        //reduced_out << " last > current " << afin << ", " << fin << std::endl;
+                    //}
+                    //afin = bfin;
+                    //bfin = fin;
+                    //ab1 = bb1;
+                    //bb1 = prototype[i];
+                    //ab2 = bb2;
+                    //bb2 = prototype[j];
                     return radial * angular;
                 };
         }

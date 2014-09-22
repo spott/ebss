@@ -155,10 +155,10 @@ std::array< std::vector<int>, 2 > StateParameters::disallowed_transitions( const
     {
         for (auto j = prototype.cbegin(); j < prototype.cend(); ++j)
         {
-            if (j->e.real() > 0.0 && i-> e.real() > 0.0)
+            if (j->e.real() > 0.0 && i-> e.real() > 0.0 && (std::abs(j->l - i->l) == 1))
             {
-                from_states.push_back((i - prototype.cbegin()));
-                to_states.push_back((j - prototype.cbegin()));
+                from_states.push_back((j - prototype.cbegin()));
+                to_states.push_back((i - prototype.cbegin()));
             }
         }
     }

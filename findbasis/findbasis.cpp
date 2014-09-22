@@ -14,12 +14,13 @@ typedef long double scalar;
 int main(int argc, const char **argv)
 {
     int ac = argc;
-    char** av = new char*[argc];
+    char** av = new char*[argc+1];
     for (size_t i = 0; i < argc; i++)
     {
         av[i] = new char[strlen(argv[i])];
         std::copy(argv[i], argv[i] + strlen(argv[i]), av[i]);
     }
+    av[argc] = NULL;
 
     SlepcInitialize(&ac, &av, PETSC_NULL, "FindBasis - Find a numerical basis");
 

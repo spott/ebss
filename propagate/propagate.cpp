@@ -27,11 +27,12 @@ PetscErrorCode HamiltonianJ(
 int main( int argc, const char** argv )
 {
     int ac = argc;
-    char** av = new char* [argc];
+    char** av = new char* [argc+1];
     for ( size_t i = 0; i < argc; i++ ) {
         av[i] = new char[strlen( argv[i] ) + 1];
         std::copy( argv[i], argv[i] + strlen( argv[i] ) + 1, av[i] );
     }
+    av[argc]=NULL;
     PetscInitialize( &ac, &av, PETSC_NULL, PETSC_NULL );
 
     // PetscViewer view;
@@ -124,15 +125,18 @@ int main( int argc, const char** argv )
     //transition stuff...
     {
         auto disallowed = sparams->disallowed_transitions( params->prototype() );
-        std::vector<PetscScalar> zeros(disallowed[0].size(), 0.0);
+        std::vector<PetscScalar> zeros(disallowed[0].size(), std::complex<double>(0.0, 0.0));
+        if (disallowed[0].size() != disallowed[1].size() || disallowed[0].size() != zeros.size())
+            std::cout << "oops, sizes don't match: " << disallowed[0].size() << ", " << disallowed[1].size() << ", " << zeros.size() << std::endl;
         if (disallowed[0].size() != 0)
-            MatSetValues( D,
-                          disallowed[0].size(),
-                          disallowed[0].data(),
-                          disallowed[1].size(),
-                          disallowed[1].data(),
-                          zeros.data(),
-                          INSERT_VALUES);
+            for (int i = 0; i < zeros.size(); i++) 
+                MatSetValues( D,
+                              1,
+                              &(disallowed[0][i]),
+                              1,
+                              &(disallowed[1][i]),
+                              &(zeros[i]),
+                              INSERT_VALUES);
     }
 
     VecAssemblyBegin( H );
