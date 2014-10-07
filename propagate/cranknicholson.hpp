@@ -2,6 +2,7 @@
 
 #include <array>
 #include <csignal>
+#include <cassert>
 
 typedef struct
 {
@@ -81,6 +82,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
     std::vector<std::ofstream*> dipole;
     // dipol( 3 * cntx->dipole->decompositions().size() + 1 );
     if ( cntx->hparams->rank() == 0 ) {
+		assert(cntx->dipole->dipole_filename().size() > 0);
         for ( auto a = 0; a < cntx->dipole->dipole_filename().size();
               ++a ) {
             try
@@ -106,6 +108,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
     std::signal(SIGUSR1, signal_handler);
 
     while ( t < maxtime ) {
+
         MatCopy( *( cntx->D ), *A, SAME_NONZERO_PATTERN ); // A = D
 
         // ef-forward:
@@ -127,13 +130,13 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
                                                 // * D + H_0 ] + 1
 
 
-        KSPSetOperators( ksp, *A, *A); // Solve[ A x
+        KSPSetOperators( ksp, *A, *A); //, SAME_NONZERO_PATTERN); // Solve[ A x
                                                               // = tmp ]
                                                               // for x
-
         KSPSolve( ksp, tmp, *wf );
 
         if ( cntx->absorber->type() == "cosine" ) {
+
             PetscReal n = 0;
             PetscReal n2 = 0;
             VecNorm( *wf, NORM_2, &n );

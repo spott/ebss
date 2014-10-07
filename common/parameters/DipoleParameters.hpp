@@ -98,18 +98,11 @@ class DipoleParameters : public Parameters
 
 PetscScalar DipoleParameters::find_dipole_moment( Mat& dipole, Vec& psi )
 {
-    // static Vec tmp = [&psi]() -> Vec {
-    // Vec t;
-    // VecDuplicate(psi,&t);
-    // return t; };
     PetscScalar out;
     if ( tmp == PETSC_NULL ) VecDuplicate( psi, &tmp );
     VecCopy( psi, tmp );
     MatMult( dipole, psi, tmp );
     VecDot( psi, tmp, &out );
-//    if ( std::abs( out.imag() ) > 1e-16 )
-//       std::cerr << "dipole moment didn't produce real number: " << out.imag()
-//                << std::endl;
 
     return out;
 }
@@ -122,7 +115,10 @@ void DipoleParameters::find_dipole_moment_decompositions(
 {
     PetscScalar t = this->find_dipole_moment( dipole, psi );
     if (rank() == 0)
+	{
         output_vector[0]->write( reinterpret_cast<char*>(&t), sizeof(PetscScalar) );
+	}
+	MPI_Barrier(MPI_COMM_WORLD);
 
     Vec bound, continuum;
     VecDuplicate( psi, &bound );
@@ -156,7 +152,6 @@ void DipoleParameters::find_dipole_moment_decompositions(
         bb = this->find_dipole_moment( dipole, bound );
         cc = this->find_dipole_moment( dipole, continuum );
         bc = temp_scalar;
-
 
         //only push back if rank == 0 to preven memory requirement blowup
         if ( rank() == 0) {

@@ -64,23 +64,30 @@ namespace common
     template <typename Func>
     void map_function(Vec& vector, Func f, Vec& out)
     {
+		MPI_Comm comm;
+		int rank;
+		PetscObjectGetComm((PetscObject)vector,&comm);
+		MPI_Comm_rank(comm, &rank);
+
         PetscInt vstart, vend;
         PetscInt ostart, oend;
-        PetscScalar* a;
+        PetscScalar const * a;
         PetscScalar* b;
 
         VecGetOwnershipRange(vector,&vstart,&vend);
         VecGetOwnershipRange(out,&ostart,&oend);
-        VecGetArray(vector, &a);
+        VecGetArrayRead(vector, &a);
         VecGetArray(out, &b);
+
 
         if (ostart != vstart || oend != vend)
             throw std::out_of_range("the two vectors don't have the same local structure");
 
-        for (int i = ostart; i < oend; ++i)
-            b[i] = f(a[i], i);
+        for (int i = 0; i < oend - ostart; ++i)
+            b[i] = f(a[i], i + ostart);
+		
 
-        VecRestoreArray(vector, &a);
+        VecRestoreArrayRead(vector, &a);
         VecRestoreArray(out, &b);
     }
     template <typename Func>
