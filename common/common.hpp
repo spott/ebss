@@ -460,7 +460,7 @@ namespace common
             //file.setf(std::ios_base::fixed, std::ios_base::floatfield);
             file.precision(20);
             for (auto a: out)
-                file << a << std::endl;
+                file << a << "\n";
 
             file.close();
         }

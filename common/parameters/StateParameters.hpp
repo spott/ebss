@@ -97,7 +97,7 @@ class StateParameters : public Parameters
     void save_parameters() const;
 
     std::vector<int> empty_states_index( const std::vector<BasisID> prototype );
-    std::array< std::vector<int>, 2> disallowed_transitions( const std::vector<BasisID>& prototype );
+    void disallowed_transitions( Mat& D, const std::vector<BasisID>& prototype );
     std::vector<BasisID> empty_states( const std::vector<BasisID> prototype );
     void initial_vector( Vec* v, const std::vector<BasisID> prototype );
 
@@ -145,25 +145,46 @@ StateParameters::empty_states( const std::vector<BasisID> prototype )
     return empty_states_;
 }
 
-std::array< std::vector<int>, 2 > StateParameters::disallowed_transitions( const std::vector<BasisID>& prototype )
+void StateParameters::disallowed_transitions( Mat& D, const std::vector<BasisID>& prototype )
 {
-    if (!notransitions) return std::array< std::vector<int>, 2>();
-    std::vector<int> from_states;
-    std::vector<int> to_states;
+    if (!notransitions) return;
+    //std::vector<int> from_states;
+    //std::vector<int> to_states;
 
+	auto zero = std::complex<double>(0.0, 0.0);
+	int total = 0;
+	
     for (auto i = prototype.cbegin(); i < prototype.cend(); ++i)
     {
         for (auto j = prototype.cbegin(); j < prototype.cend(); ++j)
         {
             if (j->e.real() > 0.0 && i-> e.real() > 0.0 && (std::abs(j->l - i->l) == 1))
             {
-                from_states.push_back((j - prototype.cbegin()));
-                to_states.push_back((i - prototype.cbegin()));
+				std::vector<int> column;
+				std::vector<std::complex<double>> zeros;
+				while( j->e.real() > 0.0 && (std::abs(j->l - i->l) == 1) && j < prototype.cend())
+				{
+					column.push_back(j - prototype.cbegin());
+					zeros.push_back(zero);
+					j++;
+				}
+				if (rank() == 0)
+					std::cout << "(" << *i << "->" << *(j-1) << ") " << column.size() << std::endl;
+				int a = (i - prototype.cbegin());
+                MatSetValues( D,
+                              1,
+                              &(a),
+                              column.size(),
+                              column.data(),
+                              zeros.data(),
+                              INSERT_VALUES);
             }
         }
+		MatAssemblyBegin(D, MAT_FLUSH_ASSEMBLY);
+		MatAssemblyEnd(D, MAT_FLUSH_ASSEMBLY);
     }
 
-    return std::array<std::vector<int>, 2>{from_states, to_states};
+    //return std::array<std::vector<int>, 2>{{from_states, to_states}};
 }
 
 std::vector<int>

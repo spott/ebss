@@ -124,19 +124,25 @@ int main( int argc, const char** argv )
 
     //transition stuff...
     {
-        auto disallowed = sparams->disallowed_transitions( params->prototype() );
-        std::vector<PetscScalar> zeros(disallowed[0].size(), std::complex<double>(0.0, 0.0));
-        if (disallowed[0].size() != disallowed[1].size() || disallowed[0].size() != zeros.size())
-            std::cout << "oops, sizes don't match: " << disallowed[0].size() << ", " << disallowed[1].size() << ", " << zeros.size() << std::endl;
-        if (disallowed[0].size() != 0)
-            for (int i = 0; i < zeros.size(); i++) 
-                MatSetValues( D,
-                              1,
-                              &(disallowed[0][i]),
-                              1,
-                              &(disallowed[1][i]),
-                              &(zeros[i]),
-                              INSERT_VALUES);
+		std::cout << "entering transition section" << std::endl;
+        sparams->disallowed_transitions( D, params->prototype() );
+		std::cout << "after disallowed transitions" << std::endl;
+//		auto zero = std::complex<double>(0.0, 0.0);
+//        if (disallowed[0].size() != disallowed[1].size())
+//            std::cout << "oops, sizes don't match: " << disallowed[0].size() << ", " << disallowed[1].size() << std::endl;
+//        if (disallowed[0].size() != 0)
+//            for (int i = 0; i < disallowed[0].size(); i++) 
+//			{
+//				if (params->rank() == 0)
+//					std::cout << i << ": (" << disallowed[0][i] << "," << disallowed[1][i] << ")...";
+//                MatSetValues( D,
+//                              1,
+//                              &(disallowed[0][i]),
+//                              1,
+//                              &(disallowed[1][i]),
+//                              &(zero),
+//                              INSERT_VALUES);
+//			}
     }
 
     VecAssemblyBegin( H );
