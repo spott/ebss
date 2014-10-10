@@ -41,12 +41,16 @@ class DipoleParameters : public Parameters
 
         std::string df = dipole_filename_.substr( 0, dipole_filename_.find_last_of('.'));
 
-        for ( auto a = decomp_splits.begin(); a < decomp_splits.end(); ++a )
-        {
-            out.push_back( df + "_" + std::to_string(*a) + "_bb.dat");
-            out.push_back( df + "_" + std::to_string(*a) + "_cc.dat");
-            out.push_back( df + "_" + std::to_string(*a) + "_bc.dat");
-        }
+        //This should be enough for now
+        const std::vector<char> labels{'a','b','c','d','e','f','g','h','i','j','k'};  
+
+        for (int a = 0; a <= decomp_splits.size(); a++)
+          {
+            for (int b = a; b <= decomp_splits.size(); b++)
+              {
+                out.push_back( df + "_" + std::to_string(labels[a]) + std::to_string(labels[b]) + ".dat");
+              }
+          }
 
         return out;
     }
@@ -54,12 +58,10 @@ class DipoleParameters : public Parameters
     {
         return after_filename_;
     }
-    ;
     std::vector<int>& decompositions()
     {
         return decomp_splits;
     }
-    ;
 
     PetscScalar find_dipole_moment( Mat& dipole, Vec& psi );
 
@@ -119,53 +121,68 @@ void DipoleParameters::find_dipole_moment_decompositions(
         output_vector[0]->write( reinterpret_cast<char*>(&t), sizeof(PetscScalar) );
 	}
 	MPI_Barrier(MPI_COMM_WORLD);
+Vec veca, vecb;
+    VecDuplicate( psi, &veca );
+    VecDuplicate( psi, &vecb );
+    PetscScalar aa, bb, ab;
 
-    Vec bound, continuum;
-    VecDuplicate( psi, &bound );
-    VecDuplicate( psi, &continuum );
-    PetscScalar bb, cc, bc;
+    std::vector< std::array<int,2> > sections;
+    if (decomp_splits.size() != 0)
+        for (int i = 0; i <= decomp_splits.size(); i++)
+          {
+            if (i == decomp_splits.size())
+              sections.push_back({decomp_splits.back(), prototype.back().n});
+            else if (i == 0)
+              sections.push_back({0, decomp_splits[i]});
+            else
+              sections.push_back({decomp_splits[i-1], decomp_splits[i]});
+          }
 
+    int n = 1;
+    for ( auto sectiona = sections.begin(); sectiona < sections.end(); sectiona++)
+      {
+        for ( auto sectionb = sectiona + 1; sectionb < sections.end(); sectionb++)
+          {
+            // a:
+            common::map_function( psi,
+                                  [&sectiona, &prototype]( PetscScalar a, PetscInt i ) {
+                                    return ( prototype[i].n > (*sectiona)[0] && prototype[i].n <= (*sectiona)[1] ) ? a : 0;
+                                  },
+                                  veca );
+            // b:
+            common::map_function( psi,
+                                  [&sectionb, &prototype]( PetscScalar a, PetscInt i ) {
+                                    return ( prototype[i].n > (*sectionb)[0] && prototype[i].n <= (*sectionb)[1] ) ? a : 0;
+                                  },
+                                  vecb );
 
-    for ( auto split = decomp_splits.begin(); split < decomp_splits.end();
-          ++split ) {
-        // bound:
-        common::map_function( psi,
-                              [&split, &prototype]( PetscScalar a, PetscInt i ) {
-                                  return ( prototype[i].n <= *split ) ? a : 0;
-                              },
-                              bound );
+            PetscScalar temp_scalar;
 
-        // excited:
-        common::map_function( psi,
-                              [&split, &prototype]( PetscScalar a, PetscInt i ) {
-                                  return ( prototype[i].n > *split ) ? a : 0;
-                              },
-                              continuum );
+            if ( tmp == PETSC_NULL ) VecDuplicate( psi, &tmp );
+            VecCopy( veca, tmp );
+            MatMult( dipole, veca, tmp );
+            VecDot( vecb, tmp, &temp_scalar );
 
+            if (sectionb == sectiona + 1)
+                aa = this->find_dipole_moment( dipole, veca );
+            //bb = this->find_dipole_moment( dipole, vecb );
+            ab = temp_scalar;
 
-        PetscScalar temp_scalar;
-
-        if ( tmp == PETSC_NULL ) VecDuplicate( psi, &tmp );
-        VecCopy( bound, tmp );
-        MatMult( dipole, bound, tmp );
-        VecDot( continuum, tmp, &temp_scalar );
-        bb = this->find_dipole_moment( dipole, bound );
-        cc = this->find_dipole_moment( dipole, continuum );
-        bc = temp_scalar;
-
-        //only push back if rank == 0 to preven memory requirement blowup
-        if ( rank() == 0) {
-            output_vector[3 * ( split - decomp_splits.begin() ) + 1]
-                ->write( reinterpret_cast<char*>(&bb), sizeof(PetscScalar) );
-            output_vector[3 * ( split - decomp_splits.begin() ) + 2]
-                ->write( reinterpret_cast<char*>(&cc), sizeof(PetscScalar) );
-            output_vector[3 * ( split - decomp_splits.begin() ) + 3]
-                ->write( reinterpret_cast<char*>(&bc), sizeof(PetscScalar) );
-        }
+            //only push back if rank == 0 to preven memory requirement blowup
+            if ( rank() == 0) {
+              if (sectionb == sectiona + 1)
+                {
+                  output_vector[n]->write( reinterpret_cast<char*>(&aa), sizeof(PetscScalar) );
+                  n++;
+                }
+              output_vector[n]->write( reinterpret_cast<char*>(&ab), sizeof(PetscScalar) );
+              n++;
+                }
+          }
     }
 
-    VecDestroy( &bound );
-    VecDestroy( &continuum );
+    VecDestroy( &veca );
+    VecDestroy( &vecb );
 }
 
 void DipoleParameters::get_parameters()
