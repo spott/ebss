@@ -48,7 +48,7 @@ class DipoleParameters : public Parameters
           {
             for (int b = a; b <= decomp_splits.size(); b++)
               {
-                out.push_back( df + "_" + std::to_string(labels[a]) + std::to_string(labels[b]) + ".dat");
+                out.push_back( df + "_" + labels[a] + labels[b] + ".dat");
               }
           }
 
@@ -165,20 +165,26 @@ Vec veca, vecb;
 
             if (sectionb == sectiona + 1)
                 aa = this->find_dipole_moment( dipole, veca );
-            //bb = this->find_dipole_moment( dipole, vecb );
+			if (sectionb == sections.end() && sectiona == sections.end() - 1)
+				bb = this->find_dipole_moment( dipole, vecb );
             ab = temp_scalar;
 
             //only push back if rank == 0 to preven memory requirement blowup
-            if ( rank() == 0) {
-              if (sectionb == sectiona + 1)
-                {
-                  output_vector[n]->write( reinterpret_cast<char*>(&aa), sizeof(PetscScalar) );
-                  n++;
-                }
-              output_vector[n]->write( reinterpret_cast<char*>(&ab), sizeof(PetscScalar) );
-              n++;
-                }
-          }
+			if ( rank() == 0) {
+				if (sectionb == sectiona + 1)
+				{
+					output_vector[n]->write( reinterpret_cast<char*>(&aa), sizeof(PetscScalar) );
+					n++;
+				}
+				output_vector[n]->write( reinterpret_cast<char*>(&ab), sizeof(PetscScalar) );
+				n++;
+				if (sectionb == sections.end() && sectiona == sections.end() - 1)
+				{
+					output_vector[n]->write( reinterpret_cast<char*>(&bb), sizeof(PetscScalar) );
+					n++;
+				}
+			}
+		  }
     }
 
     VecDestroy( &veca );
