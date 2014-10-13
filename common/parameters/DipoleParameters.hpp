@@ -129,17 +129,24 @@ Vec veca, vecb;
     VecDuplicate( psi, &vecb );
     PetscScalar aa, bb, ab;
 
-    std::vector< std::array<int,2> > sections;
+    static std::vector< std::array<int,2> > sections = [this, &prototype](){
+      std::vector< std::array<int,2> > sections_vec;
     if (decomp_splits.size() != 0)
         for (int i = 0; i <= decomp_splits.size(); i++)
           {
             if (i == decomp_splits.size())
-              sections.push_back({decomp_splits.back(), prototype.back().n});
+              sections_vec.push_back({decomp_splits.back(), prototype.back().n});
             else if (i == 0)
-              sections.push_back({0, decomp_splits[i]});
+              sections_vec.push_back({0, decomp_splits[i]});
             else
-              sections.push_back({decomp_splits[i-1], decomp_splits[i]});
+              sections_vec.push_back({decomp_splits[i-1], decomp_splits[i]});
           }
+      if (rank() == 0) {
+        for (auto& a : sections_vec) {
+          std::cout << "(" << a[0] << "," << a[1] << ")" << std::endl;
+        }
+      }
+      return sections_vec;}();
 
     int n = 1;
     for ( auto sectiona = sections.begin(); sectiona < sections.end(); sectiona++)
