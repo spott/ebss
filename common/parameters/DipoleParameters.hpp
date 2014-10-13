@@ -35,6 +35,8 @@ class DipoleParameters : public Parameters
 
     std::vector<std::string> dipole_filename()
     {
+      static std::vector<std::string> filename = [this](){
+        
         std::vector<std::string> out;
         out.reserve( 3 * decomp_splits.size() + 1 );
         out.push_back(dipole_filename_);
@@ -52,7 +54,8 @@ class DipoleParameters : public Parameters
               }
           }
 
-        return out;
+        return out;}();
+      return filename;
     }
     const std::string after_filename() const
     {
@@ -143,6 +146,7 @@ Vec veca, vecb;
       {
         for ( auto sectionb = sectiona + 1; sectionb < sections.end(); sectionb++)
           {
+            //std::cout << "writing out: (" << sectiona->front() << "," << sectiona->back() << ") (" << sectionb->front() << "," << sectionb->back() << ")" << std::endl;
             // a:
             common::map_function( psi,
                                   [&sectiona, &prototype]( PetscScalar a, PetscInt i ) {
@@ -173,13 +177,16 @@ Vec veca, vecb;
 			if ( rank() == 0) {
 				if (sectionb == sectiona + 1)
 				{
+                  //std::cout << "write first one" << std::endl;
 					output_vector[n]->write( reinterpret_cast<char*>(&aa), sizeof(PetscScalar) );
 					n++;
 				}
+                //std::cout << "write cross one" << std::endl;
 				output_vector[n]->write( reinterpret_cast<char*>(&ab), sizeof(PetscScalar) );
 				n++;
-				if (sectionb == sections.end() && sectiona == sections.end() - 1)
+				if (sectionb == sections.end()-1 && sectiona == sections.end() - 2)
 				{
+                  //std::cout << "write second one" << std::endl;
 					output_vector[n]->write( reinterpret_cast<char*>(&bb), sizeof(PetscScalar) );
 					n++;
 				}
