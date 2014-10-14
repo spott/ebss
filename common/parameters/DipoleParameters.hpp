@@ -176,7 +176,7 @@ Vec veca, vecb;
 
             if (sectionb == sectiona + 1)
                 aa = this->find_dipole_moment( dipole, veca );
-			if (sectionb == sections.end() && sectiona == sections.end() - 1)
+			if (sectionb == sections.end() - 1 && sectiona == sections.end() - 2)
 				bb = this->find_dipole_moment( dipole, vecb );
             ab = temp_scalar;
 

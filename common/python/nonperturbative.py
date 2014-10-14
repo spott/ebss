@@ -158,28 +158,47 @@ class NonperturbativeSet(object):
 
         def dipole(self, window=None, t=None):
             """
-            returns a Fourier object of the dipole moment of the run.
+            returns a Fourier object of the dipole moment selected of the run.
+            t = None : the regular, total, dipole moment.
+            t = "ab","ba","bb", etc.  the section of the total dipole moment.  if t[0] > t[1], flip and take the complex conjugate.
+            t = [(x, "ab"), (y, "bc")], etc.  x(dipole moment of "ab") + y(dipole moment of "bc"), etc.
             """
-            f = "dipole.dat"
-            if t is not None:
-                f = "dipole_" + t + ".dat"
 
             with open(os.path.join(self.folder, "time.dat"), 'rb') as time_f:
                 time_f.seek(0, os.SEEK_END)
                 timesize = time_f.tell()
                 time_f.seek(0)
                 time = np.fromfile(time_f, 'd', -1)
-            with open(os.path.join(self.folder, f), 'rb') as dipolef:
-                dipolef.seek(0, os.SEEK_END)
-                dipolesize = dipolef.tell()
-                dipolef.seek(0)
-                if dipolesize == 2 * timesize:
-                    dp = np.fromfile(dipolef, 'D', -1)
-                elif dipolesize == timesize:
-                    dp = np.fromfile(dipolef, 'd', -1)
+
+            files = []
+            if t is None:
+                files = [(lambda x: x, "dipole.dat")]
+            if t is not None:
+                if not isinstance(t, (list, tuple)):
+                    files = [(lambda x: x, "dipole_" + t + ".dat")]
                 else:
-                    raise Exception("dipole: dipole file does not have a filesize equal to, or double that of the time file")
-                dp *= -1
+                    for fun, f in t:
+                        if (f is None):
+                            files.append( (fun, "dipole.dat") )
+                        else:
+                            if (f[0] > f[1]):
+                                files.append( (lambda x: fun(np.conj(x)), "dipole_" + f[1] + f[0] + ".dat") )
+                            else:
+                                files.append( (fun, "dipole_" + f + ".dat"))
+            print files
+            for func, f in files:
+                dp = np.zeros(timesize/8, dtype='D')
+                with open(os.path.join(self.folder, f), 'rb') as dipolef:
+                    dipolef.seek(0, os.SEEK_END)
+                    dipolesize = dipolef.tell()
+                    dipolef.seek(0)
+                    if dipolesize == 2 * timesize:
+                        dp = np.add(dp,func(np.fromfile(dipolef, 'D', -1)))
+                    elif dipolesize == timesize:
+                        dp = np.add(dp,func(np.fromfile(dipolef, 'd', -1)))
+                    else:
+                        raise Exception("dipole: dipole file does not have a filesize equal to, or double that of the time file")
+            dp *= -1
             if window:
                 return fourier.Fourier(time, dp, window)
             else:
