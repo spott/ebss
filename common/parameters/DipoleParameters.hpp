@@ -36,15 +36,14 @@ class DipoleParameters : public Parameters
     std::vector<std::string> dipole_filename()
     {
       static std::vector<std::string> filename = [this](){
-        
+
         std::vector<std::string> out;
-        out.reserve( 3 * decomp_splits.size() + 1 );
         out.push_back(dipole_filename_);
 
         std::string df = dipole_filename_.substr( 0, dipole_filename_.find_last_of('.'));
 
         //This should be enough for now
-        const std::vector<char> labels{'a','b','c','d','e','f','g','h','i','j','k'};  
+        const std::vector<char> labels{'a','b','c','d','e','f','g','h','i','j','k'};
 
         for (int a = 0; a <= decomp_splits.size(); a++)
           {
@@ -61,7 +60,8 @@ class DipoleParameters : public Parameters
     {
         return after_filename_;
     }
-    std::vector<int>& decompositions()
+
+  std::vector<double>& decompositions()
     {
         return decomp_splits;
     }
@@ -89,8 +89,11 @@ class DipoleParameters : public Parameters
     }
     ; // ditto
 
+  enum class split_type {Energy, Principal};
   protected:
-    std::vector<int> decomp_splits;
+  split_type type_;
+    std::vector<double> decomp_splits;
+  //std::vector<double> decomp_energy_splits;
     ez::ezOptionParser opt;
     void register_parameters();
     bool findDipole;
@@ -129,15 +132,15 @@ Vec veca, vecb;
     VecDuplicate( psi, &vecb );
     PetscScalar aa, bb, ab;
 
-    static std::vector< std::array<int,2> > sections = [this, &prototype](){
-      std::vector< std::array<int,2> > sections_vec;
+    static std::vector< std::array<double,2> > sections = [this, &prototype](){
+      std::vector< std::array<double,2> > sections_vec;
     if (decomp_splits.size() != 0)
         for (int i = 0; i <= decomp_splits.size(); i++)
           {
             if (i == decomp_splits.size())
-              sections_vec.push_back({decomp_splits.back(), prototype.back().n});
+              sections_vec.push_back({decomp_splits.back(), (type_ == split_type::Energy) ? prototype.back().e.real() : prototype.back().n});
             else if (i == 0)
-              sections_vec.push_back({0, decomp_splits[i]});
+              sections_vec.push_back({ (type_ == split_type::Energy) ? prototype.front().e.real() - 1 : prototype.front().n - 1, decomp_splits[i]});
             else
               sections_vec.push_back({decomp_splits[i-1], decomp_splits[i]});
           }
@@ -155,17 +158,34 @@ Vec veca, vecb;
           {
             //std::cout << "writing out: (" << sectiona->front() << "," << sectiona->back() << ") (" << sectionb->front() << "," << sectionb->back() << ")" << std::endl;
             // a:
-            common::map_function( psi,
-                                  [&sectiona, &prototype]( PetscScalar a, PetscInt i ) {
-                                    return ( prototype[i].n > (*sectiona)[0] && prototype[i].n <= (*sectiona)[1] ) ? a : 0;
-                                  },
-                                  veca );
+            if( type_ != split_type::Energy )
+            {
+                common::map_function( psi,
+                                      [&sectiona, &prototype]( PetscScalar a, PetscInt i ) {
+                                        return ( prototype[i].n > std::lround((*sectiona)[0]) && prototype[i].n <= std::lround((*sectiona)[1] )) ? a : 0;
+                                      },
+                                      veca );
             // b:
-            common::map_function( psi,
-                                  [&sectionb, &prototype]( PetscScalar a, PetscInt i ) {
-                                    return ( prototype[i].n > (*sectionb)[0] && prototype[i].n <= (*sectionb)[1] ) ? a : 0;
-                                  },
-                                  vecb );
+                common::map_function( psi,
+                                      [&sectionb, &prototype]( PetscScalar a, PetscInt i ) {
+                                        return ( prototype[i].n > std::lround((*sectionb)[0]) && prototype[i].n <= std::lround((*sectionb)[1]) ) ? a : 0;
+                                      },
+                                      vecb );
+            }
+            else
+              {
+                common::map_function( psi,
+                                      [&sectiona, &prototype]( PetscScalar a, PetscInt i ) {
+                                        return ( prototype[i].e.real() > (*sectiona)[0] && prototype[i].e.real() <= (*sectiona)[1] ) ? a : 0;
+                                      },
+                                      veca );
+                // b:
+                common::map_function( psi,
+                                      [&sectionb, &prototype]( PetscScalar a, PetscInt i ) {
+                                        return ( prototype[i].e.real() > (*sectionb)[0] && prototype[i].e.real() <= (*sectionb)[1] ) ? a : 0;
+                                      },
+                                      vecb );
+              }
 
             PetscScalar temp_scalar;
 
@@ -231,8 +251,17 @@ void DipoleParameters::get_parameters()
     else
         findDipole = false;
 
+    if (opt.isSet( "-dipole_decomposition" ) && opt.isSet( "-dipole_decomposition_energy" ) )
+      throw std::runtime_error(std::string("both decompositions are selected... this is bad" ));
     if ( opt.isSet( "-dipole_decomposition" ) )
-        opt.get( "-dipole_decomposition" )->getInts( decomp_splits );
+      {
+        opt.get( "-dipole_decomposition" )->getDoubles( decomp_splits );
+        type_ = split_type::Principal;
+      }
+    else if ( opt.isSet( "-dipole_decomposition_energy" ) ) {
+        opt.get( "-dipole_decomposition_energy" )->getDoubles( decomp_splits );
+        type_ = split_type::Energy;
+    }
 
     opt.get( "-dipole_filename" )->getString( dipole_filename_ );
     dipole_filename_ = common::absolute_path( dipole_filename_ );
@@ -303,8 +332,15 @@ void DipoleParameters::register_parameters()
              1,
              ',',
              "Split the dipole moment into contributions greater than and less "
-             "than x, for each x",
+             "than x, for each x (x is the principle quantum number)",
              std::string( prefix ).append( "decomposition\0" ).c_str() );
+    opt.add( "0",
+             1,
+             1,
+             ',',
+             "Split the dipole moment into contributions greater than and less "
+             "than x, for each x (x is the energy)",
+             std::string( prefix ).append( "decomposition_energy\0" ).c_str() );
     opt.add( "Dipole.dat",
              0,
              1,
