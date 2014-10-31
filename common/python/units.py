@@ -36,3 +36,7 @@ class atomic(object):
     @staticmethod
     def density(torr=5):
         return (torr/5.)* 1.76e17 * (5.29e-5/1e4)**3
+
+    @staticmethod
+    def pondermotive (intensity_si, wavelength):
+        return (intensity_si/atomic.intensity)/(4. * atomic.from_wavelength(wavelength))

@@ -30,7 +30,7 @@ class Fourier(object):
             self.freq = np.fft.rfftfreq(len(self.tdata), (self.time[1]-self.time[0]) / (2. * np.pi))
 
         elif data.dtype == np.dtype('D'):
-            self.fdata = np.fft.fft(self.tdata) / len(self.tdata)
+            self.fdata = 2 * np.fft.fft(self.tdata) / len(self.tdata)
             self.freq = np.fft.fftfreq(len(self.tdata), (self.time[1]-self.time[0]) / (2. * np.pi))
         else:
             raise Exception("Fourier.__init__: Not using double complex, or double... this is wrong")

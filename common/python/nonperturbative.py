@@ -20,11 +20,12 @@ class NonperturbativeSet(object):
     '''A set of nonperturbative (full TDSE) runs,
     specifically their chi values.  '''
 
-    def __init__(self, folder, n=1, wanted="susceptibility", window=scipy.signal.boxcar):
+    def __init__(self, folder, n=1, wanted="susceptibility", window=scipy.signal.boxcar, dipoles=None):
         self.data = None
         self.folders = []
         self.n = n
         self.window = window
+        self.dipoles = dipoles
 
         if wanted not in ["susceptibility","peak_dipole","efield","integrated_harmonic_power","peak_harmonic_power"]:
             raise Exception("wanted value <" + str(wanted) + "> not known")
@@ -43,10 +44,10 @@ class NonperturbativeSet(object):
         # try:
         if self.data is None:
             self.data = pd.DataFrame(
-                NonperturbativeSet.Nonperturbative(dirname, self.n, self.wanted, self.window).data)
+                NonperturbativeSet.Nonperturbative(dirname, self.n, self.wanted, self.window, self.dipoles).data)
             self.folders.append([dirname])
         else:
-            new_data = NonperturbativeSet.Nonperturbative(dirname, self.n, self.wanted, self.window).data
+            new_data = NonperturbativeSet.Nonperturbative(dirname, self.n, self.wanted, self.window, self.dipoles).data
             self.data = pd.concat(
                 [self.data, new_data])
             self.folders.append([dirname])
@@ -99,7 +100,7 @@ class NonperturbativeSet(object):
         the run
         """
 
-        def __init__(self, folder, n=1, wanted="susceptibility" ,window=scipy.signal.boxcar):
+        def __init__(self, folder, n=1, wanted="susceptibility" ,window=scipy.signal.boxcar, dipoles=None):
             self.window=window
             if not os.path.exists(os.path.join(folder, "wf_final.dat")):
                 raise Exception("folder doesn't have wf_final.dat", folder)
@@ -128,15 +129,15 @@ class NonperturbativeSet(object):
                         self.dt = float(line.split(" ")[1])
 
             if wanted == "susceptibility":
-                self.chi = self.harmonic(n, self.window)
+                self.chi = self.harmonic(n, self.window, dipoles=dipoles)
             elif wanted == "peak_dipole":
-                self.chi = self.dipole(self.window)(n * atomic.from_wavelength(self.wavelength))
+                self.chi = self.dipole(self.window, t=dipoles)(n * atomic.from_wavelength(self.wavelength))
             elif wanted == "peak_harmonic_power":
-                self.chi = np.square(np.abs(self.dipole(self.window)(n * atomic.from_wavelength(self.wavelength))))
+                self.chi = np.square(np.abs(self.dipole(self.window,t=dipoles)(n * atomic.from_wavelength(self.wavelength))))
             elif wanted == "efield":
                 self.chi = self.efield(self.window)(n * atomic.from_wavelength(self.wavelength))
             elif wanted == "integrated_harmonic_power":
-                self.chi = self.dipole(self.window).integrated_freq(lambda x: np.abs(x)**2, ((n-1) * atomic.from_wavelength(self.wavelength)),((n+1) * atomic.from_wavelength(self.wavelength)) )
+                self.chi = self.dipole(self.window,t=dipoles).integrated_freq(lambda x: np.abs(x)**2, ((n-1) * atomic.from_wavelength(self.wavelength)),((n+1) * atomic.from_wavelength(self.wavelength)) )
             else:
                 raise Exception("wanted value <" + str(wanted) + "> not known")
 
@@ -164,6 +165,11 @@ class NonperturbativeSet(object):
             t = [(x, "ab"), (y, "bc")], etc.  x(dipole moment of "ab") + y(dipole moment of "bc"), etc.
             """
 
+            print window
+            print self.window
+            def ident(x):
+                return x
+
             with open(os.path.join(self.folder, "time.dat"), 'rb') as time_f:
                 time_f.seek(0, os.SEEK_END)
                 timesize = time_f.tell()
@@ -172,10 +178,10 @@ class NonperturbativeSet(object):
 
             files = []
             if t is None:
-                files = [(lambda x: x, "dipole.dat")]
+                files = [(ident, "dipole.dat")]
             if t is not None:
-                if not isinstance(t, (list, tuple)):
-                    files = [(lambda x: x, "dipole_" + t + ".dat")]
+                if isinstance(t, str):
+                    files = [(ident, "dipole_" + t + ".dat")]
                 else:
                     for fun, f in t:
                         if (f is None):
@@ -186,8 +192,9 @@ class NonperturbativeSet(object):
                             else:
                                 files.append( (fun, "dipole_" + f + ".dat"))
             print files
+            print self.folder
+            dp = np.zeros(timesize/8, dtype='D')
             for func, f in files:
-                dp = np.zeros(timesize/8, dtype='D')
                 with open(os.path.join(self.folder, f), 'rb') as dipolef:
                     dipolef.seek(0, os.SEEK_END)
                     dipolesize = dipolef.tell()
@@ -199,7 +206,7 @@ class NonperturbativeSet(object):
                     else:
                         raise Exception("dipole: dipole file does not have a filesize equal to, or double that of the time file")
             dp *= -1
-            if window:
+            if window is not None:
                 return fourier.Fourier(time, dp, window)
             else:
                 return fourier.Fourier(time, dp, self.window)
@@ -224,15 +231,17 @@ class NonperturbativeSet(object):
             #time = np.fromfile(f, 'd', -1)
             # return (time,ef)
 
-        def harmonic(self, order=1, window=scipy.signal.boxcar):
+        def harmonic(self, order=1, window=scipy.signal.boxcar, dipoles=None):
             """
             return the susceptibility for a specific harmonic `order`.
             """
-            dipole = self.dipole(window)
+            dipole = self.dipole(window, t=dipoles)
             dipole = dipole(order * atomic.from_wavelength(self.wavelength))
             efield = self.efield(window)
             # We want the susceptibility at order omega from omega
             efield = efield(atomic.from_wavelength(self.wavelength))
+            print dipole
+            print efield
             return dipole / efield
 
         def get_prototype(self):
@@ -259,11 +268,13 @@ class NonperturbativeSet(object):
             if zero == -1:
                 wavefn = import_petsc_vec(
                     os.path.join(self.folder, "wf_final.dat"))
-                return pd.DataFrame({"wf": wavefn}, index=self.get_prototype())
+                cols = pd.MultiIndex.from_tuples([(self.intensity, self.cycles*2)], names=["intensity", "zero"])
+                return pd.DataFrame(wavefn, index=self.get_prototype(), columns=cols)
             elif zero < self.cycles * 2:
                 wavefn = import_petsc_vec(
                     os.path.join(self.folder, "wf_" + str(zero) + ".dat"))
-                return pd.DataFrame({"wf": wavefn}, index=self.get_prototype())
+                cols = pd.MultiIndex.from_tuples([(self.intensity, zero)], names=["intensity", "zero"])
+                return pd.DataFrame(wavefn, index=self.get_prototype(), columns=cols)
             else:
                 raise Exception(zero, "n not less than ", self.cycles)
 
