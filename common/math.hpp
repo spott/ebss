@@ -556,6 +556,15 @@ std::tuple<PetscReal, int> VecAbsMin(Vec a)
     return std::make_tuple(m, loc);
 }
 
+PetscReal VecNorm(Vec a)
+{
+    PetscReal norm;
+
+    VecNorm(a, NORM_2, &norm);
+
+    return norm;
+}
+
 //template < typename Func >
 //std::vector< std::tuple< PetscScalar, int > > VecSort(Vec a, Func comparator)
 //{

@@ -83,12 +83,12 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
     // dipol( 3 * cntx->dipole->decompositions().size() + 1 );
     if ( cntx->hparams->rank() == 0 ) {
 		assert(cntx->dipole->dipole_filename().size() > 0);
-        for ( auto a = 0; a < cntx->dipole->dipole_filename().size();
-              ++a ) {
+        for (auto& a : cntx->dipole->dipole_filename())
+          {
             try
             {
                 dipole.emplace_back( new
-                    std::ofstream( cntx->dipole->dipole_filename()[a],
+                    std::ofstream( a,
                                    std::ios::binary | std::ios::ate ) );
             }
             catch ( ... )
