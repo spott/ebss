@@ -137,10 +137,16 @@ class NonperturbativeSet(object):
             elif wanted == "efield":
                 self.chi = self.efield(self.window)(n * atomic.from_wavelength(self.wavelength))
             elif wanted == "integrated_harmonic_power":
-                self.chi = self.dipole(self.window,t=dipoles).integrated_freq(lambda x: np.abs(x)**2, ((n-1) * atomic.from_wavelength(self.wavelength)),((n+1) * atomic.from_wavelength(self.wavelength)) )
+                self.chi = self.dipole(self.window, t=dipoles).integrated_freq(
+                        lambda x: np.abs(x)**2, 
+                        ((n-1) * atomic.from_wavelength(self.wavelength)),
+                        ((n+1) * atomic.from_wavelength(self.wavelength)))
+                print self.chi
+
             else:
                 raise Exception("wanted value <" + str(wanted) + "> not known")
 
+            print self.chi
 
             mindex = pd.MultiIndex.from_arrays(
                 [[self.cycles], [self.wavelength]], 
@@ -165,8 +171,6 @@ class NonperturbativeSet(object):
             t = [(x, "ab"), (y, "bc")], etc.  x(dipole moment of "ab") + y(dipole moment of "bc"), etc.
             """
 
-            print window
-            print self.window
             def ident(x):
                 return x
 
@@ -193,23 +197,40 @@ class NonperturbativeSet(object):
                                 files.append( (fun, "dipole_" + f + ".dat"))
             print files
             print self.folder
-            dp = np.zeros(timesize/8, dtype='D')
+            dp = np.zeros(timesize/8, dtype='d')
             for func, f in files:
                 with open(os.path.join(self.folder, f), 'rb') as dipolef:
                     dipolef.seek(0, os.SEEK_END)
                     dipolesize = dipolef.tell()
                     dipolef.seek(0)
                     if dipolesize == 2 * timesize:
-                        dp = np.add(dp,func(np.fromfile(dipolef, 'D', -1)))
+                        dp = np.subtract(dp,func(np.fromfile(dipolef, 'D', -1)))
                     elif dipolesize == timesize:
-                        dp = np.add(dp,func(np.fromfile(dipolef, 'd', -1)))
+                        dp = np.subtract(dp,func(np.fromfile(dipolef, 'd', -1)))
                     else:
                         raise Exception("dipole: dipole file does not have a filesize equal to, or double that of the time file")
-            dp *= -1
+            #dp *= -1
+            print dp
             if window is not None:
                 return fourier.Fourier(time, dp, window)
             else:
                 return fourier.Fourier(time, dp, self.window)
+
+        def population(self):
+            """
+            returns a dataframe containing a list of the population in every "section" of the wavefunction that there is a dipole moment for.
+            """
+
+            splits = set(''.join(map(lambda x: x[7:9], filter( lambda x: x.startswith("dipole_"), os.listdir(self.folder)))))
+
+            with open(os.path.join(self.folder, "population.dat"), 'rb') as pop:
+                population = np.fromfile(pop,'d', -1)
+                population = population.reshape((-1,len(splits)))
+
+            with open(os.path.join(self.folder,"time.dat"), 'rb') as f:
+                time = np.fromfile(f,'d',-1)
+
+            return pd.DataFrame(population, index=time, columns=sorted(list(splits)))
 
         def efield(self, window=None):
             """
@@ -240,8 +261,6 @@ class NonperturbativeSet(object):
             efield = self.efield(window)
             # We want the susceptibility at order omega from omega
             efield = efield(atomic.from_wavelength(self.wavelength))
-            print dipole
-            print efield
             return dipole / efield
 
         def get_prototype(self):

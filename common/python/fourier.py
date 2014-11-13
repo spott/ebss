@@ -1,6 +1,7 @@
 """
 fourier module. contains the Fourier class.
 """
+from __future__ import print_function
 import numpy as np
 import scipy.signal
 import scipy.interpolate
@@ -40,7 +41,6 @@ class Fourier(object):
     def __call__(self, freq):
         point = freq/self.df
         i = int(np.round(point))
-        #print "error in frequency: ", point - i
         return self.fdata[i]
 
     def interpolated_freq(self, freq):
@@ -53,7 +53,7 @@ class Fourier(object):
 
     def integrated_freq(self, fn, a, b):
         """ integrates the frequency over the range. Uses an interpolant"""
-        return scipy.interpolate.InterpolatedUnivariateSpline(self.freq, fn(self.fdata),k=1).integral(a,b)
+        return scipy.interpolate.InterpolatedUnivariateSpline(self.freq, fn(self.fdata), k=1).integral(a,b)
 
     def stft(self, window_size, overlap, window_fn=scipy.signal.flattop):
         hop = window_size / overlap
@@ -64,4 +64,67 @@ class Fourier(object):
         chi = np.array([np.fft.rfft(w*self.tdata[i:i+window_size]) * 2. / window_size for i in range(0, len(self.tdata)-window_size, hop)])
         assert len(time) == len(chi), "stft: time and chi have different lengths"
         return (time, chi)
+
+
+"""
+A number of helper functions. for dealing with fourier data
+"""
+
+def get_stft_data_from_folder(folder, t=None, name="All", window_fn=scipy.signal.flattop):
+    """
+    given a folder, find the STFT of the data in that folder.
+    t = which dipole to get
+    name = what to name that column
+    window_fn = what window_fn to use for the stft.
+    """
+    if t is not None:
+        print("calculating for " + folder + " " + str(t) + "...", end="")
+    elif t is None:
+        print("calculating for " + folder + " All...", end="")
+    run = data_analysis.NonperturbativeSet.Nonperturbative(folder)
+    # number of points of time dependent susceptibility to calc:
+    points = 50
+
+    # number of cycles to average over
+    cycles = 4
+
+    # 1 period
+    period = 2. * pi / energy(run.wavelength)
+
+    dipole = run.dipole(t=t)
+    efield = run.efield()
+    window = np.argmin( np.abs(dipole.time - period) ) * cycles
+    jump = (len(dipole.time) - window) / points
+
+    time, td_dipole = dipole.stft(window, jump, window_fn=window_fn)
+    _, td_ef = efield.stft(window, jump, window_fn=window_fn)
+
+    run_df = pd.DataFrame.from_dict({"dipole": td_dipole.T[cycles], "efield": td_ef.T[cycles], "susceptibility": td_dipole.T[cycles] / td_ef.T[cycles]})
+    run_df.index = pd.Index(time, name="time")
+    run_df.columns = pd.MultiIndex.from_tuples([(run.intensity, name , "dipole"),(run.intensity, name , "efield"),(run.intensity, name , "susceptibility")], names=["intensity", "decomp" ,"value"])
+    print("done")
+    return run_df
+
+def get_raw_data(folder, t=None, name="All"):
+    """
+    get the dipole moment and efield as a function of time for:
+    t = the dipole to get
+    name = what to call that column
+    """
+    if t is not None:
+        print("calculating for " + folder + " " + str(t) + "...", end="")
+    elif t is None:
+        print("calculating for " + folder + " All...", end="")
+    run = data_analysis.NonperturbativeSet.Nonperturbative(folder)
+
+    dipole = run.dipole(t=t)
+    efield = run.efield()
+
+    run_df = pd.DataFrame.from_dict({"dipole": dipole.tdata, "efield": efield.tdata})
+    run_df.index = pd.Index(dipole.time, name="time")
+    run_df.columns = pd.MultiIndex.from_tuples([(run.intensity, name , "dipole"),(run.intensity, name , "efield")], names=["intensity", "decomp" ,"value"])
+
+    print("done")
+    return run_df
+
 

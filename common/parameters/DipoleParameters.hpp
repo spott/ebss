@@ -234,7 +234,7 @@ void DipoleParameters::find_dipole_moment_decompositions(
                  sectiona == sections.end() - 2 )
             {
                 bb = this->find_dipole_moment( dipole, vecb );
-                popb = math::VecNorm(veca);
+                popb = math::VecNorm(vecb);
             }
             ab = temp_scalar;
 
