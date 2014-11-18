@@ -191,7 +191,7 @@ PetscReal LaserParameters::t_after() const
 }
 PetscReal LaserParameters::pulse_length() const
 {
-    return ( ( math::PI * 2 * cycles() ) / frequency() );
+    return ( ( math::PI * 2 * cycles() ) / frequency() ) + t_after();
 }
 std::string LaserParameters::laser_filename() const
 {
@@ -200,7 +200,7 @@ std::string LaserParameters::laser_filename() const
 
 PetscScalar LaserParameters::envelope( PetscReal t, PetscReal t_start ) const
 {
-    if ( t < t_start || t > t_start + pulse_length() ) return 0;
+    if ( t < t_start || t > t_start + (pulse_length() - t_after()) ) return 0;
 
     PetscReal efield = 0.0;
     if ( t < t_start + pulse_length() / 2. )
