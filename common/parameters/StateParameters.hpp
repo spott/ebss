@@ -62,6 +62,11 @@ class StateParameters : public Parameters
             notransitions = true;
         else
             notransitions = false;
+        
+        if ( opt.isSet( "-state_no_bound_continuum_transitions" ) )
+            noboundcontinuum = true;
+        else
+            noboundcontinuum = false;
 
         std::vector<std::vector<int>> init;
         opt.get( "-state_init" )->getMultiInts( init );
@@ -104,7 +109,7 @@ class StateParameters : public Parameters
   private:
     bool nobound;
     bool nocontinuum;
-    bool notransitions;
+    bool notransitions, noboundcontinuum;
     ez::ezOptionParser opt;
     void register_parameters();
     BasisID init_;
@@ -147,7 +152,7 @@ StateParameters::empty_states( const std::vector<BasisID> prototype )
 
 void StateParameters::disallowed_transitions( Mat& D, const std::vector<BasisID>& prototype )
 {
-    if (!notransitions) return;
+    if (!notransitions || !noboundcontinuum) return;
     //std::vector<int> from_states;
     //std::vector<int> to_states;
 
@@ -158,27 +163,50 @@ void StateParameters::disallowed_transitions( Mat& D, const std::vector<BasisID>
     {
         for (auto j = prototype.cbegin(); j < prototype.cend(); ++j)
         {
-            if (j->e.real() > 0.0 && i-> e.real() > 0.0 && (std::abs(j->l - i->l) == 1))
-            {
-				std::vector<int> column;
-				std::vector<std::complex<double>> zeros;
-				while( j->e.real() > 0.0 && (std::abs(j->l - i->l) == 1) && j < prototype.cend())
-				{
-					column.push_back(j - prototype.cbegin());
-					zeros.push_back(zero);
-					j++;
-				}
-				if (rank() == 0)
-					std::cout << "(" << *i << "->" << *(j-1) << ") " << column.size() << std::endl;
-				int a = (i - prototype.cbegin());
-                MatSetValues( D,
-                              1,
-                              &(a),
-                              column.size(),
-                              column.data(),
-                              zeros.data(),
-                              INSERT_VALUES);
-            }
+            if (notransitions)
+                if (j->e.real() > 0.0 && i-> e.real() > 0.0 && (std::abs(j->l - i->l) == 1))
+                {
+                    std::vector<int> column;
+                    std::vector<std::complex<double>> zeros;
+                    while( j->e.real() > 0.0 && (std::abs(j->l - i->l) == 1) && j < prototype.cend())
+                    {
+                        column.push_back(j - prototype.cbegin());
+                        zeros.push_back(zero);
+                        j++;
+                    }
+                    if (rank() == 0)
+                        std::cout << "(" << *i << "->" << *(j-1) << ") " << column.size() << std::endl;
+                    int a = (i - prototype.cbegin());
+                    MatSetValues( D,
+                                  1,
+                                  &(a),
+                                  column.size(),
+                                  column.data(),
+                                  zeros.data(),
+                                  INSERT_VALUES);
+                }
+            if (noboundcontinuum)
+                if (i->e.real() > 0.0 && j->e.real() < 0.0 && (std::abs(j->l - i->l) == 1))
+                {
+                    std::vector<int> column;
+                    std::vector<std::complex<double>> zeros;
+                    while( j->e.real() < 0.0 && (std::abs(j->l - i->l) == 1) && j < prototype.cend())
+                    {
+                        column.push_back(j - prototype.cbegin());
+                        zeros.push_back(zero);
+                        j++;
+                    }
+                    if (rank() == 0)
+                        std::cout << "(" << *i << "->" << *(j-1) << ") " << column.size() << std::endl;
+                    int a = (i - prototype.cbegin());
+                    MatSetValues( D,
+                                  1,
+                                  &(a),
+                                  column.size(),
+                                  column.data(),
+                                  zeros.data(),
+                                  INSERT_VALUES);
+                }
         }
 		MatAssemblyBegin(D, MAT_FLUSH_ASSEMBLY);
 		MatAssemblyEnd(D, MAT_FLUSH_ASSEMBLY);
@@ -304,6 +332,13 @@ void StateParameters::register_parameters()
              0,
              "remove continuum transitions",
              std::string(prefix).append( "no_continuum_transitions\0").c_str() );
+
+    opt.add( "",
+             0,
+             0,
+             0,
+             "remove bound-continuum transitions",
+             std::string(prefix).append( "no_bound_continuum_transitions\0").c_str() );
 
     opt.add( "./empty_states.dat",
              0,
