@@ -25,18 +25,30 @@ class Fourier(object):
         self.time = np.array(time)
         self.tdata = window(len(data)) * np.array(data)
         assert len(self.time) == len(self.tdata), "Fourier.__init__: time and tdata must have same length"
-        if data.dtype == np.dtype('d'):
-            # real!
-            self.fdata = 2 * np.fft.rfft(self.tdata) / len(self.tdata)
-            self.freq = np.fft.rfftfreq(len(self.tdata), (self.time[1]-self.time[0]) / (2. * np.pi))
+        #self.fdata = None
+        #self.freq = None
 
-        elif data.dtype == np.dtype('D'):
-            self.fdata = 2 * np.fft.fft(self.tdata) / len(self.tdata)
-            self.freq = np.fft.fftfreq(len(self.tdata), (self.time[1]-self.time[0]) / (2. * np.pi))
-        else:
-            raise Exception("Fourier.__init__: Not using double complex, or double... this is wrong")
+    @property
+    def fdata(self):
+        if self.fdata_ is None:
+            if tdata.dtype == np.dtype('d'):
+                # real!
+                self.fdata_ = 2 * np.fft.rfft(self.tdata) / len(self.tdata)
+                self.freq_ = np.fft.rfftfreq(len(self.tdata), (self.time[1]-self.time[0]) / (2. * np.pi))
 
-        self.df = self.freq[2] - self.freq[1]
+            elif data.dtype == np.dtype('D'):
+                self.fdata_ = 2 * np.fft.fft(self.tdata) / len(self.tdata)
+                self.freq_ = np.fft.fftfreq(len(self.tdata), (self.time[1]-self.time[0]) / (2. * np.pi))
+            else:
+                raise Exception("Fourier.__init__: Not using double complex, or double... this is wrong")
+            self.df = self.freq[2] - self.freq[1]
+        return self.fdata_
+
+    @property
+    def freq(self):
+        if self.fdata_ is None:
+            self.fdata()
+        return self.freq_
 
     def __call__(self, freq):
         point = freq/self.df
@@ -61,7 +73,10 @@ class Fourier(object):
         w = window_fn(window_size)#[:-1]
         df = 2. * np.pi / self.time[window_size]
         time = np.array([self.time[j+(window_size)/(2)] for j in range(0, len(self.time)-window_size, hop)])
-        chi = np.array([np.fft.rfft(w*self.tdata[i:i+window_size]) * 2. / window_size for i in range(0, len(self.tdata)-window_size, hop)])
+        #remove the DC average
+        chi = np.array([np.fft.rfft(w*(self.tdata[i:i+window_size] 
+                                    - np.average(self.tdata[i:i+window_size])))
+                        * 2. / window_size for i in range(0, len(self.tdata)-window_size, hop)])
         assert len(time) == len(chi), "stft: time and chi have different lengths"
         return (time, chi)
 
