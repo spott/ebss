@@ -210,13 +210,16 @@ namespace common
         }
         Mat v;
         MatCreate(comm,&v);
-        MatSetType(v, MATAIJ);
+        MatSetType(v, MATSBAIJ);
+        //MatSetBlockSize(v,50);
         MatSetFromOptions(v);
         PetscViewer view;
         PetscViewerBinaryOpen(comm, filename.c_str(), FILE_MODE_READ, &view);
         MatLoad(v,view);
         PetscViewerDestroy(&view);
-        std::cerr << "done" << std::endl;
+        int block_size;
+        MatGetBlockSize(v, &block_size);
+        std::cerr << "done " << block_size << std::endl;
         return v;
     }
 
