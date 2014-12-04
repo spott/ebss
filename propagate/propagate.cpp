@@ -9,8 +9,8 @@
 #include <common/output.hpp>
 #include <propagate/cranknicholson.hpp>
 
-// petsc:
-#include <petsc.h>
+// slepc:
+#include <slepc.h>
 
 // stl:
 #include <sstream>
@@ -33,7 +33,7 @@ int main( int argc, const char** argv )
         std::copy( argv[i], argv[i] + strlen( argv[i] ) + 1, av[i] );
     }
     av[argc]=NULL;
-    PetscInitialize( &ac, &av, PETSC_NULL, PETSC_NULL );
+    SlepcInitialize( &ac, &av, PETSC_NULL, PETSC_NULL );
 
     // PetscViewer view;
     PetscBool flg = PETSC_FALSE;
