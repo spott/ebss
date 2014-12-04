@@ -1,7 +1,10 @@
--I/opt/local/petsc-3.3-gcc-debug/include
--I/usr/X11R6/include
--I/Users/spott/Documents/Code/ebss//
--I/opt/local/slepc-3.3-gcc-debug/
--I/opt/local/slepc-3.3-gcc-debug///include
--I/opt/local/slepc-3.3-gcc-debug//include
--D__INSDIR__=
+-I/usr/local/Cellar/slepc/3.5.1-debug/include
+-I/usr/local/Cellar/petsc/3.5.2-debug/include
+-I/usr/local/Cellar/open-mpi/1.8.1/include
+-I/Users/spott/Code/ebss//
+-Wall
+-Wwrite-strings
+-Wno-strict-aliasing
+-Wno-unknown-pragmas
+-std=c++11
+-Wextra

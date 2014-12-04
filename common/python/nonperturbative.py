@@ -102,8 +102,10 @@ class NonperturbativeSet(object):
 
         def __init__(self, folder, n=1, wanted="susceptibility" ,window=scipy.signal.boxcar, dipoles=None):
             self.window=window
+            self.wanted=wanted
             if not os.path.exists(os.path.join(folder, "wf_final.dat")):
-                raise Exception("folder doesn't have wf_final.dat", folder)
+                #raise Exception("folder doesn't have wf_final.dat", folder)
+                print("folder doesn't have wf_final.dat, attempting anyways")
             self.folder = folder
             with open(os.path.join(folder, "que"), 'r') as que_file:
                 self.intensity = float()
@@ -127,33 +129,43 @@ class NonperturbativeSet(object):
                         self.wavelength = float(line.split(" ")[1])
                     if line.startswith("-laser_dt "):
                         self.dt = float(line.split(" ")[1])
+                    #if line.startswith("-laser_dt "):
+                        #self.dt = float(line.split(" ")[1])
+            #self.data_ = None
+            #self.chi_ = None
 
-            if wanted == "susceptibility":
-                self.chi = self.harmonic(n, self.window, dipoles=dipoles)
-            elif wanted == "peak_dipole":
-                self.chi = self.dipole(self.window, t=dipoles)(n * atomic.from_wavelength(self.wavelength))
-            elif wanted == "peak_harmonic_power":
-                self.chi = np.square(np.abs(self.dipole(self.window,t=dipoles)(n * atomic.from_wavelength(self.wavelength))))
-            elif wanted == "efield":
-                self.chi = self.efield(self.window)(n * atomic.from_wavelength(self.wavelength))
-            elif wanted == "integrated_harmonic_power":
-                self.chi = self.dipole(self.window, t=dipoles).integrated_freq(
-                        lambda x: np.abs(x)**2, 
-                        ((n-1) * atomic.from_wavelength(self.wavelength)),
-                        ((n+1) * atomic.from_wavelength(self.wavelength)))
-                print self.chi
+        @property
+        def data(self):
+            if self.data_ is None:
+                mindex = pd.MultiIndex.from_arrays(
+                    [[self.cycles], [self.wavelength]], 
+                    names=["cycles", "wavelength"])
+                self.data_ = pd.DataFrame(
+                    self.chi, columns=mindex, index=[self.intensity])
+                self.data_.index.name = "intensity"
+            return self.data_
 
-            else:
-                raise Exception("wanted value <" + str(wanted) + "> not known")
+        @property
+        def chi(self):
+            if self.chi_ is None:
+                if self.wanted == "susceptibility":
+                    self.chi_ = self.harmonic(n, self.window, dipoles=dipoles)
+                elif self.wanted == "peak_dipole":
+                    self.chi_ = self.dipole(self.window, t=dipoles)(n * atomic.from_wavelength(self.wavelength))
+                elif self.wanted == "peak_harmonic_power":
+                    self.chi_ = np.square(np.abs(self.dipole(self.window,t=dipoles)(n * atomic.from_wavelength(self.wavelength))))
+                elif self.wanted == "efield":
+                    self.chi_ = self.efield(self.window)(n * atomic.from_wavelength(self.wavelength))
+                elif self.wanted == "integrated_harmonic_power":
+                    self.chi_ = self.dipole(self.window, t=dipoles).integrated_freq(
+                            lambda x: np.abs(x)**2, 
+                            ((n-1) * atomic.from_wavelength(self.wavelength)),
+                            ((n+1) * atomic.from_wavelength(self.wavelength)))
 
-            print self.chi
+                else:
+                    raise Exception("wanted value <" + str(wanted) + "> not known")
+            return self.chi_
 
-            mindex = pd.MultiIndex.from_arrays(
-                [[self.cycles], [self.wavelength]], 
-                names=["cycles", "wavelength"])
-            self.data = pd.DataFrame(
-                self.chi, columns=mindex, index=[self.intensity])
-            self.data.index.name = "intensity"
 
         # def dipole_t(self):
             # with open(os.path.join(self.folder, "dipole.dat"), 'rb') as f:
@@ -174,11 +186,18 @@ class NonperturbativeSet(object):
             def ident(x):
                 return x
 
-            with open(os.path.join(self.folder, "time.dat"), 'rb') as time_f:
-                time_f.seek(0, os.SEEK_END)
-                timesize = time_f.tell()
-                time_f.seek(0)
-                time = np.fromfile(time_f, 'd', -1)
+            try:
+                with open(os.path.join(self.folder, "time.dat"), 'rb') as time_f:
+                    time_f.seek(0, os.SEEK_END)
+                    timesize = time_f.tell() / 8
+                    time_f.seek(0)
+                    time = np.fromfile(time_f, 'd', -1)
+            except IOError:
+                with open(os.path.join(self.folder, "dipole.dat"), 'rb') as dipolef:
+                    dipolef.seek(0, os.SEEK_END)
+                    dipolesize = dipolef.tell() / 16
+                    timesize = dipolesize
+                time = np.linspace(0, dipolesize * self.dt, dipolesize, endpoint=False, dtype='d')
 
             files = []
             if t is None:
@@ -197,11 +216,11 @@ class NonperturbativeSet(object):
                                 files.append( (fun, "dipole_" + f + ".dat"))
             print files
             print self.folder
-            dp = np.zeros(timesize/8, dtype='d')
+            dp = np.zeros(timesize, dtype='d')
             for func, f in files:
                 with open(os.path.join(self.folder, f), 'rb') as dipolef:
                     dipolef.seek(0, os.SEEK_END)
-                    dipolesize = dipolef.tell()
+                    dipolesize = dipolef.tell() / 8
                     dipolef.seek(0)
                     if dipolesize == 2 * timesize:
                         dp = np.subtract(dp,func(np.fromfile(dipolef, 'D', -1)))
@@ -238,8 +257,17 @@ class NonperturbativeSet(object):
             """
             with open(os.path.join(self.folder, "efield.dat"), 'rb') as ef_file:
                 ef = np.fromfile(ef_file, 'd', -1)
-            with open(os.path.join(self.folder, "time.dat"), 'rb') as time_f:
-                time = np.fromfile(time_f, 'd', -1)
+            try:
+                with open(os.path.join(self.folder, "time.dat"), 'rb') as time_f:
+                    time = np.fromfile(time_f, 'd', -1)
+            except IOError:
+                with open(os.path.join(self.folder, "dipole.dat"), 'rb') as dipolef:
+                    dipolef.seek(0, os.SEEK_END)
+                    dipolesize = dipolef.tell() / 16
+                time = np.linspace(0, dipolesize * self.dt, dipolesize, endpoint=False, dtype='d')
+                ef = np.append(ef, np.zeros(dipolesize - len(ef), dtype='d'))
+
+
             if window:
                 return fourier.Fourier(time, ef, window)
             else:
