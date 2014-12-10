@@ -152,7 +152,7 @@ StateParameters::empty_states( const std::vector<BasisID> prototype )
 
 void StateParameters::disallowed_transitions( Mat& D, const std::vector<BasisID>& prototype )
 {
-    if (!notransitions || !noboundcontinuum) return;
+    if (!notransitions && !noboundcontinuum) return;
     //std::vector<int> from_states;
     //std::vector<int> to_states;
 
@@ -186,11 +186,11 @@ void StateParameters::disallowed_transitions( Mat& D, const std::vector<BasisID>
                                   INSERT_VALUES);
                 }
             if (noboundcontinuum)
-                if (i->e.real() > 0.0 && j->e.real() < 0.0 && (std::abs(j->l - i->l) == 1))
+                if (i->e.real() < 0.0 && j->e.real() > 0.0 && (std::abs(j->l - i->l) == 1))
                 {
                     std::vector<int> column;
                     std::vector<std::complex<double>> zeros;
-                    while( j->e.real() < 0.0 && (std::abs(j->l - i->l) == 1) && j < prototype.cend())
+                    while( j->e.real() > 0.0 && (std::abs(j->l - i->l) == 1) && j < prototype.cend())
                     {
                         column.push_back(j - prototype.cbegin());
                         zeros.push_back(zero);

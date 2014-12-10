@@ -83,7 +83,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
 
     std::vector<PetscReal> efvec;
     std::vector<std::ofstream*> dipole;
-    std::ofstream population;
+    std::ofstream population( "instant_pop.csv", std::ios::ate );
     // dipol( 3 * cntx->dipole->decompositions().size() + 1 );
     if ( cntx->hparams->rank() == 0 ) {
 		assert(cntx->dipole->dipole_filename().size() > 0);
@@ -102,7 +102,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
                              "written to disk" << std::endl;
             }
         }
-        population = std::ofstream( "instant_pop.csv", std::ios::ate );
+        //population = std::move(std::ofstream( "instant_pop.csv", std::ios::ate ));
     }
     // std::vector< std::vector<PetscReal> > dipole( 3 *
     // cntx->dipole->decompositions().size() + 1 );
@@ -127,26 +127,23 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
             *A, *( cntx->H ), INSERT_VALUES ); // A = ef(t) * D + H_0
 
         // find eigenvalues and vectors:
-        if(step % 1000 == 0) {
+        if(step % 275 == 0) {
             EPSSetOperators(eps, *A, PETSC_NULL);
             EPSSetProblemType(eps, EPS_HEP);
             EPSSetType(eps, EPSKRYLOVSCHUR);
-            //EPSSetInterval(eps, -PETSC_MAX_REAL, 0.0);
-            //EPSSetWhichEigenpairs(eps, EPS_ALL);
-            EPSSetWhichEigenpairs(eps, EPS_SMALLEST_REAL);
+            EPSSetWhichEigenpairs(eps,	EPS_TARGET_REAL);
+			EPSSetTarget(eps, -0.903801);
             EPSSetDimensions(eps, 1000, PETSC_DEFAULT, PETSC_DEFAULT);
 
             EPSSetInitialSpace(eps,1,&eigenvector);
-            //ST st;
-            //EPSGetST(eps, &st);
-            //STSetType(st, STSINVERT);
 
             EPSSolve(eps);
 
             int nconv;
             EPSGetConverged(eps, &nconv);
 
-            std::cout << "converged: " << nconv << std::endl;
+			if (cntx->hparams->rank() == 0)
+				std::cout << "converged: " << nconv << std::endl;
             PetscScalar bound_total = 0;
             for (int i = nconv; i > 0; i-- ){
                 PetscScalar ev;
@@ -156,21 +153,16 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
                     //get projection:
                     PetscScalar projection = std::complex<double>(1,1);
 
-                    //VecView(eigenvector, PETSC_VIEWER_STDOUT_WORLD);
-                    //VecView(*wf, PETSC_VIEWER_STDOUT_WORLD);
-                    VecDot(eigenvector, *wf, &projection);
+                    VecDot(*wf, eigenvector, &projection);
                     if (cntx->hparams->rank() == 0)
                         std::cout << "projection " << i << ": (energy = " << ev << ") is " << projection << ", population is " << projection * std::conj(projection) << "\n";
                     bound_total += projection * std::conj(projection);
                 }
             }
             if (cntx->hparams->rank() == 0)
-                population << t << ", " << bound_total.real() << "\n";
-
-            // print out eigenvector for ground state:
-            //EPSPrintSolution(eps, PETSC_NULL);
+                population << t << ", " << bound_total.real() << std::endl;
         }
-
+        
         MatScale( *A, cn_factor ); // A = - i * .5 * dt [ ef(t) * D + H_0 ]
         MatShift( *A,
                   std::complex<double>( 1, 0 ) ); // A = - i * .5 * dt [
