@@ -50,6 +50,12 @@ class Fourier(object):
             self.fdata()
         return self.freq_
 
+    def nyquist(self, val=None):
+        if val is None:
+            return .5 / (self.time[1] - self.time[0])
+        else:
+            return val / (2. * np.pi * self.nyquist())
+
     def __call__(self, freq):
         point = freq/self.df
         i = int(np.round(point))
@@ -67,16 +73,27 @@ class Fourier(object):
         """ integrates the frequency over the range. Uses an interpolant"""
         return scipy.interpolate.InterpolatedUnivariateSpline(self.freq, fn(self.fdata), k=1).integral(a,b)
 
-    def stft(self, window_size, overlap, window_fn=scipy.signal.flattop):
+    def stft(self, window_size, overlap, window_fn=scipy.signal.flattop, ra=[0,-1], filt='constant'):
         hop = window_size / overlap
+
+        if ra[1] == -1:
+            ra[1] = len(self.time)
         # better reconstruction with this trick +1)[:-1]
-        w = window_fn(window_size)#[:-1]
+        w = window_fn(window_size) #[:-1]
         df = 2. * np.pi / self.time[window_size]
-        time = np.array([self.time[j+(window_size)/(2)] for j in range(0, len(self.time)-window_size, hop)])
+        time = np.array([self.time[j+(window_size)/(2)] for j in range(ra[0], ra[1]-window_size, hop)])
         #remove the DC average
-        chi = np.array([np.fft.rfft(w*(self.tdata[i:i+window_size] 
-                                    - np.average(self.tdata[i:i+window_size])))
-                        * 2. / window_size for i in range(0, len(self.tdata)-window_size, hop)])
+        if filt is not None and filt in ['constant','linear']:
+            chi = np.array([np.fft.rfft(w*(scipy.signal.detrend(self.tdata[i:i+window_size], type=filt)))
+                            * 2. / window_size for i in range(ra[0], ra[1]-window_size, hop)])
+        elif filt is None:
+            chi = np.array([np.fft.rfft(w*(self.tdata[i:i+window_size]))
+                            * 2. / window_size for i in range(ra[0], ra[1]-window_size, hop)])
+        else:
+            b, a = scipy.signal.butter(filt[0], self.nyquist(filt[1]), btype='high')
+            filtered_data = scipy.signal.lfilter(b, a, self.tdata)
+            chi = np.array([np.fft.rfft(w*(filtered_data[i:i+window_size]))
+                            * 2. / window_size for i in range(ra[0], ra[1]-window_size, hop)])
         assert len(time) == len(chi), "stft: time and chi have different lengths"
         return (time, chi)
 
