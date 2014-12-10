@@ -118,10 +118,17 @@ int main( int argc, const char** argv )
     auto imgs = nparams.imgs();
     // VecShift(H0, std::complex<double>(0,-.00001));
     Vec psi0;
-    VecDuplicate( H0, &psi0 );
-    VecSetValue( psi0, 0, 1., INSERT_VALUES );
-    VecAssemblyBegin( psi0 );
-    VecAssemblyEnd( psi0 );
+    if (nparams.wf_filename().empty())
+    {
+        VecDuplicate( H0, &psi0 );
+        VecSetValue( psi0, 0, 1., INSERT_VALUES );
+        VecAssemblyBegin( psi0 );
+        VecAssemblyEnd( psi0 );
+    }
+    else
+    {
+        psi0 = common::petsc_binary_read<Vec>(nparams.wf_filename(), params.comm());
+    }
 
     // find the resonances:
     PetscScalar wg;
