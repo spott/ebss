@@ -104,12 +104,14 @@ int main( int argc, const char** argv )
 
     // Do the state stuff... remove rows/columns:
     MatSetOption( D, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE );
-    MatZeroRowsColumns( D,
-                        empty_states_index.size(),
-                        empty_states_index.data(),
-                        0.0,
-                        PETSC_NULL,
-                        PETSC_NULL );
+	
+	if (empty_states_index.size() != 0) 
+		MatZeroRowsColumns( D,
+							empty_states_index.size(),
+							empty_states_index.data(),
+							0.0,
+							PETSC_NULL,
+							PETSC_NULL );
 
 
     {
