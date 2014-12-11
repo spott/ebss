@@ -1,4 +1,8 @@
 #include "common/special/coulomb/cwfcomp.H"
+#pragma GCC diagnostic ignored "-Wall"
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wreorder"
+#pragma GCC diagnostic ignored "-Wunused-variable"
 
 
 //const double precision = 1E-10,sqrt_precision = 1E-5;
