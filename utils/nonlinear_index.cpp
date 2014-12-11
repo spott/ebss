@@ -69,6 +69,7 @@ int main( int argc, const char** argv )
         av[i] = new char[strlen( argv[i] ) + 1];
         std::copy( argv[i], argv[i] + strlen( argv[i] ) + 1, av[i] );
     }
+    av[argc]=NULL;
     PetscInitialize( &ac, &av, PETSC_NULL, PETSC_NULL );
 
     // the parameters (where to find the hamiltonian)
