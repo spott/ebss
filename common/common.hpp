@@ -318,9 +318,9 @@ namespace common
             for (auto i = out.begin(); i < out.end(); i += block_size)
             {
                 std::array<T2,block_size> ni;
-                for( auto j = i; j < ((out.end() - i < block_size) ? out.end() : i+block_size ); j++)
+                for( auto j = i; j < ((out.end() - i < int(block_size)) ? out.end() : i+block_size ); j++)
                     ni[j - i] = static_cast<T2>(*j);
-                file.write(reinterpret_cast<const char*>(&ni), static_cast<size_t>(sizeof(T2) * ((out.end() - i < block_size) ? out.end() - i : block_size)));
+                file.write(reinterpret_cast<const char*>(&ni), static_cast<size_t>(sizeof(T2) * ((out.end() - i < int(block_size)) ? out.end() - i : block_size)));
             }
             file.close();
         }
@@ -609,13 +609,15 @@ namespace common
    Mat populate_matrix(const Parameters &params,
                        Test test,
                        FindValue find_value,
-                       const unsigned int mat_size_m,
-                       const unsigned int mat_size_n,
+                       const int mat_size_m,
+                       const int mat_size_n,
                        //const unsigned int diagonal_storage,
                        //const unsigned int offdiag_storage,
                        const bool symmetric=true,
                        std::ostream& os = std::cout)
    {
+       assert( mat_size_m > 0 );
+       assert( mat_size_n > 0 );
        //if (!symmetric && params.rank() == 0)
            //std::cout << "Calculating for non-symmetric matrix" << std::endl;
        //if (symmetric && params.rank() == 0)
@@ -641,11 +643,11 @@ namespace common
        PetscInt dnnz[rowend-rowstart];
        PetscInt onnz[rowend-rowstart];
        //find the preallocation functions:
-       for (size_t i = rowstart; i < rowend; i++)
+       for (int i = rowstart; i < rowend; i++)
        {
            dnnz[i-rowstart] = 0;
            onnz[i-rowstart] = 0;
-           for (size_t j = 0; j < mat_size_n; j++)
+           for (int j = 0; j < mat_size_n; j++)
            {
                if (test(i,j))
                {

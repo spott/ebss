@@ -65,7 +65,7 @@ int main( int argc, const char** argv )
 {
     int ac = argc;
     char** av = new char* [argc];
-    for ( size_t i = 0; i < argc; i++ ) {
+    for ( int i = 0; i < argc; i++ ) {
         av[i] = new char[strlen( argv[i] ) + 1];
         std::copy( argv[i], argv[i] + strlen( argv[i] ) + 1, av[i] );
     }
@@ -91,7 +91,7 @@ int main( int argc, const char** argv )
     VecGetSize( H0, &size );
     std::cout << size << std::endl;
 
-    assert( size == prototype.size() );
+    assert( size == int(prototype.size()) );
     std::function<bool(int, int)> dipole_selection_rules = [prototype](
         int i, int j ) {
         return ( std::abs( prototype[i].l - prototype[j].l ) == 1 || i == j );
@@ -110,9 +110,8 @@ int main( int argc, const char** argv )
     // VecView(maximums, PETSC_VIEWER_STDOUT_WORLD);
 
     // create a mask for bound states:
-    Vec mask = common::map_function( H0, []( PetscScalar a, PetscInt in ) {
-        return ( in == 0 ) ? 0 : 1;
-    } );
+
+
     // Vec mask = common::map_function(H0, [](PetscScalar in) { return 1; });
 
     auto imgs = nparams.imgs();
@@ -130,18 +129,15 @@ int main( int argc, const char** argv )
         psi0 = common::petsc_binary_read<Vec>(nparams.wf_filename(), params.comm());
     }
 
-    // find the resonances:
+    Vec mask;
+    VecDuplicate(psi0, &mask);
+    // find the "state":
     PetscScalar wg;
-    VecDot( H0, psi0, &wg );
-    Vec resonances;
-    VecDuplicate( H0, &resonances );
-    VecSet( resonances, wg );
-    VecAXPY( resonances, -1., H0 ); // single resonances
+    VecPointwiseMult(mask, psi0, H0);
+    VecDot( mask, psi0, &wg );
 
-    PetscViewer a;
-    PetscViewerASCIIOpen( params.comm(), "resonances", &a );
-    PetscViewerSetFormat( a, PETSC_VIEWER_ASCII_INDEX );
-
+    //the mask should be a copy of the starting psi
+    VecCopy(psi0, mask);
     // get the frequencies list from nonlinear params:
     auto freqs = nparams.freqs();
     std::sort(freqs.begin(), freqs.end());
@@ -187,7 +183,7 @@ int main( int argc, const char** argv )
         VecDot( psi0, H0, &wg );
         if ( params.rank() == 0 ) std::cout << j << " wg: " << wg << std::endl;
 
-        for ( int f = 0; f < freqs.size(); ++f ) {
+        for ( size_t f = 0; f < freqs.size(); ++f ) {
             if ( params.rank() == 0 )
                 std::cout << f << "(" << freqs[f] << ")" << std::endl;
             PetscScalar t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12;
@@ -1466,7 +1462,7 @@ Vec psi( int order,
          Mat& D,
          Vec& psi0,
          Vec& mask,
-         std::vector<BasisID>& prototype )
+         std::vector<BasisID>& /*prototype*/ )
 {
     // we must have enough frequencies to do the calculation:
     assert( frequencies_end - frequencies_begin >= order );
@@ -1511,7 +1507,9 @@ Vec psi( int order,
         // tmp = 1/tmp
         VecReciprocal( tmp );
         VecPointwiseMult( out, tmp, out );
-        VecPointwiseMult( out, mask, out );
+
+        VecPointwiseMult( tmp, mask, out );
+        VecAXPY(out, -1, tmp);
     }
 
     // destroy the temporary
@@ -1528,7 +1526,7 @@ Vec psi_conjugate( int order,
                    Mat& D,
                    Vec& psi0,
                    Vec& mask,
-                   std::vector<BasisID>& prototype )
+                   std::vector<BasisID>& /*prototype*/ )
 {
     assert( frequencies_end - frequencies_begin >= order );
     Vec out;
@@ -1552,8 +1550,9 @@ Vec psi_conjugate( int order,
         }
         VecReciprocal( tmp );
         VecPointwiseMult( out, tmp, out );
-        VecPointwiseMult( out, mask, out );
 
+        VecPointwiseMult( tmp, mask, out );
+        VecAXPY(out, -1, tmp);
     }
 
     VecDestroy( &tmp );

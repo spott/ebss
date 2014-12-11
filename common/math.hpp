@@ -32,16 +32,18 @@ extern "C" {
 namespace math{
 //Constants:
 
+
+
 const PetscReal PI = std::atan(1.0)*4.0;
 const PetscReal C = 137.035999;
 
 template <typename T> inline constexpr
-int signum(T x, std::false_type is_signed) {
+int signum(T x, std::false_type /*is_signed*/) {
     return T(0) < x;
 }
 
 template <typename T> inline constexpr
-int signum(T x, std::true_type is_signed) {
+int signum(T x, std::true_type /*is_signed*/) {
     return (T(0) < x) - (x < T(0));
 }
 
@@ -426,7 +428,7 @@ template<typename scalar>
 scalar normalize(std::vector<scalar> &wf, const std::vector<scalar> &grid)
 {
     //std::function< scalar (scalar) > f = [](scalar r){ return 1.;};
-    scalar norm = integrateTrapezoidRule(wf, wf, grid, [](scalar r){return 1.;} );
+    scalar norm = integrateTrapezoidRule(wf, wf, grid, [](scalar){ return 1.;} );
 	norm = std::sqrt(norm);
     for ( auto& a : wf )
         a /= norm;
@@ -584,7 +586,7 @@ void Grahm_Schmidt_Orthogonalize( std::vector<scalar>& v,
                                     {rest.begin + vector * rgrid.size(),
                                      rest.begin + vector * rgrid.size() + rgrid.size()},
                                     rgrid,
-                                    []( scalar r ) { return 1; } );
+                                    []( scalar ) {return 1; } );
         //std::cerr << " projection: " << projection << std::endl;
         for (size_t i = 0; i < rgrid.size(); ++i)
             v[i] -= projection * rest.begin[vector * rgrid.size() + i];
@@ -609,7 +611,7 @@ void orthog_matrix( std::vector<scalar>& v,
                                     {rest.begin + vector * rgrid.size(),
                                      rest.begin + vector * rgrid.size() + rgrid.size()},
                                     rgrid,
-                                    []( scalar r ) { return 1; } );
+                                    []( scalar ) { return 1; } );
         Y[ vector + ysize*index ] = projection; //symmetric
         Y[ vector*ysize + index ] = projection; //symmetric
     }
@@ -686,7 +688,7 @@ std::vector< std::tuple<PetscScalar, int> > VecFirstNSort(Vec a, size_t n, Compa
         std::cout << std::endl;
 
         //sort new list:
-        for (int i = 0; i != n * size; ++i)
+        for (size_t i = 0; i != n * size; ++i)
         {
             auto outn = outscalar.begin();
             auto outm = outint.begin();
@@ -714,7 +716,7 @@ std::vector< std::tuple<PetscScalar, int> > VecFirstNSort(Vec a, size_t n, Compa
     MPI_Bcast(&outint[0], n, MPIU_INT, 0, comm);
 
     //std::cout << "got!" << std::endl;
-    for (int i = 0; i < n ;  ++i)
+    for (size_t i = 0; i < n ;  ++i)
     {
         std::cout << outscalar[i] << ", " << outint[i] << std::endl;
         out.push_back(std::make_tuple(outscalar.at(i), outint.at(i)));
