@@ -4,13 +4,14 @@ nonperturbative.py:
 
 """
 
-
+from __future__ import print_function, division
 import numpy as np
 import os
 import pandas as pd
 import scipy.signal
 from common import import_petsc_vec
 from units import atomic
+
 
 import fourier
 
@@ -214,8 +215,8 @@ class NonperturbativeSet(object):
                                 files.append( (lambda x: fun(np.conj(x)), "dipole_" + f[1] + f[0] + ".dat") )
                             else:
                                 files.append( (fun, "dipole_" + f + ".dat"))
-            print files
-            print self.folder
+            print(files)
+            print(self.folder)
             dp = np.zeros(timesize, dtype='d')
             for func, f in files:
                 with open(os.path.join(self.folder, f), 'rb') as dipolef:
@@ -229,7 +230,7 @@ class NonperturbativeSet(object):
                     else:
                         raise Exception("dipole: dipole file does not have a filesize equal to, or double that of the time file")
             #dp *= -1
-            print dp
+            print( dp)
             if window is not None:
                 return fourier.Fourier(time, dp, window)
             else:
