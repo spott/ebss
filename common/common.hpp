@@ -12,6 +12,7 @@
 #include<memory>
 #include<algorithm>
 #include<stdexcept>
+#include<cassert>
 
 //petsc
 #include<petsc.h>
@@ -216,7 +217,7 @@ namespace common
         PetscViewerBinaryOpen(comm, filename.c_str(), FILE_MODE_READ, &view);
         MatLoad(v,view);
         PetscViewerDestroy(&view);
-        std::cerr << "done" << std::endl;
+        //std::cerr << "done" << std::endl;
         return v;
     }
 

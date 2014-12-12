@@ -64,28 +64,39 @@ bool operator<( const std::tuple<std::complex<double>, int>& a,
 int main( int argc, const char** argv )
 {
     int ac = argc;
-    char** av = new char* [argc];
+    char** av = new char* [argc+1];
     for ( int i = 0; i < argc; i++ ) {
         av[i] = new char[strlen( argv[i] ) + 1];
         std::copy( argv[i], argv[i] + strlen( argv[i] ) + 1, av[i] );
     }
+	av[argc] = NULL;
     PetscInitialize( &ac, &av, PETSC_NULL, PETSC_NULL );
 
     // the parameters (where to find the hamiltonian)
-    NonlinearParameters nparams( argc, argv, MPI_COMM_WORLD );
-    HamiltonianParameters<double> params( argc, argv, MPI_COMM_WORLD );
-    StateParameters sparams( argc, argv, MPI_COMM_WORLD );
+    NonlinearParameters nparams( argc, argv, PETSC_COMM_WORLD );
+    HamiltonianParameters<double> params( argc, argv, PETSC_COMM_WORLD );
+    StateParameters sparams( argc, argv, PETSC_COMM_WORLD );
 
     auto prototype = params.prototype();
 
-    // the parameters for this:
-    // std::cout << nparams.print();
+	MPI_Barrier(PETSC_COMM_WORLD);
+	std::cout << params.rank() << std::endl;
 
     std::cout << std::scientific;
 
+	if (params.rank() == 0)
+		std::cout << "reading in matrix:" << std::endl;
+
     // read in the matrices
     Mat D = params.read_dipole_matrix();
+    MatAssemblyBegin( D, MAT_FINAL_ASSEMBLY );
+	MatAssemblyEnd( D, MAT_FINAL_ASSEMBLY );
+	if (params.rank() == 0)
+		std::cout << "reading in vector:" << std::endl;
     Vec H0 = params.read_energy_eigenvalues();
+    VecAssemblyBegin( H0 );
+	VecAssemblyEnd( H0 );
+
     std::cout << prototype.size() << std::endl;
     int size;
     VecGetSize( H0, &size );
