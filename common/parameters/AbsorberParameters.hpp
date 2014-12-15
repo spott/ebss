@@ -116,7 +116,7 @@ void AbsorberParameters::absorb(Vec *abs, HamiltonianParameters<PetscReal> *hpar
             std::cerr << "cos_factor: " << cos_factor_ << std::endl;
 
 
-        for (size_t i = start; i < end; i++)
+        for (int i = start; i < end; i++)
         {
             val = 1.;
             if ((hparams->nmax() - prototype[i].n) < n_size())
@@ -138,7 +138,7 @@ void AbsorberParameters::absorb(Vec *abs, HamiltonianParameters<PetscReal> *hpar
     {
         PetscScalar val;
         std::cerr << "complex rotation is still being tested!  no l-absorber yet" << std::endl;
-        for (size_t i = start; i < end; i++)
+        for (int i = start; i < end; i++)
         {
             val = 1.;
             if ((hparams->nmax() - prototype[i].n) < n_size())

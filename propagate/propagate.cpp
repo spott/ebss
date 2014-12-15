@@ -28,7 +28,7 @@ int main( int argc, const char** argv )
 {
     int ac = argc;
     char** av = new char* [argc+1];
-    for ( size_t i = 0; i < argc; i++ ) {
+    for ( int i = 0; i < argc; i++ ) {
         av[i] = new char[strlen( argv[i] ) + 1];
         std::copy( argv[i], argv[i] + strlen( argv[i] ) + 1, av[i] );
     }
@@ -226,7 +226,7 @@ int main( int argc, const char** argv )
 }
 
 PetscErrorCode
-Monitor( TS ts, PetscInt steps, PetscReal time, Vec x, void* ctx )
+Monitor( TS, PetscInt steps, PetscReal time, Vec x, void* ctx )
 {
     context* cntx = (context*)ctx;
     PetscReal norm;
@@ -241,7 +241,7 @@ Monitor( TS ts, PetscInt steps, PetscReal time, Vec x, void* ctx )
 }
 
 PetscErrorCode HamiltonianJ(
-    TS ts, PetscReal t, Vec u, Mat* A, Mat* B, MatStructure* flag, void* ctx )
+    TS, PetscReal t, Vec , Mat* A, Mat* , MatStructure* flag, void* ctx )
 {
     Mat AA = *A;
     PetscErrorCode err;

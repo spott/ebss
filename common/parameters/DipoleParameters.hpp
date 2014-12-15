@@ -47,8 +47,8 @@ class DipoleParameters : public Parameters
             const std::vector<char> labels{'a', 'b', 'c', 'd', 'e', 'f',
                                            'g', 'h', 'i', 'j', 'k'};
 
-            for ( int a = 0; a <= decomp_splits.size(); a++ ) {
-                for ( int b = a; b <= decomp_splits.size(); b++ ) {
+            for ( size_t a = 0; a <= decomp_splits.size(); a++ ) {
+                for ( size_t b = a; b <= decomp_splits.size(); b++ ) {
                     out.push_back( df + "_" + labels[a] + labels[b] +
                                    ".dat" );
                 }
@@ -132,7 +132,7 @@ void DipoleParameters::find_dipole_moment_decompositions(
     sections = [this, &prototype]() {
         std::vector<std::array<double, 2>> sections_vec;
         if ( decomp_splits.size() != 0 )
-            for ( int i = 0; i <= decomp_splits.size(); i++ ) {
+            for ( size_t i = 0; i <= decomp_splits.size(); i++ ) {
                 if ( i == decomp_splits.size() )
                     sections_vec.push_back(
                         {decomp_splits.back(),

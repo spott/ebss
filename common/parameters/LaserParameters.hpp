@@ -215,7 +215,7 @@ PetscScalar LaserParameters::envelope( PetscReal t, PetscReal t_start ) const
 }
 
 std::pair<std::vector<double>, std::vector<double>>
-LaserParameters::read_efield( std::string filename ) const
+LaserParameters::read_efield( std::string /*filename*/ ) const
 {
     // ignore reading it in this time:
     std::vector<double> t( 100 );

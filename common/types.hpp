@@ -57,7 +57,7 @@ struct BasisID {
 //private:
     //friend class boost::serialization::access;
     template<class Archive>
-    void serialize(Archive & ar, const unsigned int version)
+    void serialize(Archive & ar, const unsigned int /*version*/)
     {
         ar & n;
         ar & l;
@@ -246,7 +246,7 @@ namespace units {
 
 
     template<typename T>
-    double toEnergy( T from ) {};
+    double toEnergy( T ) {};
 
     template<>
     double toEnergy< Meter > ( Meter from ) { return 4.556335e-8 / from.value(); };

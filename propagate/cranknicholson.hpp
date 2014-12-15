@@ -125,9 +125,9 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
         MatScale( *A, ( ef + eff ) / 2. ); // A = ef(t) * D
         MatDiagonalSet(
             *A, *( cntx->H ), INSERT_VALUES ); // A = ef(t) * D + H_0
-
+        VecCopy(*wf, tmp);
         // find eigenvalues and vectors:
-        if(step % 275 == 0) {
+        if(step % 275 == 0 && step != 0) {
             EPSSetOperators(eps, *A, PETSC_NULL);
             EPSSetProblemType(eps, EPS_HEP);
             EPSSetType(eps, EPSKRYLOVSCHUR);
@@ -135,7 +135,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
 			EPSSetTarget(eps, -0.903801);
             EPSSetDimensions(eps, 1000, PETSC_DEFAULT, PETSC_DEFAULT);
 
-            EPSSetInitialSpace(eps,1,&eigenvector);
+            EPSSetInitialSpace(eps,1,&tmp);
 
             EPSSolve(eps);
 
@@ -153,7 +153,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
                     //get projection:
                     PetscScalar projection = std::complex<double>(1,1);
 
-                    VecDot(*wf, eigenvector, &projection);
+                    VecDot(tmp, eigenvector, &projection);
                     if (cntx->hparams->rank() == 0)
                         std::cout << "projection " << i << ": (energy = " << ev << ") is " << projection << ", population is " << projection * std::conj(projection) << "\n";
                     bound_total += projection * std::conj(projection);
@@ -162,7 +162,15 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
             if (cntx->hparams->rank() == 0)
                 population << t << ", " << bound_total.real() << std::endl;
         }
-        
+
+        MatCopy( *( cntx->D ), *A, SAME_NONZERO_PATTERN ); // A = D
+
+        // ef-forward:
+        // This has different 't's on both sides:
+        MatScale( *A, ( ef + eff ) / 2. ); // A = ef(t) * D
+        MatDiagonalSet(
+            *A, *( cntx->H ), INSERT_VALUES ); // A = ef(t) * D + H_0
+
         MatScale( *A, cn_factor ); // A = - i * .5 * dt [ ef(t) * D + H_0 ]
         MatShift( *A,
                   std::complex<double>( 1, 0 ) ); // A = - i * .5 * dt [
