@@ -87,10 +87,10 @@ int main( int argc, const char** argv )
     // read in the matrices
     Mat D = params.read_dipole_matrix();
     Vec H0 = params.read_energy_eigenvalues();
-    std::cout << prototype.size() << std::endl;
+    //std::cout << prototype.size() << std::endl;
     int size;
     VecGetSize( H0, &size );
-    std::cout << size << std::endl;
+    //std::cout << size << std::endl;
 
     assert( size == int(prototype.size()) );
     std::function<bool(int, int)> dipole_selection_rules = [prototype](
@@ -116,8 +116,8 @@ int main( int argc, const char** argv )
     // Vec mask = common::map_function(H0, [](PetscScalar in) { return 1; });
 
     auto imgs = nparams.imgs();
-    // VecShift(H0, std::complex<double>(0,-.00001));
     Vec psi0;
+    Vec psi1;
     if (nparams.wf_filename().empty())
     {
         VecDuplicate( H0, &psi0 );
@@ -139,6 +139,20 @@ int main( int argc, const char** argv )
 
     //the mask should be a copy of the starting psi
     VecCopy(psi0, mask);
+    VecDuplicate( H0, &psi1 );
+    VecSetValue( psi0, 0, 1., INSERT_VALUES );
+    VecAssemblyBegin( psi1 );
+    VecAssemblyEnd( psi1 );
+
+    Vec mask;
+    VecDuplicate(psi1, &mask);
+    // find the "state":
+    PetscScalar wg;
+    VecPointwiseMult(mask, psi1, H0);
+    VecDot( mask, psi1, &wg );
+
+    //the mask should be a copy of the starting psi
+    VecCopy(psi1, mask);
     // get the frequencies list from nonlinear params:
     auto freqs = nparams.freqs();
     std::sort(freqs.begin(), freqs.end());
@@ -224,7 +238,7 @@ int main( int argc, const char** argv )
                                          wg,
                                          H0,
                                          D,
-                                         psi0,
+                                         psi1,
                                          mask,
                                          prototype );
                 Vec p0c = psi_conjugate( 0,
@@ -233,7 +247,7 @@ int main( int argc, const char** argv )
                                          wg,
                                          H0,
                                          D,
-                                         psi0,
+                                         psi1,
                                          mask,
                                          prototype );
 
@@ -274,8 +288,8 @@ int main( int argc, const char** argv )
                 do {
 
                     std::vector<double> freq{( *i )[0] * freqs[f],
-                                             ( *i )[1] * freqs[f],
-                                             ( *i )[2] * freqs[f]};
+                                             ( *i )[1] * freqs[f]
+                                             };
                     Vec p3 = psi( 3,
                                   freq.cbegin(),
                                   freq.cend(),
@@ -470,7 +484,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     // if (params.rank() == 0) std::cout << "p4c: " <<
@@ -481,7 +495,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     // if (params.rank() == 0) std::cout << "p3c: " <<
@@ -492,7 +506,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     // if (params.rank() == 0) std::cout << "p2c: " <<
@@ -503,7 +517,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     // if (params.rank() == 0) std::cout << "p1c: " <<
@@ -514,7 +528,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     // if (params.rank() == 0) std::cout << "p0c: " <<
@@ -525,7 +539,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
 
@@ -1390,7 +1404,8 @@ int main( int argc, const char** argv )
             VecDestroy( &c );
         }
         H0 = params.read_energy_eigenvalues();
-        std::cout << std::endl;
+        if ( params.rank() == 0 )
+            std::cout << std::endl;
     }
 
     // export vectors.
@@ -1445,7 +1460,8 @@ int main( int argc, const char** argv )
     }
     ss.str( "" );
 
-    std::cout << std::endl << "done with general code." << std::endl;
+    if ( params.rank() == 0 )
+        std::cout << std::endl << "done with general code." << std::endl;
 
 
     PetscFinalize();
