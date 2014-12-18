@@ -453,7 +453,7 @@ int main( int argc, const char** argv )
                         } while (
                             std::next_permutation( ( *i ).begin(), ( *i ).end() ) );
                         if ( params.rank() == 0 )
-                            std::cout << "final: (" << std::get<1>(max1) << "," << std::get<1>(max2) << "): " << result << " multiplicity " << multiplicity << std::endl;
+                            std::cout << "final: (" << std::get<1>(max1) << "," << std::get<1>(max2) << "): " << t1 + t2 + t3 + t4 << " multiplicity " << multiplicity << std::endl;
                         total += result * static_cast<double>( multiplicity ) /
                             static_cast<double>( math::factorial( 3 ) ) ;
                     }
