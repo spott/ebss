@@ -80,7 +80,6 @@ int main( int argc, const char** argv )
     auto prototype = params.prototype();
 
 	MPI_Barrier(PETSC_COMM_WORLD);
-	std::cout << params.rank() << std::endl;
 
     std::cout << std::scientific;
 
@@ -96,11 +95,9 @@ int main( int argc, const char** argv )
     Vec H0 = params.read_energy_eigenvalues();
     VecAssemblyBegin( H0 );
 	VecAssemblyEnd( H0 );
-
-    std::cout << prototype.size() << std::endl;
     int size;
     VecGetSize( H0, &size );
-    std::cout << size << std::endl;
+    //std::cout << size << std::endl;
 
     assert( size == int(prototype.size()) );
     std::function<bool(int, int)> dipole_selection_rules = [prototype](
@@ -126,23 +123,34 @@ int main( int argc, const char** argv )
     // Vec mask = common::map_function(H0, [](PetscScalar in) { return 1; });
 
     auto imgs = nparams.imgs();
-    // VecShift(H0, std::complex<double>(0,-.00001));
     Vec psi0;
+    Vec psi1;
+
+	//the final "psi"
     if (nparams.wf_filename().empty())
     {
-        VecDuplicate( H0, &psi0 );
-        VecSetValue( psi0, 0, 1., INSERT_VALUES );
-        VecAssemblyBegin( psi0 );
-        VecAssemblyEnd( psi0 );
+        VecDuplicate( H0, &psi1 );
+        VecSetValue( psi1, 0, 1., INSERT_VALUES );
+        VecAssemblyBegin( psi1 );
+        VecAssemblyEnd( psi1 );
     }
     else
     {
-        psi0 = common::petsc_binary_read<Vec>(nparams.wf_filename(), params.comm());
+        psi1 = common::petsc_binary_read<Vec>(nparams.wf_filename(), params.comm());
     }
 
+	//the mask
     Vec mask;
-    VecDuplicate(psi0, &mask);
-    // find the "state":
+    VecDuplicate(psi1, &mask);
+    
+	//the initial psi
+    VecDuplicate( H0, &psi0 );
+    VecSetValue( psi0, 0, 1., INSERT_VALUES );
+    VecAssemblyBegin( psi0 );
+    VecAssemblyEnd( psi0 );
+
+    // find the "ground state":
+	VecCopy(psi0, mask);
     PetscScalar wg;
     VecPointwiseMult(mask, psi0, H0);
     VecDot( mask, psi0, &wg );
@@ -234,7 +242,7 @@ int main( int argc, const char** argv )
                                          wg,
                                          H0,
                                          D,
-                                         psi0,
+                                         psi1,
                                          mask,
                                          prototype );
                 Vec p0c = psi_conjugate( 0,
@@ -243,7 +251,7 @@ int main( int argc, const char** argv )
                                          wg,
                                          H0,
                                          D,
-                                         psi0,
+                                         psi1,
                                          mask,
                                          prototype );
 
@@ -285,7 +293,8 @@ int main( int argc, const char** argv )
 
                     std::vector<double> freq{( *i )[0] * freqs[f],
                                              ( *i )[1] * freqs[f],
-                                             ( *i )[2] * freqs[f]};
+                                             ( *i )[2] * freqs[f]
+                                             };
                     Vec p3 = psi( 3,
                                   freq.cbegin(),
                                   freq.cend(),
@@ -328,7 +337,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     Vec p2c = psi_conjugate( 2,
@@ -337,7 +346,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     Vec p1c = psi_conjugate( 1,
@@ -346,7 +355,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     Vec p0c = psi_conjugate( 0,
@@ -355,7 +364,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
 
@@ -480,7 +489,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     // if (params.rank() == 0) std::cout << "p4c: " <<
@@ -491,7 +500,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     // if (params.rank() == 0) std::cout << "p3c: " <<
@@ -502,7 +511,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     // if (params.rank() == 0) std::cout << "p2c: " <<
@@ -513,7 +522,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     // if (params.rank() == 0) std::cout << "p1c: " <<
@@ -524,7 +533,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     // if (params.rank() == 0) std::cout << "p0c: " <<
@@ -535,7 +544,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
 
@@ -1400,7 +1409,8 @@ int main( int argc, const char** argv )
             VecDestroy( &c );
         }
         H0 = params.read_energy_eigenvalues();
-        std::cout << std::endl;
+        if ( params.rank() == 0 )
+            std::cout << std::endl;
     }
 
     // export vectors.
@@ -1455,7 +1465,8 @@ int main( int argc, const char** argv )
     }
     ss.str( "" );
 
-    std::cout << std::endl << "done with general code." << std::endl;
+    if ( params.rank() == 0 )
+        std::cout << std::endl << "done with general code." << std::endl;
 
 
     PetscFinalize();
