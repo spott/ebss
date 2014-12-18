@@ -622,7 +622,7 @@ template< typename Comparator >
 std::vector< std::tuple<PetscScalar, int> > VecFirstNSort(Vec a, size_t n, Comparator comp)
 {
     std::vector< PetscInt > outint( n , -1);
-    std::vector< PetscScalar > outscalar( n, PetscScalar() );
+    std::vector< PetscScalar > outscalar( n, std::complex<double>(NAN, NAN) );
     std::vector< std::tuple< PetscScalar, int> > out; out.reserve(n);
     PetscScalar *array;
     int low, high;
@@ -641,14 +641,14 @@ std::vector< std::tuple<PetscScalar, int> > VecFirstNSort(Vec a, size_t n, Compa
 
     for (int i = 0; i != high-low; ++i)
     {
-        auto outn = outscalar.begin();
-        auto outm = outint.begin();
+        auto outn = 0;
+        auto outm = 0;
         assert (outscalar.end() - outscalar.begin() == outint.end() - outint.begin());
-        for (; (outn != outscalar.end()) && (outm != outint.end()) ; ++outm, ++outn)
-            if (comp(array[i],*outn))
+        for (; (outn < outscalar.size()) && (outm < outint.size()) ; ++outm, ++outn)
+            if (comp(array[i],outscalar[outn]) || std::isnan(outscalar[outn].real()) )
             {
-                outscalar.insert( outn, array[i] );
-                outint.insert( outm , i+low );
+                outscalar.insert( outscalar.begin() + outn , array[i] );
+                outint.insert( outint.begin() + outm , i+low );
                 outscalar.erase( outscalar.end() - 1 );
                 outint.erase( outint.end() - 1 );
                 break;
@@ -682,31 +682,28 @@ std::vector< std::tuple<PetscScalar, int> > VecFirstNSort(Vec a, size_t n, Compa
         std::copy(outscalar.begin(), outscalar.end(), allscalars.begin());
         std::copy(outint.begin(), outint.end(), allints.begin());
         //std::cout << "got" << std::endl;
-
-        for (auto a : allscalars)
-            std::cout << a << ",";
-        std::cout << std::endl;
+        for (auto& a : outscalar)
+            a = std::complex<double>(NAN, NAN);
 
         //sort new list:
         for (size_t i = 0; i != n * size; ++i)
         {
-            auto outn = outscalar.begin();
-            auto outm = outint.begin();
+            auto outn = 0;
+            auto outm = 0;
             assert (outscalar.end() - outscalar.begin() == outint.end() - outint.begin());
-            for (; (outn != outscalar.end()) && (outm != outint.end()) ; ++outm, ++outn)
-                if (comp(allscalars.at(i),*outn))
+            for (; (outn < outscalar.size()) && (outm < outint.size()) ; ++outm, ++outn)
+                if (comp(allscalars.at(i),outscalar[outn]) || std::isnan(outscalar[outn].real()))
                 {
-                    outscalar.insert( outn, allscalars.at(i) );
-                    outint.insert( outm , allints.at(i) );
+                    outscalar.insert( outscalar.begin() + outn, allscalars.at(i) );
+                    outint.insert( outint.begin() + outm, allints.at(i) );
                     outscalar.erase( outscalar.end() - 1 );
                     outint.erase( outint.end() - 1 );
                     break;
                 }
         }
-
         //look at list:
-        for (auto a: outscalar)
-            std::cout << a << "[0], " << std::endl;
+        //for (auto a: outscalar)
+            //std::cout << a << "[0], " << std::endl;
 
     }
     //barrier?
@@ -718,7 +715,7 @@ std::vector< std::tuple<PetscScalar, int> > VecFirstNSort(Vec a, size_t n, Compa
     //std::cout << "got!" << std::endl;
     for (size_t i = 0; i < n ;  ++i)
     {
-        std::cout << outscalar[i] << ", " << outint[i] << std::endl;
+        //std::cout << outscalar[i] << ", " << outint[i] << std::endl;
         out.push_back(std::make_tuple(outscalar.at(i), outint.at(i)));
     }
 
