@@ -335,7 +335,7 @@ int main( int argc, const char** argv )
                         VecDot( mask, psi1, &wg1 );
                         if ( params.rank() == 0 )
                             std::cout << "========================================="
-                                      << std::endl << *i << ": (" << std::get<1>(max1) << "," << std::get<1>(max2) << ") wg: " << wg0 << ", "<< wg1 << std::endl;
+                                      << std::endl << *i << ": (" << std::get<1>(max1) << " [" << std::get<0>(max1) << "]," << std::get<1>(max2) << " [" << std::get<0>(max2) << "]) wg: " << wg0 << ", "<< wg1 << std::endl;
                         std::sort( ( *i ).begin(), ( *i ).end() );
                         size_t multiplicity = 1;
                         std::array<int, 3> ts{{0, 0, 0}};
@@ -441,7 +441,7 @@ int main( int argc, const char** argv )
                             result += ( t1 + t2 + t3 + t4 ) * std::conj(std::get<0>(max1)) * std::get<0>(max2);
                             if ( params.rank() == 0 )
                                 std::cout << "terms: (" << std::get<1>(max1) << "," << std::get<1>(max2) << "): " << t1 << ", " << t2 << ", " << t3
-                                    << ", " << t4 << std::endl;
+                                    << ", " << t4 << " || " << std::conj(std::get<0>(max1)) * std::get<0>(max2) << std::endl;
                             VecDestroy( &p3 );
                             VecDestroy( &p2 );
                             VecDestroy( &p1 );
@@ -453,7 +453,7 @@ int main( int argc, const char** argv )
                         } while (
                             std::next_permutation( ( *i ).begin(), ( *i ).end() ) );
                         if ( params.rank() == 0 )
-                            std::cout << "final: (" << std::get<1>(max1) << "," << std::get<1>(max2) << "): " << result << std::endl;
+                            std::cout << "final: (" << std::get<1>(max1) << "," << std::get<1>(max2) << "): " << result << " multiplicity " << multiplicity << std::endl;
                         total += result * static_cast<double>( multiplicity ) /
                             static_cast<double>( math::factorial( 3 ) ) ;
                     }
