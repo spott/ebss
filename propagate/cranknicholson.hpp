@@ -127,7 +127,8 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
             *A, *( cntx->H ), INSERT_VALUES ); // A = ef(t) * D + H_0
         VecCopy(*wf, tmp);
         // find eigenvalues and vectors:
-        if(step % 275 == 0 && step != 0) {
+        if(step % 275 == 0) {
+
             EPSSetOperators(eps, *A, PETSC_NULL);
             EPSSetProblemType(eps, EPS_HEP);
             EPSSetType(eps, EPSKRYLOVSCHUR);
@@ -162,6 +163,11 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
             if (cntx->hparams->rank() == 0)
                 population << t << ", " << bound_total.real() << std::endl;
         }
+        VecAXPY(tmp, -1, *wf);
+        PetscReal error_norm;
+        VecNorm(tmp, NORM_2, &error_norm);
+        if (cntx->hparams->rank() == 0)
+            std::cout << "error norm: " << error_norm << std::endl;
 
         MatCopy( *( cntx->D ), *A, SAME_NONZERO_PATTERN ); // A = D
 
