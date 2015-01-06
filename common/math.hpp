@@ -627,6 +627,41 @@ std::vector< std::tuple<PetscScalar, int> > VecQuickSelect(Vec a, size_t n, Comp
 
 }
 
+
+template <typename Comparator >
+std::vector< std::tuple<PetscScalar, int> > VecStupidSort(Vec a, Comparator comp)
+{
+    Vec local;
+    VecScatter scatter;
+    VecScatterCreateToAll(a, &scatter, &local);
+
+    typedef std::tuple<PetscScalar, int> indexed_value;
+    std::vector< indexed_value > out;
+
+    VecScatterBegin(scatter, a, local, INSERT_VALUES, SCATTER_FORWARD);
+    VecScatterEnd(scatter, a, local, INSERT_VALUES, SCATTER_FORWARD);
+
+    PetscScalar *array;
+    int low, high;
+
+    VecGetOwnershipRange(local,&low,&high);
+    VecGetArray(local, &array);
+
+    for (int i = 0; i < high - low; ++i)
+        out.push_back( std::make_tuple(array[i], i) );
+
+    VecRestoreArray(local, &array);
+    std::sort( out.begin(),
+               out.end(),
+               [comp]( indexed_value a, indexed_value b ) {
+        return comp( std::get<1>( a ), std::get<1>( b ) );
+    } );
+
+    VecScatterDestroy(scatter);
+    VecDestroy(local);
+    return out;
+}
+
 template <typename Comparator >
 std::vector< std::tuple<PetscScalar, int> > VecSort(Vec a, Comparator comp)
 {
