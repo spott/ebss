@@ -229,6 +229,9 @@ int main( int argc, const char** argv )
                 {
                     for (auto max2: maxes)
                     {
+						auto diff = std::abs(prototype[std::get<1>(max1)].l - prototype[std::get<1>(max2)].l);
+                        if ( diff % 2 != 0 || diff > 2)
+                            break;
                         VecSet(psi0, 0);
                         VecSet(psi1, 0);
 
@@ -317,7 +320,8 @@ int main( int argc, const char** argv )
                 {
                     for (auto max2: maxes)
                     {
-                        if ( std::abs(prototype[max1].l - prototype[max2].l) % 2 != 0)
+						auto diff = std::abs(prototype[std::get<1>(max1)].l - prototype[std::get<1>(max2)].l);
+                        if ( diff % 2 != 0 || diff > 4)
                             break;
                         VecSet(psi0, 0);
                         VecSet(psi1, 0);
@@ -442,7 +446,7 @@ int main( int argc, const char** argv )
                             VecDot( p3c, c, &t4 );
                             result += ( t1 + t2 + t3 + t4 ) * std::conj(std::get<0>(max1)) * std::get<0>(max2);
                             if ( params.rank() == 0 )
-                                std::cout << "terms: (" << prototype[std::get<1>(max1)] << "," << prototype[std::get<1>(max2)] << "): " << t1 << ", " << t2 << ", " << t3
+                                std::cout << "terms: (" << prototype[std::get<1>(max1)] << "->" << prototype[std::get<1>(max2)] << "): " << t1 << ", " << t2 << ", " << t3
                                     << ", " << t4 << " || " << std::conj(std::get<0>(max1)) * std::get<0>(max2) << std::endl;
                             VecDestroy( &p3 );
                             VecDestroy( &p2 );
@@ -455,7 +459,7 @@ int main( int argc, const char** argv )
                         } while (
                             std::next_permutation( ( *i ).begin(), ( *i ).end() ) );
                         if ( params.rank() == 0 )
-                            std::cout << "final: (" << prototype[std::get<1>(max1)] << "," << prototype[std::get<1>(max2)] << "): " << t1 + t2 + t3 + t4 << " multiplicity " << multiplicity << std::endl;
+                            std::cout << "final: (" << prototype[std::get<1>(max1)] << "->" << prototype[std::get<1>(max2)] << "): " << t1 + t2 + t3 + t4 << " multiplicity " << multiplicity << std::endl;
                         total += result * static_cast<double>( multiplicity ) /
                             static_cast<double>( math::factorial( 3 ) ) ;
                     }
