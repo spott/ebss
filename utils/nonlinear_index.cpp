@@ -140,7 +140,7 @@ int main( int argc, const char** argv )
     {
         psi1 = common::petsc_binary_read<Vec>(nparams.wf_filename(), params.comm());
         //Sort vector:
-        maxes = math::VecFirstNSort(psi1, 100, [](PetscScalar a, PetscScalar b) { return std::abs(a) > std::abs(b); });
+        maxes = math::VecSort(psi1, [](PetscScalar a, PetscScalar b) { return std::abs(a) > std::abs(b); });
     }
 
 

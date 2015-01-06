@@ -297,6 +297,13 @@ namespace common
         return out;
     }
 
+    template<typename T>
+    MPI_Comm getPetscComm(T o)
+    {
+        MPI_Comm comm;
+        PetscObjectGetComm((PetscObject)o,&comm);
+        return comm;
+    }
     //template <typename T>
     //void export_vector_binary(const std::string &filename, const std::vector<T>& out)
     //{
