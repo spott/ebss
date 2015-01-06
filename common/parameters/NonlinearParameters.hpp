@@ -66,6 +66,13 @@ public:
                 freqs_.push_back( units::toEnergy( units::Meter( a * 1e-9 ) ) );
         }
 
+        if (opt.isSet("-nonlinear_wf"))
+        {
+            opt.get("-nonlinear_wf")->getString(wf_filename_);
+        }
+        else
+            wf_filename_ = "";
+
 
         opt.get("-nonlinear_img")->getDoubles(imgs_);
         std::vector< std::vector<int> > temp;
@@ -137,6 +144,7 @@ public:
     std::vector< std::array<int, 7> >& chi7s() { return chi7s_; };
     std::vector< std::array<int, 9> >& chi9s() { return chi9s_; };
     std::vector< std::array<int, 11> >& chi11s() { return chi11s_; };
+    std::string wf_filename() { return wf_filename_; };
 
 
 private:
@@ -153,6 +161,7 @@ private:
     std::vector< std::array<int, 11> > chi11s_;
     std::vector< double > freqs_;
     std::vector< double > imgs_;
+    std::string wf_filename_;
 };
 
 std::string NonlinearParameters::print() const
@@ -230,6 +239,14 @@ void NonlinearParameters::register_parameters()
             "-help",  // Flag token.
             "--help", // Flag token.
             "--usage" // Flag token.
+           );
+    opt.add(
+            "",
+            0,
+            1,
+            0,
+            "the wavefunction to use.",
+            std::string(prefix).append("wf\0").c_str()
            );
     opt.add(
             "",

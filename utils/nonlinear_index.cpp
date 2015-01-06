@@ -64,34 +64,42 @@ bool operator<( const std::tuple<std::complex<double>, int>& a,
 int main( int argc, const char** argv )
 {
     int ac = argc;
-    char** av = new char* [argc];
-    for ( size_t i = 0; i < argc; i++ ) {
+    char** av = new char* [argc+1];
+    for ( int i = 0; i < argc; i++ ) {
         av[i] = new char[strlen( argv[i] ) + 1];
         std::copy( argv[i], argv[i] + strlen( argv[i] ) + 1, av[i] );
     }
+	av[argc] = NULL;
     PetscInitialize( &ac, &av, PETSC_NULL, PETSC_NULL );
 
     // the parameters (where to find the hamiltonian)
-    NonlinearParameters nparams( argc, argv, MPI_COMM_WORLD );
-    HamiltonianParameters<double> params( argc, argv, MPI_COMM_WORLD );
-    StateParameters sparams( argc, argv, MPI_COMM_WORLD );
+    NonlinearParameters nparams( argc, argv, PETSC_COMM_WORLD );
+    HamiltonianParameters<double> params( argc, argv, PETSC_COMM_WORLD );
+    StateParameters sparams( argc, argv, PETSC_COMM_WORLD );
 
     auto prototype = params.prototype();
 
-    // the parameters for this:
-    // std::cout << nparams.print();
+	MPI_Barrier(PETSC_COMM_WORLD);
 
     std::cout << std::scientific;
 
+	if (params.rank() == 0)
+		std::cout << "reading in matrix:" << std::endl;
+
     // read in the matrices
     Mat D = params.read_dipole_matrix();
+    MatAssemblyBegin( D, MAT_FINAL_ASSEMBLY );
+	MatAssemblyEnd( D, MAT_FINAL_ASSEMBLY );
+	if (params.rank() == 0)
+		std::cout << "reading in vector:" << std::endl;
     Vec H0 = params.read_energy_eigenvalues();
-    std::cout << prototype.size() << std::endl;
+    VecAssemblyBegin( H0 );
+	VecAssemblyEnd( H0 );
     int size;
     VecGetSize( H0, &size );
-    std::cout << size << std::endl;
+    //std::cout << size << std::endl;
 
-    assert( size == prototype.size() );
+    assert( size == int(prototype.size()) );
     std::function<bool(int, int)> dipole_selection_rules = [prototype](
         int i, int j ) {
         return ( std::abs( prototype[i].l - prototype[j].l ) == 1 || i == j );
@@ -110,31 +118,55 @@ int main( int argc, const char** argv )
     // VecView(maximums, PETSC_VIEWER_STDOUT_WORLD);
 
     // create a mask for bound states:
-    Vec mask = common::map_function( H0, []( PetscScalar a, PetscInt in ) {
-        return ( in == 0 ) ? 0 : 1;
-    } );
+
+
     // Vec mask = common::map_function(H0, [](PetscScalar in) { return 1; });
 
     auto imgs = nparams.imgs();
-    // VecShift(H0, std::complex<double>(0,-.00001));
     Vec psi0;
+    Vec psi1;
+
+    std::vector<std::tuple<PetscScalar, int>> maxes;
+	//the final "psi"
+    if (nparams.wf_filename().empty())
+    {
+        VecDuplicate( H0, &psi1 );
+        VecSetValue( psi1, 0, 1., INSERT_VALUES );
+        VecAssemblyBegin( psi1 );
+        VecAssemblyEnd( psi1 );
+        maxes.push_back(std::make_tuple(std::complex<double>{1,0}, 0));
+    }
+    else
+    {
+        psi1 = common::petsc_binary_read<Vec>(nparams.wf_filename(), params.comm());
+        //Sort vector:
+        maxes = math::VecFirstNSort(psi1, 100, [](PetscScalar a, PetscScalar b) { return std::abs(a) > std::abs(b); });
+    }
+
+
+    if (params.rank() == 0)
+        for (auto b: maxes){
+            std::cout << std::get<0>(b) << ", " << std::get<1>(b) << std::endl;
+        }
+
+	//the mask
+    Vec mask;
+    VecDuplicate(psi1, &mask);
+    
+	//the initial psi
     VecDuplicate( H0, &psi0 );
     VecSetValue( psi0, 0, 1., INSERT_VALUES );
     VecAssemblyBegin( psi0 );
     VecAssemblyEnd( psi0 );
 
-    // find the resonances:
+    // find the "ground state":
+	VecCopy(psi0, mask);
     PetscScalar wg;
-    VecDot( H0, psi0, &wg );
-    Vec resonances;
-    VecDuplicate( H0, &resonances );
-    VecSet( resonances, wg );
-    VecAXPY( resonances, -1., H0 ); // single resonances
+    VecPointwiseMult(mask, psi0, H0);
+    VecDot( mask, psi0, &wg );
 
-    PetscViewer a;
-    PetscViewerASCIIOpen( params.comm(), "resonances", &a );
-    PetscViewerSetFormat( a, PETSC_VIEWER_ASCII_INDEX );
-
+    //the mask should be a copy of the starting psi
+    VecCopy(psi0, mask);
     // get the frequencies list from nonlinear params:
     auto freqs = nparams.freqs();
     std::sort(freqs.begin(), freqs.end());
@@ -180,7 +212,7 @@ int main( int argc, const char** argv )
         VecDot( psi0, H0, &wg );
         if ( params.rank() == 0 ) std::cout << j << " wg: " << wg << std::endl;
 
-        for ( int f = 0; f < freqs.size(); ++f ) {
+        for ( size_t f = 0; f < freqs.size(); ++f ) {
             if ( params.rank() == 0 )
                 std::cout << f << "(" << freqs[f] << ")" << std::endl;
             PetscScalar t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12;
@@ -192,190 +224,244 @@ int main( int argc, const char** argv )
             // Chi1
             for ( auto i = nparams.chi1s().begin(); i != nparams.chi1s().end();
                   ++i ) {
-                if ( params.rank() == 0 )
-                    std::cout << "========================================="
-                              << std::endl << *i << std::endl;
-                std::vector<double> freq{( *i ) * freqs[f]};
-                Vec p0 = psi( 0,
-                              freq.cbegin(),
-                              freq.cend(),
-                              wg,
-                              H0,
-                              D,
-                              psi0,
-                              mask,
-                              prototype );
-                Vec p1 = psi( 1,
-                              freq.cbegin(),
-                              freq.cend(),
-                              wg,
-                              H0,
-                              D,
-                              psi0,
-                              mask,
-                              prototype );
-                Vec p1c = psi_conjugate( 1,
-                                         freq.cbegin(),
-                                         freq.cend(),
-                                         wg,
-                                         H0,
-                                         D,
-                                         psi0,
-                                         mask,
-                                         prototype );
-                Vec p0c = psi_conjugate( 0,
-                                         freq.cbegin(),
-                                         freq.cend(),
-                                         wg,
-                                         H0,
-                                         D,
-                                         psi0,
-                                         mask,
-                                         prototype );
+                PetscScalar total = 0;
+                for (auto max1: maxes)
+                {
+                    for (auto max2: maxes)
+                    {
+                        VecSet(psi0, 0);
+                        VecSet(psi1, 0);
 
-                // chi1 = <\psi^(0) | D | \psi^(1)>
-                MatMult( D, p1, c );
-                VecDot( p0c, c, &t1 );
-                // chi1 = <\psi^(1) | D | \psi^(0)>
-                MatMult( D, p0, c );
-                VecDot( p1c, c, &t2 );
-                chi1_data[i - nparams.chi1s().begin()].push_back( ( t1 + t2 ) );
+                        VecSetValue( psi0, std::get<1>(max2), 1., INSERT_VALUES);
+                        VecSetValue( psi1, std::get<1>(max1), 1., INSERT_VALUES);
+                        VecAssemblyBegin( psi0 );
+                        VecAssemblyBegin( psi1 );
+                        VecAssemblyEnd( psi0 );
+                        VecAssemblyEnd( psi1 );
+                        PetscScalar wg0;
+                        VecPointwiseMult(mask, psi0, H0);
+                        VecDot( mask, psi0, &wg0 );
+
+                        PetscScalar wg1;
+                        VecPointwiseMult(mask, psi1, H0);
+                        VecDot( mask, psi1, &wg1 );
+
+                        if ( params.rank() == 0 )
+                            std::cout << "========================================="
+                                      << std::endl << *i << ": (" << std::get<1>(max1) << "," << std::get<1>(max2) << ") wg: " << wg0 << ", "<< wg1 << std::endl;
+                        std::vector<double> freq{( *i ) * freqs[f]};
+                        Vec p0 = psi( 0,
+                                      freq.cbegin(),
+                                      freq.cend(),
+                                      wg0,
+                                      H0,
+                                      D,
+                                      psi0,
+                                      psi0,
+                                      prototype );
+                        Vec p1 = psi( 1,
+                                      freq.cbegin(),
+                                      freq.cend(),
+                                      wg0,
+                                      H0,
+                                      D,
+                                      psi0,
+                                      psi0,
+                                      prototype );
+                        Vec p1c = psi_conjugate( 1,
+                                                 freq.cbegin(),
+                                                 freq.cend(),
+                                                 wg1,
+                                                 H0,
+                                                 D,
+                                                 psi1,
+                                                 psi1,
+                                                 prototype );
+                        Vec p0c = psi_conjugate( 0,
+                                                 freq.cbegin(),
+                                                 freq.cend(),
+                                                 wg1,
+                                                 H0,
+                                                 D,
+                                                 psi1,
+                                                 psi1,
+                                                 prototype );
+
+                        // chi1 = <\psi^(0) | D | \psi^(1)>
+                        MatMult( D, p1, c );
+                        VecDot( p0c, c, &t1 );
+                        // chi1 = <\psi^(1) | D | \psi^(0)>
+                        MatMult( D, p0, c );
+                        VecDot( p1c, c, &t2 );
+                        total += (t1 + t2) * std::conj(std::get<0>(max1)) * std::get<0>(max2);
+                        if ( params.rank() == 0 )
+                            std::cout << "terms (" << prototype[std::get<1>(max1)] << "->" << prototype[std::get<1>(max2)] << "): " << t1 << ", " << t2 << std::endl;
+                        if ( params.rank() == 0 )
+                            std::cout << "final: (" << prototype[std::get<1>(max1)] << "->" << prototype[std::get<1>(max2)] << "): " << ( t1 + t2 )* std::conj(std::get<0>(max1)) * std::get<0>(max2) << std::endl;
+                        VecDestroy( &p1 );
+                        VecDestroy( &p0 );
+                        VecDestroy( &p1c );
+                        VecDestroy( &p0c );
+                    }
+                }
                 if ( params.rank() == 0 )
-                    std::cout << "terms: " << t1 << ", " << t2 << std::endl;
-                if ( params.rank() == 0 )
-                    std::cout << "final: " << ( t1 + t2 ) << std::endl;
-                VecDestroy( &p1 );
-                VecDestroy( &p0 );
-                VecDestroy( &p1c );
-                VecDestroy( &p0c );
+                    std::cout << "final: " << ( total ) << std::endl;
+                chi1_data[i - nparams.chi1s().begin()].push_back( ( total ) );
             }
 
             // Chi3
             for ( auto i = nparams.chi3s().begin(); i != nparams.chi3s().end();
                   ++i ) {
-                if ( params.rank() == 0 )
-                    std::cout << "========================================="
-                              << std::endl << *i << std::endl;
-                std::sort( ( *i ).begin(), ( *i ).end() );
-                size_t multiplicity = 1;
-                std::array<int, 3> ts{{0, 0, 0}};
-                for ( auto m : ( *i ) ) {
-                    if ( m == -1 ) ts[0]++;
-                    if ( m == 1 ) ts[2]++;
-                    if ( m == 0 ) ts[1]++;
+                PetscScalar total = 0;
+                for (auto max1: maxes)
+                {
+                    for (auto max2: maxes)
+                    {
+                        VecSet(psi0, 0);
+                        VecSet(psi1, 0);
+
+                        VecSetValue( psi0, std::get<1>(max2), 1., INSERT_VALUES);
+                        VecSetValue( psi1, std::get<1>(max1), 1., INSERT_VALUES);
+                        VecAssemblyBegin( psi0 );
+                        VecAssemblyBegin( psi1 );
+                        VecAssemblyEnd( psi0 );
+                        VecAssemblyEnd( psi1 );
+                        PetscScalar wg0;
+                        VecPointwiseMult(mask, psi0, H0);
+                        VecDot( mask, psi0, &wg0 );
+
+                        PetscScalar wg1;
+                        VecPointwiseMult(mask, psi1, H0);
+                        VecDot( mask, psi1, &wg1 );
+                        if ( params.rank() == 0 )
+                            std::cout << "========================================="
+                                      << std::endl << *i << ": (" << std::get<1>(max1) << " [" << std::get<0>(max1) << "]," << std::get<1>(max2) << " [" << std::get<0>(max2) << "]) wg: " << wg0 << ", "<< wg1 << std::endl;
+                        std::sort( ( *i ).begin(), ( *i ).end() );
+                        size_t multiplicity = 1;
+                        std::array<int, 3> ts{{0, 0, 0}};
+                        for ( auto m : ( *i ) ) {
+                            if ( m == -1 ) ts[0]++;
+                            if ( m == 1 ) ts[2]++;
+                            if ( m == 0 ) ts[1]++;
+                        }
+                        for ( auto m : ts ) multiplicity *= math::factorial( m );
+
+                        PetscScalar result = 0;
+                        do {
+
+                            std::vector<double> freq{( *i )[0] * freqs[f],
+                                ( *i )[1] * freqs[f],
+                                ( *i )[2] * freqs[f]
+                            };
+                            Vec p3 = psi( 3,
+                                    freq.cbegin(),
+                                    freq.cend(),
+                                    wg0,
+                                    H0,
+                                    D,
+                                    psi0,
+                                    psi0,
+                                    prototype );
+                            Vec p2 = psi( 2,
+                                    freq.cbegin(),
+                                    freq.cend(),
+                                    wg0,
+                                    H0,
+                                    D,
+                                    psi0,
+                                    psi0,
+                                    prototype );
+                            Vec p0 = psi( 0,
+                                    freq.cbegin(),
+                                    freq.cend(),
+                                    wg0,
+                                    H0,
+                                    D,
+                                    psi0,
+                                    psi0,
+                                    prototype );
+                            Vec p1 = psi( 1,
+                                    freq.cbegin(),
+                                    freq.cend(),
+                                    wg0,
+                                    H0,
+                                    D,
+                                    psi0,
+                                    psi0,
+                                    prototype );
+                            Vec p3c = psi_conjugate( 3,
+                                    freq.cbegin(),
+                                    freq.cend(),
+                                    wg1,
+                                    H0,
+                                    D,
+                                    psi1,
+                                    psi1,
+                                    prototype );
+                            Vec p2c = psi_conjugate( 2,
+                                    freq.cbegin(),
+                                    freq.cend(),
+                                    wg1,
+                                    H0,
+                                    D,
+                                    psi1,
+                                    psi1,
+                                    prototype );
+                            Vec p1c = psi_conjugate( 1,
+                                    freq.cbegin(),
+                                    freq.cend(),
+                                    wg1,
+                                    H0,
+                                    D,
+                                    psi1,
+                                    psi1,
+                                    prototype );
+                            Vec p0c = psi_conjugate( 0,
+                                    freq.cbegin(),
+                                    freq.cend(),
+                                    wg1,
+                                    H0,
+                                    D,
+                                    psi1,
+                                    psi1,
+                                    prototype );
+
+                            // chi3 = <\psi1^(0) | D | \psi0^(3)>
+                            MatMult( D, p3, c );
+                            VecDot( p0c, c, &t1 );
+                            //      + <\psi1^(1) | D | \psi0^(2)>
+                            MatMult( D, p2, c );
+                            VecDot( p1c, c, &t2 );
+                            //      + <\psi1^(2) | D | \psi0^(1)>
+                            MatMult( D, p1, c );
+                            VecDot( p2c, c, &t3 );
+                            //      + <\psi1^(3) | D | \psi0^(0)>
+                            MatMult( D, p0, c );
+                            VecDot( p3c, c, &t4 );
+                            result += ( t1 + t2 + t3 + t4 ) * std::conj(std::get<0>(max1)) * std::get<0>(max2);
+                            if ( params.rank() == 0 )
+                                std::cout << "terms: (" << prototype[std::get<1>(max1)] << "," << prototype[std::get<1>(max2)] << "): " << t1 << ", " << t2 << ", " << t3
+                                    << ", " << t4 << " || " << std::conj(std::get<0>(max1)) * std::get<0>(max2) << std::endl;
+                            VecDestroy( &p3 );
+                            VecDestroy( &p2 );
+                            VecDestroy( &p1 );
+                            VecDestroy( &p0 );
+                            VecDestroy( &p3c );
+                            VecDestroy( &p2c );
+                            VecDestroy( &p1c );
+                            VecDestroy( &p0c );
+                        } while (
+                            std::next_permutation( ( *i ).begin(), ( *i ).end() ) );
+                        if ( params.rank() == 0 )
+                            std::cout << "final: (" << prototype[std::get<1>(max1)] << "," << prototype[std::get<1>(max2)] << "): " << t1 + t2 + t3 + t4 << " multiplicity " << multiplicity << std::endl;
+                        total += result * static_cast<double>( multiplicity ) /
+                            static_cast<double>( math::factorial( 3 ) ) ;
+                    }
                 }
-                for ( auto m : ts ) multiplicity *= math::factorial( m );
-
-                PetscScalar result;
-                do {
-
-                    std::vector<double> freq{( *i )[0] * freqs[f],
-                                             ( *i )[1] * freqs[f],
-                                             ( *i )[2] * freqs[f]};
-                    Vec p3 = psi( 3,
-                                  freq.cbegin(),
-                                  freq.cend(),
-                                  wg,
-                                  H0,
-                                  D,
-                                  psi0,
-                                  mask,
-                                  prototype );
-                    Vec p2 = psi( 2,
-                                  freq.cbegin(),
-                                  freq.cend(),
-                                  wg,
-                                  H0,
-                                  D,
-                                  psi0,
-                                  mask,
-                                  prototype );
-                    Vec p0 = psi( 0,
-                                  freq.cbegin(),
-                                  freq.cend(),
-                                  wg,
-                                  H0,
-                                  D,
-                                  psi0,
-                                  mask,
-                                  prototype );
-                    Vec p1 = psi( 1,
-                                  freq.cbegin(),
-                                  freq.cend(),
-                                  wg,
-                                  H0,
-                                  D,
-                                  psi0,
-                                  mask,
-                                  prototype );
-                    Vec p3c = psi_conjugate( 3,
-                                             freq.cbegin(),
-                                             freq.cend(),
-                                             wg,
-                                             H0,
-                                             D,
-                                             psi0,
-                                             mask,
-                                             prototype );
-                    Vec p2c = psi_conjugate( 2,
-                                             freq.cbegin(),
-                                             freq.cend(),
-                                             wg,
-                                             H0,
-                                             D,
-                                             psi0,
-                                             mask,
-                                             prototype );
-                    Vec p1c = psi_conjugate( 1,
-                                             freq.cbegin(),
-                                             freq.cend(),
-                                             wg,
-                                             H0,
-                                             D,
-                                             psi0,
-                                             mask,
-                                             prototype );
-                    Vec p0c = psi_conjugate( 0,
-                                             freq.cbegin(),
-                                             freq.cend(),
-                                             wg,
-                                             H0,
-                                             D,
-                                             psi0,
-                                             mask,
-                                             prototype );
-
-                    // chi3 = <\psi^(0) | D | \psi^(3)>
-                    MatMult( D, p3, c );
-                    VecDot( p0c, c, &t1 );
-                    //      + <\psi^(1) | D | \psi^(2)>
-                    MatMult( D, p2, c );
-                    VecDot( p1c, c, &t2 );
-                    //      + <\psi^(2) | D | \psi^(1)>
-                    MatMult( D, p1, c );
-                    VecDot( p2c, c, &t3 );
-                    ////      + <\psi^(3) | D | \psi^(0)>
-                    MatMult( D, p0, c );
-                    VecDot( p3c, c, &t4 );
-                    result += ( t1 + t2 + t3 + t4 );
-                    if ( params.rank() == 0 )
-                        std::cout << "terms: " << t1 << ", " << t2 << ", " << t3
-                                  << ", " << t4 << std::endl;
-                    VecDestroy( &p3 );
-                    VecDestroy( &p2 );
-                    VecDestroy( &p1 );
-                    VecDestroy( &p0 );
-                    VecDestroy( &p3c );
-                    VecDestroy( &p2c );
-                    VecDestroy( &p1c );
-                    VecDestroy( &p0c );
-                } while (
-                    std::next_permutation( ( *i ).begin(), ( *i ).end() ) );
                 if ( params.rank() == 0 )
-                    std::cout << "final: " << result << std::endl;
+                    std::cout << "final: " << total << std::endl;
                 chi3_data[i - nparams.chi3s().begin()]
-                    .push_back( result * static_cast<double>( multiplicity ) /
-                                static_cast<double>( math::factorial( 3 ) ) );
+                    .push_back( total );
             }
             // chi5
             for ( auto i = nparams.chi5s().begin(); i != nparams.chi5s().end();
@@ -466,7 +552,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     // if (params.rank() == 0) std::cout << "p4c: " <<
@@ -477,7 +563,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     // if (params.rank() == 0) std::cout << "p3c: " <<
@@ -488,7 +574,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     // if (params.rank() == 0) std::cout << "p2c: " <<
@@ -499,7 +585,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     // if (params.rank() == 0) std::cout << "p1c: " <<
@@ -510,7 +596,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
                     // if (params.rank() == 0) std::cout << "p0c: " <<
@@ -521,7 +607,7 @@ int main( int argc, const char** argv )
                                              wg,
                                              H0,
                                              D,
-                                             psi0,
+                                             psi1,
                                              mask,
                                              prototype );
 
@@ -1386,7 +1472,8 @@ int main( int argc, const char** argv )
             VecDestroy( &c );
         }
         H0 = params.read_energy_eigenvalues();
-        std::cout << std::endl;
+        if ( params.rank() == 0 )
+            std::cout << std::endl;
     }
 
     // export vectors.
@@ -1441,7 +1528,8 @@ int main( int argc, const char** argv )
     }
     ss.str( "" );
 
-    std::cout << std::endl << "done with general code." << std::endl;
+    if ( params.rank() == 0 )
+        std::cout << std::endl << "done with general code." << std::endl;
 
 
     PetscFinalize();
@@ -1459,7 +1547,7 @@ Vec psi( int order,
          Mat& D,
          Vec& psi0,
          Vec& mask,
-         std::vector<BasisID>& prototype )
+         std::vector<BasisID>& /*prototype*/ )
 {
     // we must have enough frequencies to do the calculation:
     assert( frequencies_end - frequencies_begin >= order );
@@ -1504,7 +1592,9 @@ Vec psi( int order,
         // tmp = 1/tmp
         VecReciprocal( tmp );
         VecPointwiseMult( out, tmp, out );
-        VecPointwiseMult( out, mask, out );
+
+        VecPointwiseMult( tmp, mask, out );
+        VecAXPY(out, -1, tmp);
     }
 
     // destroy the temporary
@@ -1521,7 +1611,7 @@ Vec psi_conjugate( int order,
                    Mat& D,
                    Vec& psi0,
                    Vec& mask,
-                   std::vector<BasisID>& prototype )
+                   std::vector<BasisID>& /*prototype*/ )
 {
     assert( frequencies_end - frequencies_begin >= order );
     Vec out;
@@ -1545,8 +1635,9 @@ Vec psi_conjugate( int order,
         }
         VecReciprocal( tmp );
         VecPointwiseMult( out, tmp, out );
-        VecPointwiseMult( out, mask, out );
 
+        VecPointwiseMult( tmp, mask, out );
+        VecAXPY(out, -1, tmp);
     }
 
     VecDestroy( &tmp );

@@ -10,6 +10,7 @@
 #include<boost/serialization/access.hpp>
 #include<boost/serialization/complex.hpp>
 
+
 template <typename iterator>
 struct Range{
     iterator begin;

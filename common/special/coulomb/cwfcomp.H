@@ -1,5 +1,8 @@
 #pragma once
 #pragma GCC diagnostic ignored "-Wall"
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wreorder"
+#pragma GCC diagnostic ignored "-Wunused-variable"
 
 #include<common/special/coulomb/complex_functions.H>
 
