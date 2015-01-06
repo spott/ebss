@@ -317,6 +317,8 @@ int main( int argc, const char** argv )
                 {
                     for (auto max2: maxes)
                     {
+                        if ( std::abs(prototype[max1].l - prototype[max2].l) % 2 != 0)
+                            break;
                         VecSet(psi0, 0);
                         VecSet(psi1, 0);
 
