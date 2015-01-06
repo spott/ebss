@@ -19,6 +19,9 @@ extern "C" {
 #include<cassert>
 #include<tuple>
 
+//boost:
+#include<boost/mpi.hpp>
+
 //gsl:
 #include<gsl/gsl_sf_coupling.h>
 #include<gsl/gsl_sf_coulomb.h>
@@ -619,6 +622,64 @@ void orthog_matrix( std::vector<scalar>& v,
 }
 
 template< typename Comparator >
+std::vector< std::tuple<PetscScalar, int> > VecQuickSelect(Vec a, size_t n, Comparator comp)
+{
+
+}
+
+template <typename Comparator >
+std::vector< std::tuple<PetscScalar, int> > VecSort(Vec a, Comparator comp)
+{
+    //using boost::mpi;
+    boost::mpi::environment env;
+    boost::mpi::communicator world( PETSC_COMM_WORLD,
+                                    boost::mpi::comm_attach );
+    int vector_size;
+    VecGetSize(a, &vector_size);
+    typedef std::tuple<PetscScalar, int> indexed_value;
+    //This isn't a true merge sort, it is more of a "sort", then merge.
+    std::vector< indexed_value > out;
+
+    PetscScalar *array;
+    int low, high;
+
+    VecGetOwnershipRange(a,&low,&high);
+    VecGetArray(a, &array);
+
+    for (int i = 0; i < high - low; ++i)
+        out.push_back( {array[i], i} );
+
+    std::sort( out.begin(),
+               out.end(),
+               [comp]( indexed_value a, indexed_value b ) {
+        return comp( std::get<1>( a ), std::get<1>( b ) );
+    } );
+
+    std::vector< std::vector<indexed_value> > all_values;
+
+    if (world.rank() == 0)
+        gather( world, out, all_values, 0);
+    else
+        gather( world, out, 0);
+
+    for (auto& a: all_values)
+        std::copy_if(a.begin(),
+                a.end(),
+                std::back_inserter(out),
+                []( indexed_value a) { return std::get<0>(a) == std::get<0>(a); });
+
+    std::sort( out.begin(),
+               out.end(),
+               [comp]( indexed_value a, indexed_value b ) {
+        return comp( std::get<1>( a ), std::get<1>( b ) );
+    } );
+
+    broadcast(world, out, 0);
+
+    return out;
+}
+
+template< typename Comparator >
 std::vector< std::tuple<PetscScalar, int> > VecFirstNSort(Vec a, size_t n, Comparator comp)
 {
     std::vector< PetscInt > outint( n , -1);
@@ -635,9 +696,7 @@ std::vector< std::tuple<PetscScalar, int> > VecFirstNSort(Vec a, size_t n, Compa
     PetscObjectGetComm((PetscObject)a,&comm);
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &size);
-
-
-    //std::cout << *(std::max_element(array, array+(high-low), [](PetscScalar a, PetscScalar b){ return a.real() < b.real(); } )) << std::endl;
+    assert(high - low >= n);
 
     for (int i = 0; i != high-low; ++i)
     {

@@ -21,6 +21,7 @@ include ../makefile.include
 
 #etok_computer: etok_computer.o chkopts
 	#-${CLINKER} -o ${BINDIR}/etok_computer etok_computer.o ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
+LDFLAGS+=-lboost_mpi-mt -lboost_serialization-mt
 
 nonlinear-index: nonlinear_index.o chkopts
 	-${CLINKER} -o ${BINDIR}/nonlinear_index nonlinear_index.o ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}

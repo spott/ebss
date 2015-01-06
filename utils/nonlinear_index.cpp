@@ -140,7 +140,7 @@ int main( int argc, const char** argv )
     {
         psi1 = common::petsc_binary_read<Vec>(nparams.wf_filename(), params.comm());
         //Sort vector:
-        maxes = math::VecFirstNSort(psi1, 100, [](PetscScalar a, PetscScalar b) { return std::abs(a) > std::abs(b); });
+        maxes = math::VecSort(psi1, [](PetscScalar a, PetscScalar b) { return std::abs(a) > std::abs(b); });
     }
 
 
@@ -317,7 +317,7 @@ int main( int argc, const char** argv )
                 {
                     for (auto max2: maxes)
                     {
-                        if ( std::abs(prototype[max1].l - prototype[max2].l) % 2 != 0)
+                        if ( std::abs(prototype[std::get<1>(max1)].l - prototype[std::get<1>(max2)].l) % 2 != 0)
                             break;
                         VecSet(psi0, 0);
                         VecSet(psi1, 0);
