@@ -297,9 +297,9 @@ int main( int argc, const char** argv )
                         MatMult( D, p0, c );
                         VecDot( p1c, c, &t2 );
                         total += (t1 + t2) * std::conj(std::get<0>(max1)) * std::get<0>(max2);
-                        if ( params.rank() == 0 )
+                        if ( params.rank() == 0  && t1 + t2 != 0 )
                             std::cout << "terms (" << prototype[std::get<1>(max1)] << "->" << prototype[std::get<1>(max2)] << "): " << t1 << ", " << t2 << std::endl;
-                        if ( params.rank() == 0 )
+                        if ( params.rank() == 0  && t1 + t2 != 0 )
                             std::cout << "final: (" << prototype[std::get<1>(max1)] << "->" << prototype[std::get<1>(max2)] << "): " << ( t1 + t2 )* std::conj(std::get<0>(max1)) * std::get<0>(max2) << std::endl;
                         VecDestroy( &p1 );
                         VecDestroy( &p0 );
