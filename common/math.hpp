@@ -657,8 +657,8 @@ std::vector< std::tuple<PetscScalar, int> > VecStupidSort(Vec a, Comparator comp
         return comp( std::get<1>( a ), std::get<1>( b ) );
     } );
 
-    VecScatterDestroy(scatter);
-    VecDestroy(local);
+    VecScatterDestroy(&scatter);
+    VecDestroy(&local);
     return out;
 }
 
