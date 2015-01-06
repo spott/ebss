@@ -294,9 +294,12 @@ int main( int argc, const char** argv )
                         MatMult( D, p0, c );
                         VecDot( p1c, c, &t2 );
                         total += (t1 + t2) * std::conj(std::get<0>(max1)) * std::get<0>(max2);
-                        if ( params.rank() == 0  && t1 + t2 != 0 )
+                        if ( params.rank() == 0  && std::abs(t1 + t2) >= 1e-16 )
+                            std::cout << "========================================="
+                                      << std::endl << *i << ": (" << std::get<1>(max1) << "," << std::get<1>(max2) << ") wg: " << wg0 << ", "<< wg1 << std::endl;
+                        if ( params.rank() == 0  && std::abs(t1 + t2) >= 1e-16 )
                             std::cout << "terms (" << prototype[std::get<1>(max1)] << "->" << prototype[std::get<1>(max2)] << "): " << t1 << ", " << t2 << std::endl;
-                        if ( params.rank() == 0  && t1 + t2 != 0 )
+                        if ( params.rank() == 0  && std::abs(t1 + t2) >= 1e-16 )
                             std::cout << "final: (" << prototype[std::get<1>(max1)] << "->" << prototype[std::get<1>(max2)] << "): " << ( t1 + t2 )* std::conj(std::get<0>(max1)) * std::get<0>(max2) << std::endl;
                         VecDestroy( &p1 );
                         VecDestroy( &p0 );
@@ -337,7 +340,7 @@ int main( int argc, const char** argv )
                         VecDot( mask, psi1, &wg1 );
                         if ( params.rank() == 0 )
                             std::cout << "========================================="
-                                      << std::endl << *i << ": (" << std::get<1>(max1) << " [" << std::get<0>(max1) << "]," << std::get<1>(max2) << " [" << std::get<0>(max2) << "]) wg: " << wg0 << ", "<< wg1 << std::endl;
+                                      << std::endl << *i << ": (" << prototype[std::get<1>(max1)] << " [" << prototype[std::get<0>(max1)] << "]," << std::get<1>(max2) << " [" << std::get<0>(max2) << "]) wg: " << wg0 << ", "<< wg1 << std::endl;
                         std::sort( ( *i ).begin(), ( *i ).end() );
                         size_t multiplicity = 1;
                         std::array<int, 3> ts{{0, 0, 0}};
@@ -441,7 +444,7 @@ int main( int argc, const char** argv )
                             MatMult( D, p0, c );
                             VecDot( p3c, c, &t4 );
                             result += ( t1 + t2 + t3 + t4 ) * std::conj(std::get<0>(max1)) * std::get<0>(max2);
-                            if ( params.rank() == 0 )
+                            if ( params.rank() == 0  && std::abs(t1 + t2 + t3 + t4) >= 1e-16  )
                                 std::cout << "terms: (" << prototype[std::get<1>(max1)] << "," << prototype[std::get<1>(max2)] << "): " << t1 << ", " << t2 << ", " << t3
                                     << ", " << t4 << " || " << std::conj(std::get<0>(max1)) * std::get<0>(max2) << std::endl;
                             VecDestroy( &p3 );
@@ -454,8 +457,8 @@ int main( int argc, const char** argv )
                             VecDestroy( &p0c );
                         } while (
                             std::next_permutation( ( *i ).begin(), ( *i ).end() ) );
-                        if ( params.rank() == 0 )
-                            std::cout << "final: (" << prototype[std::get<1>(max1)] << "," << prototype[std::get<1>(max2)] << "): " << t1 + t2 + t3 + t4 << " multiplicity " << multiplicity << std::endl;
+                        if ( params.rank() == 0   && std::abs(t1 + t2 + t3 + t4) >= 1e-16 )
+                            std::cout << "final: (" << prototype[std::get<1>(max1)] << "," << prototype[std::get<1>(max2)] << "): " << result << " multiplicity " << multiplicity << std::endl;
                         total += result * static_cast<double>( multiplicity ) /
                             static_cast<double>( math::factorial( 3 ) ) ;
                     }
