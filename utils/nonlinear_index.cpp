@@ -140,7 +140,7 @@ int main( int argc, const char** argv )
     {
         psi1 = common::petsc_binary_read<Vec>(nparams.wf_filename(), params.comm());
         //Sort vector:
-        maxes = math::VecFirstNSort(psi1, 10, [](PetscScalar a, PetscScalar b) { return std::abs(a) > std::abs(b); });
+        maxes = math::VecFirstNSort(psi1, 100, [](PetscScalar a, PetscScalar b) { return std::abs(a) > std::abs(b); });
     }
 
 
@@ -295,9 +295,9 @@ int main( int argc, const char** argv )
                         VecDot( p1c, c, &t2 );
                         total += (t1 + t2) * std::conj(std::get<0>(max1)) * std::get<0>(max2);
                         if ( params.rank() == 0 )
-                            std::cout << "terms (" << std::get<1>(max1) << "," << std::get<1>(max2) << "): " << t1 << ", " << t2 << std::endl;
+                            std::cout << "terms (" << prototype[std::get<1>(max1)] << "->" << prototype[std::get<1>(max2)] << "): " << t1 << ", " << t2 << std::endl;
                         if ( params.rank() == 0 )
-                            std::cout << "final: (" << std::get<1>(max1) << "," << std::get<1>(max2) << "): " << ( t1 + t2 )* std::conj(std::get<0>(max1)) * std::get<0>(max2) << std::endl;
+                            std::cout << "final: (" << prototype[std::get<1>(max1)] << "->" << prototype[std::get<1>(max2)] << "): " << ( t1 + t2 )* std::conj(std::get<0>(max1)) * std::get<0>(max2) << std::endl;
                         VecDestroy( &p1 );
                         VecDestroy( &p0 );
                         VecDestroy( &p1c );
@@ -440,7 +440,7 @@ int main( int argc, const char** argv )
                             VecDot( p3c, c, &t4 );
                             result += ( t1 + t2 + t3 + t4 ) * std::conj(std::get<0>(max1)) * std::get<0>(max2);
                             if ( params.rank() == 0 )
-                                std::cout << "terms: (" << std::get<1>(max1) << "," << std::get<1>(max2) << "): " << t1 << ", " << t2 << ", " << t3
+                                std::cout << "terms: (" << prototype[std::get<1>(max1)] << "," << prototype[std::get<1>(max2)] << "): " << t1 << ", " << t2 << ", " << t3
                                     << ", " << t4 << " || " << std::conj(std::get<0>(max1)) * std::get<0>(max2) << std::endl;
                             VecDestroy( &p3 );
                             VecDestroy( &p2 );
@@ -453,7 +453,7 @@ int main( int argc, const char** argv )
                         } while (
                             std::next_permutation( ( *i ).begin(), ( *i ).end() ) );
                         if ( params.rank() == 0 )
-                            std::cout << "final: (" << std::get<1>(max1) << "," << std::get<1>(max2) << "): " << t1 + t2 + t3 + t4 << " multiplicity " << multiplicity << std::endl;
+                            std::cout << "final: (" << prototype[std::get<1>(max1)] << "," << prototype[std::get<1>(max2)] << "): " << t1 + t2 + t3 + t4 << " multiplicity " << multiplicity << std::endl;
                         total += result * static_cast<double>( multiplicity ) /
                             static_cast<double>( math::factorial( 3 ) ) ;
                     }
