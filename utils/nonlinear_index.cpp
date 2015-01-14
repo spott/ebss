@@ -353,7 +353,6 @@ int main( int argc, const char** argv )
 
                         PetscScalar result = 0;
                         do {
-
                             std::vector<double> freq{( *i )[0] * freqs[f],
                                 ( *i )[1] * freqs[f],
                                 ( *i )[2] * freqs[f]
@@ -1562,6 +1561,7 @@ Vec psi( int order,
 
     // a temporary vector
     Vec tmp;
+    Vec orthog_projector;
 
     MPI_Comm comm;
     PetscObjectGetComm( (PetscObject)psi0, &comm );
@@ -1570,6 +1570,9 @@ Vec psi( int order,
     // make sure that out and tmp have the correct memory layout.
     VecDuplicate( psi0, &out );
     VecDuplicate( H0, &tmp );
+    VecDuplicate( mask, orthog_projector);
+    VecSet( orthog_projector, 1);
+    VecAXPY( orthog_projector, -1, mask);
 
     // out starts as psi0
     VecCopy( psi0, out );
@@ -1596,10 +1599,10 @@ Vec psi( int order,
         }
         // tmp = 1/tmp
         VecReciprocal( tmp );
-        VecPointwiseMult( out, tmp, out );
 
-        VecPointwiseMult( tmp, mask, out );
-        VecAXPY(out, -1, tmp);
+        // (1/tmp) * D | psi >
+        VecPointwiseMult( out, tmp, out );
+        VecPointwiseMult( out, orthog_projector, out);
     }
 
     // destroy the temporary
@@ -1621,6 +1624,7 @@ Vec psi_conjugate( int order,
     assert( frequencies_end - frequencies_begin >= order );
     Vec out;
     Vec tmp;
+    Vec orthog_projector;
     MPI_Comm comm;
     PetscObjectGetComm( (PetscObject)psi0, &comm );
     int rank;
@@ -1628,6 +1632,10 @@ Vec psi_conjugate( int order,
     VecDuplicate( psi0, &out );
     VecDuplicate( H0, &tmp );
     VecCopy( psi0, out );
+
+    VecDuplicate( mask, orthog_projector);
+    VecSet( orthog_projector, 1);
+    VecAXPY( orthog_projector, -1, mask);
 
     for ( int i = 1; i <= order; ++i ) {
         MatMult( D, out, tmp );
@@ -1641,8 +1649,7 @@ Vec psi_conjugate( int order,
         VecReciprocal( tmp );
         VecPointwiseMult( out, tmp, out );
 
-        VecPointwiseMult( tmp, mask, out );
-        VecAXPY(out, -1, tmp);
+        VecPointwiseMult( out, orthog_projector, out);
     }
 
     VecDestroy( &tmp );
