@@ -45,6 +45,7 @@ class LaserParameters : public Parameters
     PetscReal t_after() const;
     std::string laser_filename() const;
     PetscReal pulse_length() const;
+    PetscReal shape() const { return laser_shape_ };
     PetscScalar envelope( PetscReal t, PetscReal t_start ) const;
     virtual PetscScalar efield( const PetscReal t,
                                 const PetscReal phase ) const;
@@ -67,7 +68,9 @@ class LaserParameters : public Parameters
     double dt_after_;
     double t_after_;
     double energy_;
+    double start_height_;
     std::string laser_filename_;
+    std::string laser_shape_;
     bool load_efield;
     int laser_front_shape_;
     int laser_back_shape_;
@@ -111,6 +114,8 @@ void LaserParameters::get_parameters()
     opt.get( "-laser_filename" )->getString( laser_filename_ );
     opt.get( "-laser_front_shape" )->getInt( laser_front_shape_ );
     opt.get( "-laser_back_shape" )->getInt( laser_back_shape_ );
+    opt.get( "-laser_envelope" )->getString( laser_shape_ );
+    opt.get( "-laser_height" )->getString( start_height_ );
 }
 
 std::string LaserParameters::print() const
@@ -130,6 +135,9 @@ std::string LaserParameters::print() const
     out << "laser_filename: " << laser_filename_ << std::endl;
     out << "laser_front_shape " << laser_front_shape_ << std::endl;
     out << "laser_back_shape " << laser_back_shape_ << std::endl;
+    out << "laser_envelope " << laser_shape_ << std::endl;
+    out << "laser_height " << start_height_ << std::endl;
+    
     return out.str();
 }
 void LaserParameters::save_parameters() const
@@ -150,6 +158,8 @@ void LaserParameters::save_parameters() const
     file << "-laser_filename " << laser_filename_ << std::endl;
     file << "-laser_front_shape " << laser_front_shape_ << std::endl;
     file << "-laser_back_shape " << laser_back_shape_ << std::endl;
+    file << "-laser_envelope " << laser_shape_ << std::endl;
+    file << "-laser_height " << start_height_ << std::endl;
     file.close();
 }
 
@@ -191,7 +201,14 @@ PetscReal LaserParameters::t_after() const
 }
 PetscReal LaserParameters::pulse_length() const
 {
+  if (this.shape() == "sin_squared")
     return ( ( math::PI * 2 * cycles() ) / frequency() ) + t_after();
+  else if (this.shape() == "gaussian")
+    {
+      PetscReal fwhm_time = (math::PI * 2 * cycles()) / frequency();
+      PetscReal mean = fwhm_time * std::log(1. / this.start_height_) / (2. * std::log(2.));
+      return mean * 2.;
+    }
 }
 std::string LaserParameters::laser_filename() const
 {
@@ -200,18 +217,30 @@ std::string LaserParameters::laser_filename() const
 
 PetscScalar LaserParameters::envelope( PetscReal t, PetscReal t_start ) const
 {
-    if ( t < t_start || t > t_start + (pulse_length() - t_after()) ) return 0;
+  if (this.shape() == "sin_squared")
+    {
+  
+      if ( t < t_start || t > t_start + (pulse_length() - t_after()) ) return 0;
 
-    PetscReal efield = 0.0;
-    if ( t < t_start + pulse_length() / 2. )
+      PetscReal efield = 0.0;
+      if ( t < t_start + pulse_length() / 2. )
         efield = std::pow( std::sin( this->frequency() * ( t - t_start ) /
                                      ( this->cycles() * 2 ) ),
                            laser_front_shape_ );
-    if ( t >= t_start + pulse_length() / 2. )
+      if ( t >= t_start + pulse_length() / 2. )
         efield = std::pow( std::sin( this->frequency() * ( t - t_start ) /
                                      ( this->cycles() * 2 ) ),
                            laser_back_shape_ );
-    return efield;
+      return efield;
+    }
+  else if (this.shape() == "gaussian")
+    {
+      PetscReal fwhm_time = (math::PI * 2 * cycles()) / frequency();
+      PetscReal mean = fwhm_time * std::log(1. / this.start_height_) / (2. * std::log(2.)) + t_start; 
+      PetscReal std_deviation = fwhm_time / std::sqrt( 8. * std::log(2.));
+
+      return std::exp( -(t - mean) * (t - mean) / (2. * std_deviation * std_deviation));
+    }
 }
 
 std::pair<std::vector<double>, std::vector<double>>
@@ -302,6 +331,18 @@ void LaserParameters::register_parameters()
              "energy of the laser.  If this and the wavelength are specified, "
              "this will take precedence",
              std::string( prefix ).append( "energy\0" ).c_str() );
+    opt.add( "sin_squared",
+             0,
+             1,
+             0,
+             "Pulse envelope shape",
+             std::string( prefix ).append( "envelope\0" ).c_str() );
+    opt.add( "1e-16",
+             0,
+             1,
+             0,
+             "for a gaussian pulse, the initial envelope value",
+             std::string( prefix ).append( "height\0" ).c_str() );
     opt.add( "10e12",
              0,
              1,
