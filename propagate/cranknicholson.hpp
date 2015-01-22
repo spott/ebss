@@ -127,7 +127,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
             *A, *( cntx->H ), INSERT_VALUES ); // A = ef(t) * D + H_0
         VecCopy(*wf, tmp);
         // find eigenvalues and vectors:
-        if(step % 275 == 0) {
+        if(false) {
 
             EPSSetOperators(eps, *A, PETSC_NULL);
             EPSSetProblemType(eps, EPS_HEP);

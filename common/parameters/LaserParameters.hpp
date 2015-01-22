@@ -45,7 +45,7 @@ class LaserParameters : public Parameters
     PetscReal t_after() const;
     std::string laser_filename() const;
     PetscReal pulse_length() const;
-    PetscReal shape() const { return laser_shape_ };
+	std::string shape() const { return laser_shape_; };
     PetscScalar envelope( PetscReal t, PetscReal t_start ) const;
     virtual PetscScalar efield( const PetscReal t,
                                 const PetscReal phase ) const;
@@ -115,7 +115,7 @@ void LaserParameters::get_parameters()
     opt.get( "-laser_front_shape" )->getInt( laser_front_shape_ );
     opt.get( "-laser_back_shape" )->getInt( laser_back_shape_ );
     opt.get( "-laser_envelope" )->getString( laser_shape_ );
-    opt.get( "-laser_height" )->getString( start_height_ );
+    opt.get( "-laser_height" )->getDouble( start_height_ );
 }
 
 std::string LaserParameters::print() const
@@ -201,12 +201,12 @@ PetscReal LaserParameters::t_after() const
 }
 PetscReal LaserParameters::pulse_length() const
 {
-  if (this.shape() == "sin_squared")
+  if (this->shape() == "sin_squared")
     return ( ( math::PI * 2 * cycles() ) / frequency() ) + t_after();
-  else if (this.shape() == "gaussian")
+  else if (this->shape() == "gaussian")
     {
       PetscReal fwhm_time = (math::PI * 2 * cycles()) / frequency();
-      PetscReal mean = fwhm_time * std::log(1. / this.start_height_) / (2. * std::log(2.));
+      PetscReal mean = fwhm_time * std::log(1. / this->start_height_) / (2. * std::log(2.));
       return mean * 2.;
     }
 }
@@ -217,7 +217,7 @@ std::string LaserParameters::laser_filename() const
 
 PetscScalar LaserParameters::envelope( PetscReal t, PetscReal t_start ) const
 {
-  if (this.shape() == "sin_squared")
+  if (this->shape() == "sin_squared")
     {
   
       if ( t < t_start || t > t_start + (pulse_length() - t_after()) ) return 0;
@@ -233,10 +233,10 @@ PetscScalar LaserParameters::envelope( PetscReal t, PetscReal t_start ) const
                            laser_back_shape_ );
       return efield;
     }
-  else if (this.shape() == "gaussian")
+  else if (this->shape() == "gaussian")
     {
       PetscReal fwhm_time = (math::PI * 2 * cycles()) / frequency();
-      PetscReal mean = fwhm_time * std::log(1. / this.start_height_) / (2. * std::log(2.)) + t_start; 
+      PetscReal mean = fwhm_time * std::log(1. / this->start_height_) / (2. * std::log(2.)) + t_start; 
       PetscReal std_deviation = fwhm_time / std::sqrt( 8. * std::log(2.));
 
       return std::exp( -(t - mean) * (t - mean) / (2. * std_deviation * std_deviation));

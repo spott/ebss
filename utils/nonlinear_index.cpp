@@ -140,7 +140,10 @@ int main( int argc, const char** argv )
     {
         psi1 = common::petsc_binary_read<Vec>(nparams.wf_filename(), params.comm());
         //Sort vector:
-        maxes = math::VecStupidSort(psi1, [](PetscScalar a, PetscScalar b) { return std::abs(a) > std::abs(b); });
+        //maxes = math::VecFirstNSort(psi1, 100 ,[](PetscScalar a, PetscScalar b) { return std::abs(a) > std::abs(b); });
+		maxes = math::VecStupidSelect(psi1, [prototype](int i, PetscScalar a) {
+				return prototype[i].n < 4;
+				});
     }
 
 
@@ -322,7 +325,7 @@ int main( int argc, const char** argv )
                     for (auto max2: maxes)
                     {
 						auto diff = std::abs(prototype[std::get<1>(max1)].l - prototype[std::get<1>(max2)].l);
-                        if ( diff % 2 != 0 || diff > 4 || std::abs(std::get<0>(max1)) <= 1e-6 || std::abs(std::get<0>(max2)) <= 1e-6 )
+                        if ( diff % 2 != 0 || diff > 4) // || std::abs(std::get<0>(max1)) <= 1e-6 || std::abs(std::get<0>(max2)) <= 1e-6 )
                             break;
                         VecSet(psi0, 0);
                         VecSet(psi1, 0);
@@ -1558,11 +1561,10 @@ Vec psi( int order,
     // we must have enough frequencies to do the calculation:
     assert( frequencies_end - frequencies_begin >= order );
 
-    // the out vector (the one we return)
     Vec out;
-
-    // a temporary vector
     Vec tmp;
+
+	Vec orthog_projector;
 
     MPI_Comm comm;
     PetscObjectGetComm( (PetscObject)psi0, &comm );
@@ -1572,7 +1574,10 @@ Vec psi( int order,
     VecDuplicate( psi0, &out );
     VecDuplicate( H0, &tmp );
 
-    // out starts as psi0
+	VecDuplicate( mask, &orthog_projector);
+	VecSet( orthog_projector, 1);
+	VecAXPY( orthog_projector, -1, mask);
+
     VecCopy( psi0, out );
     // VecCopy(H0, tmp);
     // VecSet(out, 1.);
@@ -1599,12 +1604,16 @@ Vec psi( int order,
         VecReciprocal( tmp );
         VecPointwiseMult( out, tmp, out );
 
-        VecPointwiseMult( tmp, mask, out );
-        VecAXPY(out, -1, tmp);
+		VecPointwiseMult(out, orthog_projector, out);
     }
 
+	//PetscReal norm;
+	//VecNormalize(out, &norm);
+	//if (rank == 0)
+		//std::cout << "norm: " << norm << std::endl;
     // destroy the temporary
     VecDestroy( &tmp );
+	VecDestroy( &orthog_projector);
 
     return out;
 }
@@ -1622,6 +1631,7 @@ Vec psi_conjugate( int order,
     assert( frequencies_end - frequencies_begin >= order );
     Vec out;
     Vec tmp;
+	Vec orthog_projector;
     MPI_Comm comm;
     PetscObjectGetComm( (PetscObject)psi0, &comm );
     int rank;
@@ -1629,6 +1639,10 @@ Vec psi_conjugate( int order,
     VecDuplicate( psi0, &out );
     VecDuplicate( H0, &tmp );
     VecCopy( psi0, out );
+	
+	VecDuplicate( mask, &orthog_projector);
+	VecSet( orthog_projector, 1);
+	VecAXPY( orthog_projector, -1, mask);
 
     for ( int i = 1; i <= order; ++i ) {
         MatMult( D, out, tmp );
@@ -1642,11 +1656,15 @@ Vec psi_conjugate( int order,
         VecReciprocal( tmp );
         VecPointwiseMult( out, tmp, out );
 
-        VecPointwiseMult( tmp, mask, out );
-        VecAXPY(out, -1, tmp);
+		VecPointwiseMult(out, orthog_projector, out);
     }
 
+	//PetscReal norm;
+	//VecNormalize(out, &norm);
+	//if (rank == 0)
+		//std::cout << "norm: " << norm << std::endl;
     VecDestroy( &tmp );
+	VecDestroy( &orthog_projector);
 
     return out;
 }
