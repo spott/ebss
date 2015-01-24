@@ -5,8 +5,7 @@
 #include <cassert>
 #include <slepceps.h>
 
-typedef struct
-{
+typedef struct {
     Mat* D;
     Vec* H;
     HamiltonianParameters<PetscReal>* hparams;
@@ -20,10 +19,7 @@ namespace cranknicholson
 
 volatile sig_atomic_t sig = 0;
 
-void signal_handler(int signal)
-{
-    sig = signal;
-}
+void signal_handler( int signal ) { sig = signal; }
 
 PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
 {
@@ -36,8 +32,8 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
     KSPSetType( ksp, KSPGMRES );
     KSPGetPC( ksp, &pc );
     PCSetType( pc, PCJACOBI );
-    KSPSetTolerances(
-        ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT );
+    KSPSetTolerances( ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT,
+                      PETSC_DEFAULT );
     KSPSetFromOptions( ksp );
 
     PetscScalar cn_factor =
@@ -72,8 +68,8 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
     // VecPointwiseMult(*(cntx->H), *(cntx->H), abs);
 
     std::string file_name = std::string( "./absorber.dat" );
-    PetscViewerASCIIOpen(
-        cntx->hparams->comm(), file_name.c_str(), &view );
+    PetscViewerASCIIOpen( cntx->hparams->comm(), file_name.c_str(),
+                          &view );
     PetscViewerSetFormat( view, PETSC_VIEWER_ASCII_SYMMODU );
     VecView( abs, view );
 
@@ -86,23 +82,19 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
     std::ofstream population( "instant_pop.csv", std::ios::ate );
     // dipol( 3 * cntx->dipole->decompositions().size() + 1 );
     if ( cntx->hparams->rank() == 0 ) {
-		assert(cntx->dipole->dipole_filename().size() > 0);
-        for (auto& a : cntx->dipole->dipole_filename())
-          {
-            try
-            {
-                dipole.emplace_back( new
-                    std::ofstream( a,
-                                   std::ios::binary | std::ios::ate ) );
-            }
-            catch ( ... )
-            {
+        assert( cntx->dipole->dipole_filename().size() > 0 );
+        for ( auto& a : cntx->dipole->dipole_filename() ) {
+            try {
+                dipole.emplace_back( new std::ofstream(
+                    a, std::ios::binary | std::ios::ate ) );
+            } catch ( ... ) {
                 std::cerr << "couldn't open the dipole file, oops... it "
                              "won't be "
                              "written to disk" << std::endl;
             }
         }
-        //population = std::move(std::ofstream( "instant_pop.csv", std::ios::ate ));
+        // population = std::move(std::ofstream( "instant_pop.csv",
+        // std::ios::ate ));
     }
     // std::vector< std::vector<PetscReal> > dipole( 3 *
     // cntx->dipole->decompositions().size() + 1 );
@@ -110,10 +102,10 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
 
     PetscReal norm_lost = 0;
 
-    std::signal(SIGUSR1, signal_handler);
+    std::signal( SIGUSR1, signal_handler );
 
     Vec eigenvector;
-    MatGetVecs(*(cntx->D), PETSC_NULL, &eigenvector);
+    MatGetVecs( *( cntx->D ), PETSC_NULL, &eigenvector );
 
     while ( t < maxtime ) {
 
@@ -123,59 +115,49 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
         PetscScalar eff = cntx->laser->efield( t + cntx->laser->dt() );
         // This has different 't's on both sides:
         MatScale( *A, ( ef + eff ) / 2. ); // A = ef(t) * D
-        MatDiagonalSet(
-            *A, *( cntx->H ), INSERT_VALUES ); // A = ef(t) * D + H_0
-        VecCopy(*wf, tmp);
+        MatDiagonalSet( *A, *( cntx->H ),
+                        INSERT_VALUES ); // A = ef(t) * D + H_0
         // find eigenvalues and vectors:
-        if(false) {
+        if ( false ) {
 
-            EPSSetOperators(eps, *A, PETSC_NULL);
-            EPSSetProblemType(eps, EPS_HEP);
-            EPSSetType(eps, EPSKRYLOVSCHUR);
-            EPSSetWhichEigenpairs(eps,	EPS_TARGET_REAL);
-			EPSSetTarget(eps, -0.903801);
-            EPSSetDimensions(eps, 1000, PETSC_DEFAULT, PETSC_DEFAULT);
+            EPSSetOperators( eps, *A, PETSC_NULL );
+            EPSSetProblemType( eps, EPS_HEP );
+            EPSSetType( eps, EPSKRYLOVSCHUR );
+            EPSSetWhichEigenpairs( eps, EPS_TARGET_REAL );
+            EPSSetTarget( eps, -0.903801 );
+            EPSSetDimensions( eps, 1000, PETSC_DEFAULT, PETSC_DEFAULT );
 
-            EPSSetInitialSpace(eps,1,&tmp);
+            EPSSetInitialSpace( eps, 1, &tmp );
 
-            EPSSolve(eps);
+            EPSSolve( eps );
 
             int nconv;
-            EPSGetConverged(eps, &nconv);
+            EPSGetConverged( eps, &nconv );
 
-			if (cntx->hparams->rank() == 0)
-				std::cout << "converged: " << nconv << std::endl;
+            if ( cntx->hparams->rank() == 0 )
+                std::cout << "converged: " << nconv << std::endl;
             PetscScalar bound_total = 0;
-            for (int i = nconv; i > 0; i-- ){
+            for ( int i = nconv; i > 0; i-- ) {
                 PetscScalar ev;
-                EPSGetEigenpair(eps, i-1, &ev, PETSC_NULL, eigenvector, PETSC_NULL);
+                EPSGetEigenpair( eps, i - 1, &ev, PETSC_NULL, eigenvector,
+                                 PETSC_NULL );
 
-                if (ev.real() < 0) {
-                    //get projection:
-                    PetscScalar projection = std::complex<double>(1,1);
+                if ( ev.real() < 0 ) {
+                    // get projection:
+                    PetscScalar projection = std::complex<double>( 1, 1 );
 
-                    VecDot(tmp, eigenvector, &projection);
-                    if (cntx->hparams->rank() == 0)
-                        std::cout << "projection " << i << ": (energy = " << ev << ") is " << projection << ", population is " << projection * std::conj(projection) << "\n";
-                    bound_total += projection * std::conj(projection);
+                    VecDot( tmp, eigenvector, &projection );
+                    if ( cntx->hparams->rank() == 0 )
+                        std::cout
+                            << "projection " << i << ": (energy = " << ev
+                            << ") is " << projection << ", population is "
+                            << projection* std::conj( projection ) << "\n";
+                    bound_total += projection * std::conj( projection );
                 }
             }
-            if (cntx->hparams->rank() == 0)
+            if ( cntx->hparams->rank() == 0 )
                 population << t << ", " << bound_total.real() << std::endl;
         }
-        VecAXPY(tmp, -1, *wf);
-        PetscReal error_norm;
-        VecNorm(tmp, NORM_2, &error_norm);
-        if (cntx->hparams->rank() == 0)
-            std::cout << "error norm: " << error_norm << std::endl;
-
-        MatCopy( *( cntx->D ), *A, SAME_NONZERO_PATTERN ); // A = D
-
-        // ef-forward:
-        // This has different 't's on both sides:
-        MatScale( *A, ( ef + eff ) / 2. ); // A = ef(t) * D
-        MatDiagonalSet(
-            *A, *( cntx->H ), INSERT_VALUES ); // A = ef(t) * D + H_0
 
         MatScale( *A, cn_factor ); // A = - i * .5 * dt [ ef(t) * D + H_0 ]
         MatShift( *A,
@@ -190,9 +172,10 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
                                                 // * D + H_0 ] + 1
 
 
-        KSPSetOperators( ksp, *A, *A); //, SAME_NONZERO_PATTERN); // Solve[ A x
-                                                              // = tmp ]
-                                                              // for x
+        KSPSetOperators( ksp, *A,
+                         *A ); //, SAME_NONZERO_PATTERN); // Solve[ A x
+                               // = tmp ]
+                               // for x
         KSPSolve( ksp, tmp, *wf );
 
         if ( cntx->absorber->type() == "cosine" ) {
@@ -223,8 +206,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
             std::ostringstream wf_name;
             wf_name << "./wf_" << zero << ".dat";
             PetscViewerBinaryOpen( cntx->hparams->comm(),
-                                   wf_name.str().c_str(),
-                                   FILE_MODE_WRITE,
+                                   wf_name.str().c_str(), FILE_MODE_WRITE,
                                    &view );
             zero++;
             // analytically propagate for said time:
@@ -232,8 +214,8 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
             PetscReal dt = cntx->laser->next_pulse_start( t ) -
                            t; // the difference between then and now.
             std::cout << dt << std::endl;
-            math::FieldFreePropagate(
-                ( cntx->H ), wf, dt ); // propagate forward in time
+            math::FieldFreePropagate( ( cntx->H ), wf,
+                                      dt ); // propagate forward in time
             t = cntx->laser->next_pulse_start( t );
             ef = cntx->laser->efield( t );
             // write out the next zero:
@@ -244,8 +226,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
             wf_name.str( "" );
             wf_name << "./wf_" << zero << ".dat";
             PetscViewerBinaryOpen( cntx->hparams->comm(),
-                                   wf_name.str().c_str(),
-                                   FILE_MODE_WRITE,
+                                   wf_name.str().c_str(), FILE_MODE_WRITE,
                                    &view );
             // VecView( *wf, view );
             zero++;
@@ -268,8 +249,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
             std::ostringstream wf_name;
             wf_name << "./wf_" << zero << ".dat";
             PetscViewerBinaryOpen( cntx->hparams->comm(),
-                                   wf_name.str().c_str(),
-                                   FILE_MODE_WRITE,
+                                   wf_name.str().c_str(), FILE_MODE_WRITE,
                                    &view );
             VecView( *wf, view );
             zero++;
@@ -294,41 +274,34 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
                           << " norm lost to absorbers: " << norm_lost
                           << std::endl;
         }
-        if (sig > 0)
-            break;
+        if ( sig > 0 ) break;
     }
     file_name = std::string( "./wf_final.dat" );
-    PetscViewerBinaryOpen(
-        cntx->hparams->comm(), file_name.c_str(), FILE_MODE_WRITE, &view );
+    PetscViewerBinaryOpen( cntx->hparams->comm(), file_name.c_str(),
+                           FILE_MODE_WRITE, &view );
     VecView( *wf, view );
 
     // we don't want to crash the nodes from lack of memory, so we only do
     // this on the head node
     if ( cntx->hparams->rank() == 0 ) {
-        try
-        {
+        try {
             common::export_vector_binary( "time.dat", time );
-        }
-        catch ( ... )
-        {
+        } catch ( ... ) {
             std::cerr
                 << "couldn't open the time file, oops... it won't be "
                    "written to disk" << std::endl;
         }
-        try
-        {
+        try {
             common::export_vector_binary( cntx->laser->laser_filename(),
                                           efvec );
-        }
-        catch ( ... )
-        {
+        } catch ( ... ) {
             std::cerr
                 << "couldn't open the efvec file, oops... it won't be "
                    "written to disk" << std::endl;
         }
 
         // close the dipole files
-        for ( auto &a : dipole ) {
+        for ( auto& a : dipole ) {
             a->close();
         }
     }
