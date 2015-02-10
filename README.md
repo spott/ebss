@@ -8,7 +8,7 @@ The "Energy Basis Schrödinger Solver"
 
 Install [Homebrew](http://brew.sh):
 
-`ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`
+    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`
 
 Then install needed packages:
 
