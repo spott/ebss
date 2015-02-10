@@ -12,9 +12,9 @@ Install [Homebrew](http://brew.sh):
 
 Then install needed packages:
 
+    brew install gcc
     brew install openmpi
     brew install openblas
-    brew install gcc
     brew install wget # just to make this a little easier.
     brew install boost --c++11, --with-mpi, --without-single
     brew install gsl
