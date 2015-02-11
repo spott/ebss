@@ -8,7 +8,7 @@ The "Energy Basis Schrödinger Solver"
 
 Install [Homebrew](http://brew.sh):
 
-    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`
+    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
 Then install needed packages:
 
@@ -29,7 +29,7 @@ Download and install [PETSc](http://www.mcs.anl.gov/petsc/index.html) in some co
 
 The following is my configure command for creating the debug version of PETSc. Replace <values in angle brackets> with better values for you:
 
-    ./configure --prefix=<wherever you want to put it> \
+    ./configure --prefix=<wherever you want to put it (but not in petsc-3.5.3)> \
                 --with-clanguage=cxx \
                 --with-c++-support \
                 --with-debugging=1 \
@@ -39,7 +39,7 @@ The following is my configure command for creating the debug version of PETSc. R
                 --with-blas-lapack-dir=/usr/local/Cellar/openblas/<current_version> \
                 --with-mpi=1 \
 
-run the configure, then copy and run each command after it finishes.
+run the configure, then copy and run each command given to you after it finishes.
 
 #### SLEPc:
 
@@ -52,7 +52,7 @@ Download [SLEPc](http://slepc.upv.es) in some convenient directory:
 
 Then the configure command:
 
-    export PETSC_DIR=<prefix from above>; ./configure --prefix=<whereever you want to put it>
+    export PETSC_DIR=<prefix from above>; ./configure --prefix=<wherever you want to put it (not in slepc-3.5.3)>
 
 run the configure, then copy and run each command after it finishes.
 
