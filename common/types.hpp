@@ -15,6 +15,8 @@ template <typename iterator>
 struct Range{
     iterator begin;
     iterator end;
+
+  int size() const { return end - begin; }
 };
 
 struct kBasisID{

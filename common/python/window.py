@@ -66,3 +66,7 @@ hft248d = CosWindowFunction([1, -1.985844164102, 1.791176438506, -1.282075284005
                              0.000000132974], .841, 'hft248d')
 nutall4 = CosWindowFunction([.3125, -.46875, .1875, -.03125], .704, 'nutall4')
 flattop = CosWindowFunction([0.2156, -0.4160, 0.2781, -0.0836, 0.0069], .75, 'flattop')
+hanning = CosWindowFunction([0.5, -0.5], .5, 'hanning')
+hamming = CosWindowFunction([0.54, -0.46], .5, 'hamming')
+blackmanharris =  CosWindowFunction([0.35875, -0.48829, 0.14128, -0.01168], .661, 'blackman-harris')
+

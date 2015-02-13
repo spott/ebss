@@ -74,8 +74,7 @@ class Fourier(object):
         """ integrates the frequency over the range. Uses an interpolant"""
         return scipy.interpolate.InterpolatedUnivariateSpline(self.freq, fn(self.fdata), k=1).integral(a,b)
 
-    def stft(self, window_size, overlap, window_fn=flattop, ra=[0,-1], filt=None):
-        hop = window_size - overlap
+    def stft(self, window_size, hop, window_fn=flattop, ra=[0,-1], filt=None):
 
         if ra[1] == -1:
             ra[1] = len(self.time)

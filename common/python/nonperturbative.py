@@ -125,6 +125,8 @@ class NonperturbativeSet(object):
                 self.cycles = int()
                 self.dt = float()
                 self.wavelength = float()
+                self.shape = "sin_squared"
+                self.height = float(0)
                 for line in laser_conf:
                     if line.startswith("-laser_cycles"):
                         self.cycles = int(line.split(" ")[1])
@@ -132,6 +134,10 @@ class NonperturbativeSet(object):
                         self.wavelength = float(line.split(" ")[1])
                     if line.startswith("-laser_dt "):
                         self.dt = float(line.split(" ")[1])
+                    if line.startswith("-laser_envelope"):
+                        self.shape = line.split(" ")[1].strip()
+                    if line.startswith("-laser_height"):
+                        self.height = float(line.split(" ")[1])
                     #if line.startswith("-laser_dt "):
                         #self.dt = float(line.split(" ")[1])
             #self.data_ = None
@@ -258,8 +264,6 @@ class NonperturbativeSet(object):
             """
             returns a Fourier object of the efield of the run.
             """
-            with open(os.path.join(self.folder, "efield.dat"), 'rb') as ef_file:
-                ef = np.fromfile(ef_file, 'd', -1)
             try:
                 with open(os.path.join(self.folder, "time.dat"), 'rb') as time_f:
                     time = np.fromfile(time_f, 'd', -1)
@@ -268,9 +272,29 @@ class NonperturbativeSet(object):
                     dipolef.seek(0, os.SEEK_END)
                     dipolesize = dipolef.tell() / 16
                 time = np.linspace(0, dipolesize * self.dt, dipolesize, endpoint=False, dtype='d')
-                ef = np.append(ef, np.zeros(dipolesize - len(ef), dtype='d'))
-
-
+                #ef = np.append(ef, np.zeros(dipolesize - len(ef), dtype='d'))
+                
+            try:
+                with open(os.path.join(self.folder, "efield.dat"), 'rb') as ef_file:
+                    ef = np.fromfile(ef_file, 'd', -1)
+            except IOError:
+                freq = atomic.from_wavelength(self.wavelength)
+                if self.shape == "gaussian":
+                    fwhm_time = np.pi * 2 * self.cycles / freq
+                    mean = fwhm_time * np.sqrt(np.log(1. / self.height))
+                    mean /= (2. * np.sqrt(np.log(2.)))
+                    std_dev = fwhm_time / np.sqrt(8. * np.log(2.))
+                    ef = np.exp(- (time - mean)**2 / (2. * std_dev**2))
+                    ef *= np.sin(freq * time)
+                    ef = ef * np.sqrt(self.intensity / atomic.intensity)
+                elif self.shape == "sin_squared":
+                    ef = np.sin(freq * time / (self.cycles * 2)) ** 2
+                    ef *= np.sin(freq * time)
+                    ef = ef * np.sqrt(self.intensity / atomic.intensity)
+            if np.shape(time) != np.shape(ef):
+                ef = np.append(ef, np.zeros(len(time) - len(ef),dtype='d'))
+            print("efield shape:", np.shape(ef))
+            print("time shape:", np.shape(time))
             if window:
                 return fourier.Fourier(time, ef, window)
             else:
@@ -315,18 +339,19 @@ class NonperturbativeSet(object):
         def wf(self, zero=-1):
             """ The wavefunction at the zero of the field number `zero`.
             """
+            total_zeros = len(list(filter(lambda x: x.find("wf_") != -1, os.listdir(self.folder))))
             if zero == -1:
                 wavefn = import_petsc_vec(
                     os.path.join(self.folder, "wf_final.dat"))
                 cols = pd.MultiIndex.from_tuples([(self.intensity, self.cycles*2)], names=["intensity", "zero"])
                 return pd.DataFrame(wavefn, index=self.get_prototype(), columns=cols)
-            elif zero < self.cycles * 2:
+            elif zero < total_zeros - 1:
                 wavefn = import_petsc_vec(
                     os.path.join(self.folder, "wf_" + str(zero) + ".dat"))
                 cols = pd.MultiIndex.from_tuples([(self.intensity, zero)], names=["intensity", "zero"])
                 return pd.DataFrame(wavefn, index=self.get_prototype(), columns=cols)
             else:
-                raise Exception(zero, "n not less than ", self.cycles)
+                raise Exception(zero, "n not less than ", total_zeros)
 
         def gs_population(self, zero=-1):
             """get the ground state population at the zero of the
@@ -385,7 +410,7 @@ def sum_dipoles(df, dipoles):
 
 def get_stft_data(folder, t=None, name="All",
                   window_fn=flattop,
-                  cycles=5, freq=None, ra=[0, -1], filt=None):
+                  cycles=5, freq=None, ra=[0, -1], filt=None, dt=5):
     if freq is None:
         freq = cycles
     if t is not None:
@@ -411,7 +436,7 @@ def get_stft_data(folder, t=None, name="All",
         ra[1] = dipole.time[-1]
 
     window = np.searchsorted(dipole.time, [period * cycles], "left")[0]
-    jump = window - 100 # int(window_fn.rov * window)
+    jump = int(dt / (dipole.time[1] - dipole.time[0]))  # int(window_fn.rov * window)
 
     ra[0] = ra[0] - window/2.
     ra[1] = ra[1] + window/2.

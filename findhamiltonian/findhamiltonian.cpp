@@ -112,6 +112,8 @@ double dipole_matrix_element( double r, void* params )
     return left.val * r * r * r * right.val;
 }
 
+typedef std::complex<double> scalar;
+
 int main( int argc, const char** argv )
 {
     int ac = argc;
@@ -124,16 +126,19 @@ int main( int argc, const char** argv )
 
     PetscInitialize( &ac, &av, PETSC_NULL, PETSC_NULL );
 
-    HamiltonianParameters<PetscReal> params( argc, argv, MPI_COMM_WORLD );
+    HamiltonianParameters<scalar> params( argc, argv, MPI_COMM_WORLD );
     if ( params.rank() == 0 ) std::cout << params.print();
 
     std::signal(SIGSEGV, handler);
 
     // decltype( params.basis_parameters()->grid() ) grid;
-    std::vector<double> grid;
+    std::vector<scalar> grid;
     auto prototype = params.prototype();
 
     grid = params.basis_parameters()->grid();
+
+    if (!params.rank())
+      std::cout << "grid size: " << grid.size() << " (last value: " << grid.back() << ")" << std::endl;
 
     Mat H;
 
@@ -160,15 +165,15 @@ int main( int argc, const char** argv )
             };
         }
 
-        std::function<Range<typename std::vector<double>::iterator>( BasisID )>
+        std::function<Range<typename std::vector<scalar>::iterator>( BasisID )>
             import_wf = [&params,
                       &grid ]( BasisID a )
-                          ->Range<typename std::vector<double>::iterator>
+                          ->Range<typename std::vector<scalar>::iterator>
                           {
-                              typedef typename std::vector<double>::iterator iterator;
-                              static std::vector<double> l_block1;
+                              typedef typename std::vector<scalar>::iterator iterator;
+                              static std::vector<scalar> l_block1;
                               static int l1 = -1;
-                              static std::vector<double> l_block2;
+                              static std::vector<scalar> l_block2;
                               static int l2 = -1;
                               static bool b = false;
                               // std::cout << "l1: " << l1 << " l2: " << l2 << " l " << a.l << "
@@ -185,7 +190,7 @@ int main( int argc, const char** argv )
                                               grid.size()};
                               else if ( a.l != l1 && a.l != l2 && b ) {
                                   l2 = a.l;
-                                  common::import_binary_to_vector<double>(
+                                  common::import_binary_to_vector<scalar>(
                                           params.basis_parameters()->l_block_filename( a.l ), l_block2 );
                                   b = false;
                                   return Range<iterator>{
@@ -194,7 +199,7 @@ int main( int argc, const char** argv )
                                               grid.size()};
                               } else if ( a.l != l1 && a.l != l2 && !b ) {
                                   l1 = a.l;
-                                  l_block1 = common::import_binary_to_vector<double>(
+                                  l_block1 = common::import_binary_to_vector<scalar>(
                                           params.basis_parameters()->l_block_filename( a.l ) , l_block1);
                                   b = true;
                                   return Range<iterator>{
