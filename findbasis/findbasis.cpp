@@ -1,7 +1,7 @@
 #include<common/parameters/BasisParameters.hpp>
 #include<findbasis/single_active_electron.hpp>
 #include<findbasis/numerov.hpp>
-#include<findbasis/finite_difference.hpp>
+//#include<findbasis/finite_difference.hpp>
 //#include<common/special/bspline.hpp>
 //#include<common/math.hpp>
 #include<functional>
