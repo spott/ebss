@@ -53,6 +53,7 @@ class DipoleParameters : public Parameters
                                    ".dat" );
                 }
             }
+            if (ponder) out.push_back( "ponder.dat" );
             out.push_back( "populations.dat" );
             return out;
         }();
@@ -97,6 +98,7 @@ class DipoleParameters : public Parameters
     PetscReal dt_;
     PetscReal t_after_;
     Vec tmp;
+	bool ponder;
 };
 
 PetscScalar DipoleParameters::find_dipole_moment( Mat& dipole, Vec& psi )
@@ -115,7 +117,7 @@ void DipoleParameters::find_dipole_moment_decompositions(
     Mat& dipole,
     Vec& psi,
     std::vector<std::ofstream*>& output_vector,
-    std::vector<BasisID>& prototype )
+    std::vector<BasisID>& prototype, double ef)
 {
     PetscScalar t = this->find_dipole_moment( dipole, psi );
     if ( rank() == 0 ) {
@@ -312,6 +314,7 @@ void DipoleParameters::get_parameters()
             ->getDoubles( decomp_splits );
         type_ = split_type::Energy;
     }
+	ponder = opt.isSet("-dipole_ponder");
 
     opt.get( "-dipole_filename" )->getString( dipole_filename_ );
     dipole_filename_ = common::absolute_path( dipole_filename_ );
@@ -391,6 +394,14 @@ void DipoleParameters::register_parameters()
         "Split the dipole moment into contributions greater than and less "
         "than x, for each x (x is the energy)",
         std::string( prefix ).append( "decomposition_energy\0" ).c_str() );
+    opt.add(
+        "",
+        0,
+        0,
+        ',',
+        "Split the dipole moment into contributions greater than and less "
+        "than x, for each x (x is the energy)",
+        std::string( prefix ).append( "decomposition_ponder\0" ).c_str() );
     opt.add( "Dipole.dat",
              0,
              1,

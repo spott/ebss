@@ -107,68 +107,59 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
     Vec eigenvector;
     MatGetVecs( *( cntx->D ), PETSC_NULL, &eigenvector );
 
+	PetscScalar eff = ef;
+	//bool at_zero = false;
+	double dt_ = cntx->laser->dt();
     while ( t < maxtime ) {
 
-        MatCopy( *( cntx->D ), *A, SAME_NONZERO_PATTERN ); // A = D
-
+		auto ef = eff;
         // ef-forward:
-        PetscScalar eff = cntx->laser->efield( t + cntx->laser->dt() );
+        eff = cntx->laser->efield( t + cntx->laser->dt() );
+		t += cntx->laser->dt();
+//		if (step > 2 && math::signum(eff.real()) != math::signum(ef.real()))
+//		{
+//			auto ddt = dt_ / 2.;
+//			while( std::abs(eff ) > 1e-15 and (math::signum(eff.real()) == math::signum(ef.real())) )
+//			{
+//				if (math::signum(eff.real()) != math::signum(ef.real()))
+//				{	
+//					dt_ -= ddt;
+//				}
+//				else if (math::signum(eff.real()) == math::signum(ef.real()))
+//				{	
+//					dt_ += ddt;
+//				}
+//				eff = cntx->laser->efield(t + dt_);
+//				ddt /= 2.;
+//			}
+//			t = t + dt_;
+//			cn_factor = std::complex<double>(0, -.5 * dt_); 
+//			dt_ = cntx->laser->dt();
+//		}
+//		else
+//		{
+//			t += dt_;
+//			cn_factor = std::complex<double>(0, -.5 * dt_); 
+//		}
+        MatCopy( *( cntx->D ), *A, SAME_NONZERO_PATTERN ); // A = D
         // This has different 't's on both sides:
-        MatScale( *A, ( ef + eff ) / 2. ); // A = ef(t) * D
+        MatScale( *A, ( ef )); // A = ef(t) * D
         MatDiagonalSet( *A, *( cntx->H ),
                         INSERT_VALUES ); // A = ef(t) * D + H_0
-        // find eigenvalues and vectors:
-        if ( false ) {
-
-            EPSSetOperators( eps, *A, PETSC_NULL );
-            EPSSetProblemType( eps, EPS_HEP );
-            EPSSetType( eps, EPSKRYLOVSCHUR );
-            EPSSetWhichEigenpairs( eps, EPS_TARGET_REAL );
-            EPSSetTarget( eps, -0.903801 );
-            EPSSetDimensions( eps, 1000, PETSC_DEFAULT, PETSC_DEFAULT );
-
-            EPSSetInitialSpace( eps, 1, &tmp );
-
-            EPSSolve( eps );
-
-            int nconv;
-            EPSGetConverged( eps, &nconv );
-
-            if ( cntx->hparams->rank() == 0 )
-                std::cout << "converged: " << nconv << std::endl;
-            PetscScalar bound_total = 0;
-            for ( int i = nconv; i > 0; i-- ) {
-                PetscScalar ev;
-                EPSGetEigenpair( eps, i - 1, &ev, PETSC_NULL, eigenvector,
-                                 PETSC_NULL );
-
-                if ( ev.real() < 0 ) {
-                    // get projection:
-                    PetscScalar projection = std::complex<double>( 1, 1 );
-
-                    VecDot( tmp, eigenvector, &projection );
-                    if ( cntx->hparams->rank() == 0 )
-                        std::cout
-                            << "projection " << i << ": (energy = " << ev
-                            << ") is " << projection << ", population is "
-                            << projection* std::conj( projection ) << "\n";
-                    bound_total += projection * std::conj( projection );
-                }
-            }
-            if ( cntx->hparams->rank() == 0 )
-                population << t << ", " << bound_total.real() << std::endl;
-        }
 
         MatScale( *A, cn_factor ); // A = - i * .5 * dt [ ef(t) * D + H_0 ]
         MatShift( *A,
                   std::complex<double>( 1, 0 ) ); // A = - i * .5 * dt [
                                                   // ef(t) * D + H_0 ] + 1
         MatMult( *A, *wf, tmp );                  // A u_n = tmp
-        MatScale( *A, std::complex<double>( -1, 0 ) ); // A = i * .5 dt
-        // [ef(t+dt) * D + H_0 ]
-        // - 1
+        MatCopy( *( cntx->D ), *A, SAME_NONZERO_PATTERN ); // A = D
+        // This has different 't's on both sides:
+        MatScale( *A, ( eff )); // A = eff(t) * D
+        MatDiagonalSet( *A, *( cntx->H ),
+                        INSERT_VALUES ); // A = eff(t) * D + H_0
+        MatScale( *A, -cn_factor ); // A = i * .5 dt[ef(t+dt) * D + H_0 ]
         MatShift(
-            *A, std::complex<double>( 2, 0 ) ); // A = i * .5 dt [ef(t+dt)
+            *A, std::complex<double>( 1, 0 ) ); // A = i * .5 dt [ef(t+dt)
                                                 // * D + H_0 ] + 1
 
 
@@ -192,8 +183,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
         }
 
         // look at the next point
-        t += cntx->laser->dt();
-        ef = cntx->laser->efield( t );
+		//if we would be at a zero, search for the ACTUAL zero:
 
         // check if we are "in" a pulse now:
         if ( !cntx->laser->in_pulse( t ) ) {
@@ -221,7 +211,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
             // write out the next zero:
             if ( cntx->hparams->rank() == 0 )
                 std::cout << "time: " << t << " step: " << step
-                          << " efield: " << ef << " norm-1: " << norm - 1
+                          << " efield: " << eff.real() << " norm-1: " << norm - 1
                           << " *" << zero << std::endl;
             wf_name.str( "" );
             wf_name << "./wf_" << zero << ".dat";
@@ -237,14 +227,11 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
 
         step++;
         // at the zero of the field: write out the vector:
-        if ( ( ef.real() <= 0. &&
-               cntx->laser->efield( t - cntx->laser->dt() ).real() > 0 ) ||
-             ( ef.real() >= 0 &&
-               cntx->laser->efield( t - cntx->laser->dt() ).real() <
-                   0 ) ) {
+        if ( math::signum(ef.real()) != math::signum(eff.real()))
+		{
             if ( cntx->hparams->rank() == 0 )
                 std::cout << "time: " << t << " step: " << step
-                          << " efield: " << ef << " norm-1: " << norm - 1
+                          << " efield: " << eff.real() << " norm-1: " << norm - 1
                           << " *" << std::endl;
             std::ostringstream wf_name;
             wf_name << "./wf_" << zero << ".dat";
@@ -259,7 +246,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
         {
             if ( cntx->hparams->rank() == 0 ) {
                 time.push_back( t );
-                efvec.push_back( ef.real() );
+                efvec.push_back( eff.real() );
             }
             cntx->dipole->find_dipole_moment_decompositions(
                 *( cntx->D ), *wf, dipole, cntx->hparams->prototype() );
@@ -270,10 +257,16 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
             VecNorm( prob, NORM_2, &norm );
             if ( cntx->hparams->rank() == 0 )
                 std::cout << "time: " << t << " step: " << step
-                          << " efield: " << ef << " norm-1: " << norm - 1
+                          << " efield: " << eff.real() << " norm-1: " << norm - 1
                           << " norm lost to absorbers: " << norm_lost
                           << std::endl;
         }
+		else
+            if ( cntx->hparams->rank() == 0 )
+                std::cout << "time: " << t << " step: " << step
+                          << " efield: " << eff.real()
+                          << std::endl;
+
         if ( sig > 0 ) break;
     }
     file_name = std::string( "./wf_final.dat" );
