@@ -32,12 +32,10 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
     KSPSetType( ksp, KSPGMRES );
     KSPGetPC( ksp, &pc );
     PCSetType( pc, PCJACOBI );
-    KSPSetTolerances( ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT,
-                      PETSC_DEFAULT );
+    KSPSetTolerances( ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT );
     KSPSetFromOptions( ksp );
 
-    PetscScalar cn_factor =
-        std::complex<double>( 0, -0.5 * cntx->laser->dt() );
+    PetscScalar cn_factor = std::complex<double>( 0, -0.5 * cntx->laser->dt() );
     PetscReal t = 0;
     PetscScalar ef = cntx->laser->efield( t );
     PetscReal maxtime = cntx->laser->max_time();
@@ -68,8 +66,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
     // VecPointwiseMult(*(cntx->H), *(cntx->H), abs);
 
     std::string file_name = std::string( "./absorber.dat" );
-    PetscViewerASCIIOpen( cntx->hparams->comm(), file_name.c_str(),
-                          &view );
+    PetscViewerASCIIOpen( cntx->hparams->comm(), file_name.c_str(), &view );
     PetscViewerSetFormat( view, PETSC_VIEWER_ASCII_SYMMODU );
     VecView( abs, view );
 
@@ -85,8 +82,8 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
         assert( cntx->dipole->dipole_filename().size() > 0 );
         for ( auto& a : cntx->dipole->dipole_filename() ) {
             try {
-                dipole.emplace_back( new std::ofstream(
-                    a, std::ios::binary | std::ios::ate ) );
+                dipole.emplace_back(
+                    new std::ofstream( a, std::ios::binary | std::ios::ate ) );
             } catch ( ... ) {
                 std::cerr << "couldn't open the dipole file, oops... it "
                              "won't be "
@@ -107,66 +104,66 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
     Vec eigenvector;
     MatGetVecs( *( cntx->D ), PETSC_NULL, &eigenvector );
 
-	PetscScalar eff = ef;
-	//bool at_zero = false;
-	double dt_ = cntx->laser->dt();
+    PetscScalar eff = ef;
+    // bool at_zero = false;
+    double dt_ = cntx->laser->dt();
     while ( t < maxtime ) {
 
-		auto ef = eff;
+        auto ef = eff;
         // ef-forward:
         eff = cntx->laser->efield( t + cntx->laser->dt() );
-		t += cntx->laser->dt();
-//		if (step > 2 && math::signum(eff.real()) != math::signum(ef.real()))
-//		{
-//			auto ddt = dt_ / 2.;
-//			while( std::abs(eff ) > 1e-15 and (math::signum(eff.real()) == math::signum(ef.real())) )
-//			{
-//				if (math::signum(eff.real()) != math::signum(ef.real()))
-//				{	
-//					dt_ -= ddt;
-//				}
-//				else if (math::signum(eff.real()) == math::signum(ef.real()))
-//				{	
-//					dt_ += ddt;
-//				}
-//				eff = cntx->laser->efield(t + dt_);
-//				ddt /= 2.;
-//			}
-//			t = t + dt_;
-//			cn_factor = std::complex<double>(0, -.5 * dt_); 
-//			dt_ = cntx->laser->dt();
-//		}
-//		else
-//		{
-//			t += dt_;
-//			cn_factor = std::complex<double>(0, -.5 * dt_); 
-//		}
+        t += cntx->laser->dt();
+        //		if (step > 2 && math::signum(eff.real()) !=
+        //math::signum(ef.real()))
+        //		{
+        //			auto ddt = dt_ / 2.;
+        //			while( std::abs(eff ) > 1e-15 and (math::signum(eff.real()) ==
+        //math::signum(ef.real())) )
+        //			{
+        //				if (math::signum(eff.real()) != math::signum(ef.real()))
+        //				{
+        //					dt_ -= ddt;
+        //				}
+        //				else if (math::signum(eff.real()) ==
+        //math::signum(ef.real()))
+        //				{
+        //					dt_ += ddt;
+        //				}
+        //				eff = cntx->laser->efield(t + dt_);
+        //				ddt /= 2.;
+        //			}
+        //			t = t + dt_;
+        //			cn_factor = std::complex<double>(0, -.5 * dt_);
+        //			dt_ = cntx->laser->dt();
+        //		}
+        //		else
+        //		{
+        //			t += dt_;
+        //			cn_factor = std::complex<double>(0, -.5 * dt_);
+        //		}
         MatCopy( *( cntx->D ), *A, SAME_NONZERO_PATTERN ); // A = D
         // This has different 't's on both sides:
-        MatScale( *A, ( ef )); // A = ef(t) * D
+        MatScale( *A, ( ef ) ); // A = ef(t) * D
         MatDiagonalSet( *A, *( cntx->H ),
                         INSERT_VALUES ); // A = ef(t) * D + H_0
 
         MatScale( *A, cn_factor ); // A = - i * .5 * dt [ ef(t) * D + H_0 ]
-        MatShift( *A,
-                  std::complex<double>( 1, 0 ) ); // A = - i * .5 * dt [
-                                                  // ef(t) * D + H_0 ] + 1
-        MatMult( *A, *wf, tmp );                  // A u_n = tmp
+        MatShift( *A, std::complex<double>( 1, 0 ) ); // A = - i * .5 * dt [
+                                                      // ef(t) * D + H_0 ] + 1
+        MatMult( *A, *wf, tmp );                      // A u_n = tmp
         MatCopy( *( cntx->D ), *A, SAME_NONZERO_PATTERN ); // A = D
         // This has different 't's on both sides:
-        MatScale( *A, ( eff )); // A = eff(t) * D
+        MatScale( *A, ( eff ) ); // A = eff(t) * D
         MatDiagonalSet( *A, *( cntx->H ),
                         INSERT_VALUES ); // A = eff(t) * D + H_0
-        MatScale( *A, -cn_factor ); // A = i * .5 dt[ef(t+dt) * D + H_0 ]
-        MatShift(
-            *A, std::complex<double>( 1, 0 ) ); // A = i * .5 dt [ef(t+dt)
-                                                // * D + H_0 ] + 1
+        MatScale( *A, -cn_factor );      // A = i * .5 dt[ef(t+dt) * D + H_0 ]
+        MatShift( *A, std::complex<double>( 1, 0 ) ); // A = i * .5 dt [ef(t+dt)
+                                                      // * D + H_0 ] + 1
 
 
-        KSPSetOperators( ksp, *A,
-                         *A ); //, SAME_NONZERO_PATTERN); // Solve[ A x
-                               // = tmp ]
-                               // for x
+        KSPSetOperators( ksp, *A, *A ); //, SAME_NONZERO_PATTERN); // Solve[ A x
+                                        // = tmp ]
+                                        // for x
         KSPSolve( ksp, tmp, *wf );
 
         if ( cntx->absorber->type() == "cosine" ) {
@@ -183,7 +180,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
         }
 
         // look at the next point
-		//if we would be at a zero, search for the ACTUAL zero:
+        // if we would be at a zero, search for the ACTUAL zero:
 
         // check if we are "in" a pulse now:
         if ( !cntx->laser->in_pulse( t ) ) {
@@ -195,9 +192,8 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
                           << " * " << zero << std::endl;
             std::ostringstream wf_name;
             wf_name << "./wf_" << zero << ".dat";
-            PetscViewerBinaryOpen( cntx->hparams->comm(),
-                                   wf_name.str().c_str(), FILE_MODE_WRITE,
-                                   &view );
+            PetscViewerBinaryOpen( cntx->hparams->comm(), wf_name.str().c_str(),
+                                   FILE_MODE_WRITE, &view );
             zero++;
             // analytically propagate for said time:
             std::cout << "analytically propagating the pulse: ";
@@ -211,13 +207,13 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
             // write out the next zero:
             if ( cntx->hparams->rank() == 0 )
                 std::cout << "time: " << t << " step: " << step
-                          << " efield: " << eff.real() << " norm-1: " << norm - 1
-                          << " *" << zero << std::endl;
+                          << " efield: " << eff.real()
+                          << " norm-1: " << norm - 1 << " *" << zero
+                          << std::endl;
             wf_name.str( "" );
             wf_name << "./wf_" << zero << ".dat";
-            PetscViewerBinaryOpen( cntx->hparams->comm(),
-                                   wf_name.str().c_str(), FILE_MODE_WRITE,
-                                   &view );
+            PetscViewerBinaryOpen( cntx->hparams->comm(), wf_name.str().c_str(),
+                                   FILE_MODE_WRITE, &view );
             // VecView( *wf, view );
             zero++;
             std::cout << output::reset;
@@ -227,17 +223,15 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
 
         step++;
         // at the zero of the field: write out the vector:
-        if ( math::signum(ef.real()) != math::signum(eff.real()))
-		{
+        if ( math::signum( ef.real() ) != math::signum( eff.real() ) ) {
             if ( cntx->hparams->rank() == 0 )
                 std::cout << "time: " << t << " step: " << step
-                          << " efield: " << eff.real() << " norm-1: " << norm - 1
-                          << " *" << std::endl;
+                          << " efield: " << eff.real()
+                          << " norm-1: " << norm - 1 << " *" << std::endl;
             std::ostringstream wf_name;
             wf_name << "./wf_" << zero << ".dat";
-            PetscViewerBinaryOpen( cntx->hparams->comm(),
-                                   wf_name.str().c_str(), FILE_MODE_WRITE,
-                                   &view );
+            PetscViewerBinaryOpen( cntx->hparams->comm(), wf_name.str().c_str(),
+                                   FILE_MODE_WRITE, &view );
             VecView( *wf, view );
             zero++;
         }
@@ -249,7 +243,11 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
                 efvec.push_back( eff.real() );
             }
             cntx->dipole->find_dipole_moment_decompositions(
-                *( cntx->D ), *wf, dipole, cntx->hparams->prototype() );
+                *( cntx->D ), *wf, dipole, cntx->hparams->prototype(),
+                ( std::pow( cntx->laser->envelope( t, 0 ), 2 ) *
+                  cntx->laser->intensity() /
+                  ( 4. * cntx->laser->frequency() * cntx->laser->frequency() ) )
+                    .real() );
         }
         if ( !( step % 100 ) || step < 100 ) {
             VecCopy( *wf, prob );
@@ -257,15 +255,13 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
             VecNorm( prob, NORM_2, &norm );
             if ( cntx->hparams->rank() == 0 )
                 std::cout << "time: " << t << " step: " << step
-                          << " efield: " << eff.real() << " norm-1: " << norm - 1
+                          << " efield: " << eff.real()
+                          << " norm-1: " << norm - 1
                           << " norm lost to absorbers: " << norm_lost
                           << std::endl;
-        }
-		else
-            if ( cntx->hparams->rank() == 0 )
-                std::cout << "time: " << t << " step: " << step
-                          << " efield: " << eff.real()
-                          << std::endl;
+        } else if ( cntx->hparams->rank() == 0 )
+            std::cout << "time: " << t << " step: " << step
+                      << " efield: " << eff.real() << std::endl;
 
         if ( sig > 0 ) break;
     }
@@ -280,17 +276,15 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
         try {
             common::export_vector_binary( "time.dat", time );
         } catch ( ... ) {
-            std::cerr
-                << "couldn't open the time file, oops... it won't be "
-                   "written to disk" << std::endl;
+            std::cerr << "couldn't open the time file, oops... it won't be "
+                         "written to disk" << std::endl;
         }
         try {
             common::export_vector_binary( cntx->laser->laser_filename(),
                                           efvec );
         } catch ( ... ) {
-            std::cerr
-                << "couldn't open the efvec file, oops... it won't be "
-                   "written to disk" << std::endl;
+            std::cerr << "couldn't open the efvec file, oops... it won't be "
+                         "written to disk" << std::endl;
         }
 
         // close the dipole files

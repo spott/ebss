@@ -69,7 +69,7 @@ class DipoleParameters : public Parameters
         Mat& dipole,
         Vec& psi,
         std::vector<std::ofstream*>& output_vector,
-        std::vector<BasisID>& prototype );
+        std::vector<BasisID>& prototype, double pondermotive_energy );
 
     virtual std::string print() const;
 
@@ -117,7 +117,7 @@ void DipoleParameters::find_dipole_moment_decompositions(
     Mat& dipole,
     Vec& psi,
     std::vector<std::ofstream*>& output_vector,
-    std::vector<BasisID>& prototype, double ef)
+    std::vector<BasisID>& prototype, double pondermotive_energy)
 {
     PetscScalar t = this->find_dipole_moment( dipole, psi );
     if ( rank() == 0 ) {
@@ -159,6 +159,11 @@ void DipoleParameters::find_dipole_moment_decompositions(
         }
         return sections_vec;
     }();
+    if (ponder)
+        {
+            sections = {{prototype.front().e.real() - 1, 0}, {0,pondermotive_energy},{pondermotive_energy, 2*pondermotive_energy},{2*pondermotive_energy, prototype.back().e.real() + 1}};
+            type_ = split_type::Energy;
+        }
 
     int n = 1;
     for ( auto sectiona = sections.begin(); sectiona < sections.end();
