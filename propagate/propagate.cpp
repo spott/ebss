@@ -232,9 +232,14 @@ Monitor( TS, PetscInt steps, PetscReal time, Vec x, void* ctx )
     PetscReal norm;
 
     VecNorm( x, NORM_2, &norm );
-    if ( cntx->hparams->rank() == 0 )
+    if ( cntx->hparams->rank() == 0 ){
         std::cout << "time: " << time << " step: " << steps
                   << " norm-1: " << norm - 1 << std::endl;
+	//if ( norm-1 < -0.5 || norm-1 > 0.5){
+	//std::cerr << "norm-1 went out of range (-0.5,0.5)." << endl;
+	//return 0;
+	//}
+    }
 
     VecView( x, PETSC_VIEWER_DRAW_WORLD );
     return 0;
