@@ -18,13 +18,14 @@
 #include <findbasis/single_active_electron.hpp>
 
 #include <boost/mpi.hpp>
-//#include <boost/serialization.hpp>
-//#define DEBUG
-//#define DEBUGNODES
-//#define DEBUGEXCITED
-//#define DEBUGBOUND
-//#define DEBUGEND
-//#define DEBUGFINAL
+#include <boost/serialization/serialization.hpp>
+#define DEBUG
+// #define DEBUGGROUND
+// #define DEBUGNODES
+// #define DEBUGEXCITED
+// #define DEBUGBOUND
+// #define DEBUGEND
+#define DEBUGFINAL
 // other
 #if defined( DEBUG )
 #include <../include/gnuplot_i.hpp>
@@ -55,7 +56,7 @@ void wait_for_key()
 
 #if defined( DEBUG )
 template <typename scalar>
-oid display_function( Gnuplot& g,
+void display_function( Gnuplot& g,
                        const std::vector<scalar>& grid,
                        const std::vector<scalar>& wf,
                        int point = -1,
@@ -360,7 +361,7 @@ find_ground_state( const BasisID state,
                    const scalar err )
 {
 // finding the ground state is easier than finding other states.
-#ifdef DEBUGGROUND
+#if defined(DEBUGGROUND) || defined(DEBUGGROUND1)
     Gnuplot g( "wf" );
 #endif
     err_out << "FINDING GROUND STATE" << std::endl;
@@ -441,7 +442,7 @@ find_ground_state( const BasisID state,
                   << ", correct_nodes: " << correct_nodes << std::endl;
         err_out << it << std::endl;
 
-#ifdef DEBUGGROUND
+#ifdef DEBUGGROUND1
         display_function(
             g,
             rgrid,
@@ -471,10 +472,15 @@ find_ground_state( const BasisID state,
     f.resize( grid.points );
     wf = std::vector<scalar>( grid.points,
                               std::numeric_limits<scalar>::quiet_NaN() );
+    // if (err > 1e-10)
+    //     return converged;
+
+    scalar scale_factor = 1e-50;
 
     err_out << "FINDING GROUND STATE pt 2" << std::endl;
     err_out << "====================" << std::endl;
     err_out << "====================" << std::endl;
+    
     while ( !converged && it.it < 1000 ) {
         it.it++;
         it.turnover = make_f( rgrid, state, it.energy, grid.dx(), pot, f );
@@ -496,12 +502,25 @@ find_ground_state( const BasisID state,
 
         // the last couple points:
         wf.back() = 0;
-        wf[wf.size() - 2] = grid.dx();
+        wf[wf.size() - 2] = grid.dx() * scale_factor;
         wf[wf.size() - 3] = ( 12 - f[f.size() - 2] * 10 ) *
                             wf[wf.size() - 2] / f[wf.size() - 2];
 
-
-        auto nodes = numerov_from_both_sides( f, wf, it.turnover );
+        std::array<int, 2> nodes;
+    infty:
+        try{
+            nodes = numerov_from_both_sides( f, wf, it.turnover );
+        } catch (const std::out_of_range e) {
+            if (wf[0] == 0 or wf[1] == 0 or wf[wf.size() - 2] == 0 or wf[wf.size() - 3] == 0)
+                throw e;
+            err_out << "wf.front: " << wf[0] << ", " << wf[1] << ", " << wf[2] << std::endl;
+            err_out << "wf.back: " << wf.back() << ", " << wf[wf.size() - 2] << ", " << wf[wf.size() - 3] << std::endl;
+            wf[wf.size() - 1] /= 1e4;
+            wf[wf.size() - 2] /= 1e4;
+            wf[wf.size() - 3] /= 1e4;
+            scale_factor /= 1e4;
+            goto infty;
+        }
         normalize( wf, rgrid, grid.dx() );
 
 
@@ -522,8 +541,7 @@ find_ground_state( const BasisID state,
             wf,
             it.turnover - 1,
             true,
-            {static_cast<double>( rgrid[it.turnover] - 2 ),
-             static_cast<double>( rgrid[it.turnover] + 2 )} );
+            {0 , static_cast<double>( rgrid[it.turnover]) * 1.5} );
 // display_function( g, rgrid, wf, it.turnover - 1, true );
 #endif
 
@@ -911,7 +929,7 @@ find_basis( const BasisID state,
     err_out << "state: " << state << std::endl;
 
     iteration<scalar> it;
-    scalar gserr = 1e-5;
+    scalar gserr = 1e-8;
     if ( state.n == 1 ) gserr = err;
 
     if ( state.e.real() < 0 )
@@ -986,12 +1004,24 @@ converged:
     err_out << "FINAL CONVERGENCE: " << std::endl;
     while ( !converged && it.it < 1100 ) {
         err_out << it << std::endl;
-        numerov_from_both_sides(
-            f,
-            wf,
-            ( std::max(
-                it.turnover,
-                ( ( turnover > f.size() - 2 ) ? 0 : turnover ) ) ) );
+
+    infty2:
+        try{
+            numerov_from_both_sides(
+                f,
+                wf,
+                ( std::max(
+                    it.turnover,
+                    ( ( turnover > f.size() - 2 ) ? 0 : turnover ) ) ) );
+        } catch (const std::out_of_range e) {
+            if (wf[0] == 0 or wf[1] == 0 or wf[wf.size() - 2] == 0 or wf[wf.size() - 3] == 0)
+                throw e;
+            wf[wf.size() - 1] /= 1e8;
+            wf[wf.size() - 2] /= 1e8;
+            wf[wf.size() - 3] /= 1e8;
+            goto infty2;
+        }
+
         normalize( wf, rgrid, grid.dx() );
         auto e = derivatives( wf, f, it.turnover );
         err_out << " 1st deriv: " << e[0] << ": " << e[2] << "," << e[3] << std::endl
@@ -1015,6 +1045,7 @@ converged:
             it.it++;
         } else {
             converged = true;
+            check=true;
         }
     }
 
@@ -1033,7 +1064,7 @@ converged:
                           rgrid,
                           wf,
                           it.turnover - 1,
-                          true,
+                          false,
                           {0, static_cast<double>( rgrid.back() )} );
         display_function(
             g2,
