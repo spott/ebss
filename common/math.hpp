@@ -8,9 +8,11 @@
 //#include<common/special/coulomb/test_rec_rel.>
 
 //fftw3:
+#if defined(USE_FFTW)
 extern "C" {
 #include <fftw3.h>
 }
+#endif
 
 //stl:
 #include<complex>
@@ -866,6 +868,7 @@ std::vector<T> second_difference( const std::vector<T>& in, const T& h)
 }
 
 //fourier
+#if defined(USE_FFTW)
 std::vector< std::complex<double> > fourier(std::vector< double >&& time_series )
 {
     std::vector< std::complex<double> > out( (time_series.size()) );
@@ -877,6 +880,7 @@ std::vector< std::complex<double> > fourier(std::vector< double >&& time_series 
     fftw_destroy_plan(p);
     return out;
 }
+#endif
 
 //windowing functions:
 
