@@ -70,6 +70,7 @@ public:
         opt.get("-hamiltonian_folder")->getString(folder_);
 
         analytic_ = opt.isSet("-hamiltonian_analytical");
+        bad_ = opt.isSet("-hamiltonian_bad_ordering");
 
         folder_ = common::absolute_path(folder_);
 
@@ -145,24 +146,43 @@ public:
                             }
                         }
                     }
+                else if(bad_)
+                    for(int n = 1; n <= nmax_; ++n )
+                        {
+                            for (int l = 0; l <= lmax_; ++l)
+                                {
+                                    if (l <= n-1)
+                                        {
+                                            auto loc = std::find_if(
+                                                start, end, [n, l](const BasisID& a ) {
+                                                    return a.n == n && a.l == l;
+                                                } );
+                                            if (loc == end)
+                                                throw std::out_of_range("didn't find the value we were looking for when making the prototype");
+                                            else
+                                                prototype_.push_back(*loc);
+                                        }
+                                    else continue;
+                                }
+                    }
                 else
                     for(int l = 0; l <= lmax_; ++l )
-                    {
-                        for (int n = 1; n <= nmax_; ++n)
                         {
-                            if (l <= n-1)
-                            {
-                                auto loc = std::find_if(
-                                    start, end, [n, l](const BasisID& a ) {
-                                        return a.n == n && a.l == l;
-                                    } );
-                                if (loc == end)
-                                    throw std::out_of_range("didn't find the value we were looking for when making the prototype");
-                                else
-                                    prototype_.push_back(*loc);
-                            }
-                            else continue;
-                        }
+                            for (int n = 1; n <= nmax_; ++n)
+                                {
+                                    if (l <= n-1)
+                                        {
+                                            auto loc = std::find_if(
+                                                start, end, [n, l](const BasisID& a ) {
+                                                    return a.n == n && a.l == l;
+                                                } );
+                                            if (loc == end)
+                                                throw std::out_of_range("didn't find the value we were looking for when making the prototype");
+                                            else
+                                                prototype_.push_back(*loc);
+                                        }
+                                    else continue;
+                                }
                     }
                 //for(const auto i: *(this->basis_->basis_prototype()))
                 //{
@@ -229,6 +249,7 @@ private:
     int nmax_;
     int lmax_;
     int mmax_;
+    bool bad_;
     size_t mem_;
     std::string folder_;
     std::string basis_config_;
@@ -382,6 +403,14 @@ void HamiltonianParameters<write_type_>::register_parameters()
             "calculate the analytical solution",
             std::string(prefix).append("analytical\0").c_str()
            );
+    opt.add(
+        "",
+        0,
+        0,
+        0,
+        "Bad ordering",
+        std::string(prefix).append("bad_ordering\0").c_str()
+        );
     opt.add(
             "193274000",
             0,
