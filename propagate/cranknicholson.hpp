@@ -19,10 +19,27 @@ namespace cranknicholson
 
 volatile sig_atomic_t sig = 0;
 
-void signal_handler( int signal ) { sig = signal; }
+// PetscErrorCode signal_handler( int signal, void*) {
+//     std::cerr << "Caught signal: " << signal << "... " << std::endl;
+//     sig = signal; }
+void signal_handler( int signal) {
+    std::cerr << "Caught signal: " << signal << "... " << std::endl;
+    sig = signal; }
 
-PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
+PetscErrorCode solve( Vec* wf, context* cntx, Mat* A)
 {
+    // PetscPushSignalHandler(&signal_handler, NULL);
+    bool restore = true;
+    PetscInt zero = 0;
+    try {
+        std::cout << "looking for recovery file" << std::endl;
+        zero = common::import_vector_binary<int>("./failed").back();
+        std::cout << "found recovery file, got: " << zero << " from it" << std::endl;
+    } catch (...) {
+        std::cout << "didn't find a recovery file.  proceeding as if from scratch" << std::endl;
+        restore = false;
+        zero = 0;
+    }
     PetscViewer view;
     KSP ksp;
     PC pc;
@@ -35,15 +52,44 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
     KSPSetTolerances( ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT );
     KSPSetFromOptions( ksp );
 
+    std::vector<PetscReal> efvec;
+    std::vector<PetscReal> time;
+
     PetscScalar cn_factor = std::complex<double>( 0, -0.5 * cntx->laser->dt() );
     PetscReal t = 0;
     PetscScalar ef = cntx->laser->efield( t );
     PetscReal maxtime = cntx->laser->max_time();
     PetscInt step = 0;
+
+    if (restore)
+        {
+            std::cout << "getting wf " << std::endl;
+            std::string filename = std::string("wf_interupted.dat");
+            VecDestroy(wf);
+            *wf = common::petsc_binary_read<Vec>(filename, cntx->hparams->comm());
+
+            if ( cntx->hparams->rank() == 0 ) {
+                std::cout << "getting time and ef " << std::endl;
+                time = common::import_vector_binary<PetscReal>( "time.dat");
+                efvec = common::import_vector_binary<PetscReal>(cntx->laser->laser_filename());
+                t = time.back();
+                ef = efvec.back();
+                step = time.size();
+            }
+            else
+            {
+                std::cout << "getting time and ef " << std::endl;
+                auto temp_time = common::import_vector_binary<PetscReal>( "time.dat");
+                auto temp_efvec = common::import_vector_binary<PetscReal>(cntx->laser->laser_filename());
+                t = temp_time.back();
+                ef = temp_efvec.back();
+                step = temp_time.size();
+            }
+        }
+
     Vec tmp;
     Vec prob;
     PetscReal norm;
-    PetscInt zero = 0;
     // PetscInt        p = 0;
     // PetscReal       period = maxtime / (8 * cntx->laser->cycles()) ;
     // PetscReal       p0 = period;
@@ -74,7 +120,6 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
     VecAssemblyBegin( prob );
     VecAssemblyEnd( prob );
 
-    std::vector<PetscReal> efvec;
     std::vector<std::ofstream*> dipole;
     std::ofstream population( "instant_pop.csv", std::ios::ate );
     // dipol( 3 * cntx->dipole->decompositions().size() + 1 );
@@ -95,7 +140,6 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
     }
     // std::vector< std::vector<PetscReal> > dipole( 3 *
     // cntx->dipole->decompositions().size() + 1 );
-    std::vector<PetscReal> time;
 
     PetscReal norm_lost = 0;
 
@@ -111,8 +155,8 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
 
         auto ef = eff;
         // ef-forward:
-        eff = cntx->laser->efield( t + cntx->laser->dt() );
         t += cntx->laser->dt();
+        eff = cntx->laser->efield( t );
         //		if (step > 2 && math::signum(eff.real()) !=
         //math::signum(ef.real()))
         //		{
@@ -263,9 +307,26 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
             std::cout << "time: " << t << " step: " << step
                       << " efield: " << eff.real() << std::endl;
 
-        if ( sig > 0 ) break;
+
+        if ( sig > 0 )
+            {
+                //make recovery vector, write out "zero number"
+                if (cntx->hparams->rank() == 0)
+                    {
+                        auto tvec = std::vector<int>();
+                        tvec.push_back(zero);
+                        common::export_vector_binary("failed",tvec);
+                    }
+                break;
+                //write out wf:
+                //write out time vector:
+                //write out efield vector:
+                // close dipole files
+            }
     }
     file_name = std::string( "./wf_final.dat" );
+    if (sig>0)
+        file_name = std::string( "./wf_interupted.dat");
     PetscViewerBinaryOpen( cntx->hparams->comm(), file_name.c_str(),
                            FILE_MODE_WRITE, &view );
     VecView( *wf, view );
