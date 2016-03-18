@@ -121,14 +121,18 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A)
     VecAssemblyEnd( prob );
 
     std::vector<std::ofstream*> dipole;
-    std::ofstream population( "instant_pop.csv", std::ios::ate );
+    std::ofstream population( "instant_pop.csv", restore ? std::ios::ate : std::ios::out );
     // dipol( 3 * cntx->dipole->decompositions().size() + 1 );
     if ( cntx->hparams->rank() == 0 ) {
         assert( cntx->dipole->dipole_filename().size() > 0 );
         for ( auto& a : cntx->dipole->dipole_filename() ) {
             try {
-                dipole.emplace_back(
-                    new std::ofstream( a, std::ios::binary | std::ios::ate ) );
+                if (restore)
+                    dipole.emplace_back(
+                        new std::ofstream( a, std::ios::binary | std::ios::ate ) );
+                else
+                    dipole.emplace_back(
+                        new std::ofstream( a, std::ios::binary | std::ios::out ) );
             } catch ( ... ) {
                 std::cerr << "couldn't open the dipole file, oops... it "
                              "won't be "
