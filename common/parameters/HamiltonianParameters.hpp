@@ -67,6 +67,7 @@ public:
         opt.get("-hamiltonian_nmax")->getInt(nmax_);
         opt.get("-hamiltonian_lmax")->getInt(lmax_);
         opt.get("-hamiltonian_mmax")->getInt(mmax_);
+        opt.get("-hamiltonian_m")->getInt(m_);
         opt.get("-hamiltonian_folder")->getString(folder_);
 
         analytic_ = opt.isSet("-hamiltonian_analytical");
@@ -140,7 +141,12 @@ public:
                                     if (loc == end)
                                         throw std::out_of_range("didn't find the value we were looking for when making the prototype");
                                     else
-                                        prototype_.push_back(*loc);
+                                        {
+                                            auto state = BasisID(*loc);
+                                            if (m_)
+                                                state.m = m_;
+                                            prototype_.push_back(state);
+                                        }
                                 }
                                 else continue;
                             }
@@ -160,7 +166,12 @@ public:
                                             if (loc == end)
                                                 throw std::out_of_range("didn't find the value we were looking for when making the prototype");
                                             else
-                                                prototype_.push_back(*loc);
+                                                {
+                                                    auto state = BasisID(*loc);
+                                                    if (m_)
+                                                        state.m = m_;
+                                                    prototype_.push_back(state);
+                                                }
                                         }
                                     else continue;
                                 }
@@ -179,7 +190,12 @@ public:
                                             if (loc == end)
                                                 throw std::out_of_range("didn't find the value we were looking for when making the prototype");
                                             else
-                                                prototype_.push_back(*loc);
+                                                {
+                                                    auto state = BasisID(*loc);
+                                                    if (m_)
+                                                        state.m = m_;
+                                                    prototype_.push_back(state);
+                                                }
                                         }
                                     else continue;
                                 }
@@ -201,7 +217,7 @@ public:
                 for (int n = 1; n <= nmax_; ++n)
                 {
                     if (l <= n-1)
-                        prototype_.push_back( {n, l, 0, 0, std::complex<double>( -1./(2. * n * n), 0) } );
+                        prototype_.push_back( {n, l, 0, m_, std::complex<double>( -1./(2. * n * n), 0) } );
                     else
                         continue;
                 }
@@ -250,6 +266,7 @@ private:
     int lmax_;
     int mmax_;
     bool bad_;
+    int m_;
     size_t mem_;
     std::string folder_;
     std::string basis_config_;
@@ -443,6 +460,14 @@ void HamiltonianParameters<write_type_>::register_parameters()
             "Max m value (abs)",
             std::string(prefix).append("mmax\0").c_str()
            );
+    opt.add(
+        "0",
+        0,
+        1,
+        0,
+        "m value",
+        std::string(prefix).append("m\0").c_str()
+        );
     opt.add(
             "",
             1,
