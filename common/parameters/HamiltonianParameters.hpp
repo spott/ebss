@@ -284,6 +284,7 @@ void HamiltonianParameters<write_type_>::save_parameters()
     file << "-hamiltonian_nmax " << nmax_ << std::endl;
     file << "-hamiltonian_lmax " << lmax_ << std::endl;
     file << "-hamiltonian_mmax " << mmax_ << std::endl;
+    file << "-hamiltonian_m " << m_ << std::endl;
     file << "-hamiltonian_folder " << folder_ << std::endl;
     if (!analytic_)
         file << "-hamiltonian_basis_config " << basis_config_ << std::endl;
@@ -301,6 +302,7 @@ void HamiltonianParameters<write_type_>::init_from_file(std::string filename)
     opt.get("-hamiltonian_nmax")->getInt(nmax_);
     opt.get("-hamiltonian_lmax")->getInt(lmax_);
     opt.get("-hamiltonian_mmax")->getInt(mmax_);
+    opt.get("-hamiltonian_m")->getInt(m_);
     opt.get("-hamiltonian_folder")->getString(folder_);
     analytic_ = opt.isSet("-hamiltonian_analytical");
     if (!analytic_)
@@ -387,7 +389,8 @@ std::string HamiltonianParameters<write_type_>::print() const
     out << "hamiltonian_nmax: " << nmax_ << std::endl;
     out << "hamiltonian_lmax: " << lmax_ << std::endl;
     out << "hamiltonian_mmax: " << mmax_ << std::endl;
-    out << "hamiltonian_folder " << folder_ << std::endl;
+    out << "hamiltonian_m: " << m_ << std::endl;
+    out << "hamiltonian_folder: " << folder_ << std::endl;
 	out << "hamiltonian_mem_per_proc " << mem_ << std::endl;
     if (!analytic_)
         out << basis_->print();
