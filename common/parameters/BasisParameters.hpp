@@ -49,7 +49,7 @@ class BasisParameters : public Parameters
             n_only_ = true;
         }
 
-        opt.get( "-basis_charge" )->getInt( charge_ );
+        opt.get( "-basis_charge" )->getDouble( charge_ );
         opt.get( "-basis_nmax" )->getInt( nmax_ );
         opt.get( "-basis_lmax" )->getInt( lmax_ );
         opt.get( "-basis_rmax" )->getDouble( rmax_ );
@@ -120,7 +120,7 @@ class BasisParameters : public Parameters
     {
         return n_;
     };
-    PetscInt charge() const
+    PetscReal charge() const
     {
         return charge_;
     };
@@ -168,7 +168,7 @@ class BasisParameters : public Parameters
     bool fs_;
     bool l_only_;
     bool n_only_;
-    int charge_;
+    double charge_;
     int nmax_;
     int lmax_;
     int l_;
@@ -202,7 +202,7 @@ void BasisParameters<compute_type_, write_type_>::init_from_file(
     register_parameters();
     opt.importFile( filename.c_str(), '#' );
 
-    opt.get( "-basis_charge" )->getInt( charge_ );
+    opt.get( "-basis_charge" )->getDouble( charge_ );
     opt.get( "-basis_nmax" )->getInt( nmax_ );
     opt.get( "-basis_lmax" )->getInt( lmax_ );
     opt.get( "-basis_rmax" )->getDouble( rmax_ );
