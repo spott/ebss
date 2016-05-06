@@ -83,6 +83,13 @@ int main(int argc, const char **argv)
     //call function to find all the energy states here:
     if (params.atom() == "hydrogen")
     {
+        if (params.zeff() != 0.0)
+        {
+            hydrogen.N = 0;
+            hydrogen.Z = params.zeff() - 1;
+            hydrogen.gs_energy += std::pow(2, params.zeff());
+        }
+
         hydrogen.N -= params.charge();
         if ( params.charge() > 0)
         {

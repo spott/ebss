@@ -211,7 +211,7 @@ namespace common
         }
         Mat v;
         MatCreate(comm,&v);
-        MatSetType(v, MATSBAIJ);
+        MatSetType(v, MATAIJ);
         //MatSetBlockSize(v,50);
         MatSetFromOptions(v);
         PetscViewer view;
