@@ -16,8 +16,8 @@ struct sae_param {
 template <typename T>
 struct sae {
     std::vector < sae_param<T> > params;
-    int Z;
-    int N;
+    double Z;
+    double N;
     T gs_energy;
 };
 

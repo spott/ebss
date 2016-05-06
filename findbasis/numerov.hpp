@@ -19,13 +19,13 @@
 
 #include <boost/mpi.hpp>
 #include <boost/serialization/serialization.hpp>
-#define DEBUG
+// #define DEBUG
 // #define DEBUGGROUND
 // #define DEBUGNODES
 // #define DEBUGEXCITED
 // #define DEBUGBOUND
 // #define DEBUGEND
-#define DEBUGFINAL
+// #define DEBUGFINAL
 // other
 #if defined( DEBUG )
 #include <../include/gnuplot_i.hpp>
