@@ -10,7 +10,7 @@
 #include <limits>
 #include <future>
 #include <stdexcept>
-#include<csignal>
+#include <csignal>
 
 // ebss
 #include <common/common.hpp>
@@ -557,6 +557,7 @@ find_ground_state( const BasisID state,
 
         if ( d > 0 ) it.lower_bound_bisect();
         if ( d < 0 ) it.upper_bound_bisect();
+        if ( d == 0 ) converged = true;
         //if ( e[1] > 0 ) it.lower_bound_bisect();
         //if ( e[1] < 0 ) it.upper_bound_bisect();
         //if ( e[1] == 0 && e[0] > 0 ) it.lower_bound_bisect();
@@ -898,7 +899,9 @@ bool converge_bound( const BasisID state,
             continue;
         }
         if ( it.nodes == correct_nodes ) {
-            scalar& d = std::abs(e[1]) > std::abs(e[0]) ? e[1] : e[0];
+            auto a = (e[2] + e[3]) / 2;
+            auto b = (e[4] + e[5]) / 2;
+            scalar& d = std::abs(e[1] * a) > std::abs(e[0] * b) ? e[1] : e[0];
 
             if ( d > 0 ) it.lower_bound_bisect();
             if ( d < 0 ) it.upper_bound_bisect();
@@ -941,7 +944,6 @@ find_basis( const BasisID state,
     }
 
     if ( state.n == 1 ) goto converged;
-
 
     it.energy_upper =
         std::pow( state.n * math::PI / std::exp( grid.xmax ), 2 ) / 2.;
@@ -1027,7 +1029,7 @@ converged:
         err_out << " 1st deriv: " << e[0] << ": " << e[2] << "," << e[3] << std::endl
                 << " 2nd deriv: " << e[1] << ": " << e[4] << "," << e[5] << std::endl;
         if (  math::signum( e[2] ) != math::signum( e[3] ) ||
-             std::abs( e[0] ) > 0.01 || std::abs( e[1] ) > 0.01 ) {
+              std::abs( e[0] ) > 0.01 || std::abs( e[1] ) > 0.01) {
 #ifdef DEBUGEND
             std::cout << " 1st deriv: " << e[0] << ": " << e[2] << "," << e[3] << std::endl
                 << " 2nd deriv: " << e[1] << ": " << e[4] << "," << e[5] << std::endl;
@@ -1041,7 +1043,10 @@ converged:
                  static_cast<double>( rgrid[it.turnover] + 2 )} );
             check=true;
 #endif
-            it.turnover = ( it.turnover + f.size() - 2 ) / 2;
+            if (it.turnover >= f.size() - 30)
+                it.turnover = it.it % 17 + it.turnover/8;
+            else
+                it.turnover = ( it.turnover + f.size() - 2 ) / 2;
             it.it++;
         } else {
             converged = true;
@@ -1122,9 +1127,11 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
     boost::mpi::communicator world( PETSC_COMM_WORLD,
                                     boost::mpi::comm_attach );
 
+
     std::string fname(params.basis_folder() + "/err_log_" +
                  std::to_string( world.rank() ) + ".txt");
     err_out.open(fname , std::ios_base::out);
+    err_out.precision(20);
     fname = std::string(params.basis_folder() + "/reduced_log_" +
                  std::to_string( world.rank() ) + ".txt");
     reduced_out.open(fname , std::ios_base::out);
