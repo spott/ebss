@@ -63,11 +63,6 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A)
 
     if (restore)
         {
-            std::cout << "getting wf " << std::endl;
-            std::string filename = std::string("wf_interupted.dat");
-            VecDestroy(wf);
-            *wf = common::petsc_binary_read<Vec>(filename, cntx->hparams->comm());
-
             if ( cntx->hparams->rank() == 0 ) {
                 std::cout << "getting time and ef " << std::endl;
                 time = common::import_vector_binary<PetscReal>( "time.dat");
@@ -77,14 +72,20 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A)
                 step = time.size();
             }
             else
-            {
-                std::cout << "getting time and ef " << std::endl;
-                auto temp_time = common::import_vector_binary<PetscReal>( "time.dat");
-                auto temp_efvec = common::import_vector_binary<PetscReal>(cntx->laser->laser_filename());
-                t = temp_time.back();
-                ef = temp_efvec.back();
-                step = temp_time.size();
-            }
+                {
+                    std::cout << "getting time and ef " << std::endl;
+                    auto temp_time = common::import_vector_binary<PetscReal>( "time.dat");
+                    auto temp_efvec = common::import_vector_binary<PetscReal>(cntx->laser->laser_filename());
+                    t = temp_time.back();
+                    ef = temp_efvec.back();
+                    step = temp_time.size();
+                }
+
+            std::cout << "getting wf " << std::endl;
+            std::string filename = std::string("wf_" + std::to_string(zero) + ".dat");
+            VecDestroy(wf);
+            *wf = common::petsc_binary_read<Vec>(filename, cntx->hparams->comm());
+
         }
 
     Vec tmp;
@@ -128,8 +129,11 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A)
         for ( auto& a : cntx->dipole->dipole_filename() ) {
             try {
                 if (restore)
-                    dipole.emplace_back(
-                        new std::ofstream( a, std::ios::binary | std::ios::ate ) );
+                    {
+                        dipole.emplace_back(
+                            new std::ofstream( a, std::ios::binary | std::ios::ate ) );
+                        dipole.end()->seekp( sizeof(PetscScalar) * step );
+                    }
                 else
                     dipole.emplace_back(
                         new std::ofstream( a, std::ios::binary | std::ios::out ) );
@@ -273,9 +277,34 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A)
         // at the zero of the field: write out the vector:
         if ( math::signum( ef.real() ) != math::signum( eff.real() ) ) {
             if ( cntx->hparams->rank() == 0 )
+                {
                 std::cout << "time: " << t << " step: " << step
                           << " efield: " << eff.real()
                           << " norm-1: " << norm - 1 << " *" << std::endl;
+                if (cntx->hparams->rank() == 0)
+                    {
+                        auto tvec = std::vector<int>();
+                        tvec.push_back(zero);
+                        common::export_vector_binary("failed",tvec);
+                    }
+                if ( cntx->hparams->rank() == 0 ) {
+                    try {
+                        common::export_vector_binary( "time.dat", time );
+                    } catch ( ... ) {
+                        std::cerr << "couldn't open the time file, oops... it won't be "
+                            "written to disk" << std::endl;
+                    }
+                    try {
+                        common::export_vector_binary( cntx->laser->laser_filename(),
+                                                      efvec );
+                    } catch ( ... ) {
+                        std::cerr << "couldn't open the efvec file, oops... it won't be "
+                            "written to disk" << std::endl;
+                    }
+                    for (auto& a: dipole)
+                        a->flush();
+                }
+                }
             std::ostringstream wf_name;
             wf_name << "./wf_" << zero << ".dat";
             PetscViewerBinaryOpen( cntx->hparams->comm(), wf_name.str().c_str(),
@@ -315,6 +344,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A)
         if ( sig > 0 )
             {
                 //make recovery vector, write out "zero number"
+                std::cerr << "got interrupt signal " << sig << " breaking..." << std::endl;
                 if (cntx->hparams->rank() == 0)
                     {
                         auto tvec = std::vector<int>();
@@ -328,6 +358,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A)
                 // close dipole files
             }
     }
+    //MPI_Barrier(cntx->hparams->comm());
     file_name = std::string( "./wf_final.dat" );
     if (sig>0)
         file_name = std::string( "./wf_interupted.dat");
