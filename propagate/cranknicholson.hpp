@@ -132,7 +132,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A)
                     {
                         dipole.emplace_back(
                             new std::ofstream( a, std::ios::binary | std::ios::ate ) );
-                        dipole.end()->seekp( sizeof(PetscScalar) * step );
+                        dipole.back()->seekp( sizeof(PetscScalar) * step );
                     }
                 else
                     dipole.emplace_back(
