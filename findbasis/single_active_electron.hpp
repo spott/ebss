@@ -58,6 +58,15 @@ T helium_tf( const T r, const BasisID &state)
 }
 
 template <typename T>
+T argon_tf( const T r, const BasisID &state)
+{
+    T a = 1.0 + 16.039 * std::exp(- 2.007 * r) - 25.543 * r * std::exp(- 4.525 * r) + 0.961 * std::exp(-0.443 * r);
+    a *= -1.0;
+    a /= r;
+    return a;
+}
+
+template <typename T>
 std::function< T (const T, BasisID) >  memoized_pot(const sae<T> &atom)
 {
     //BasisID state;
