@@ -115,6 +115,10 @@ int main(int argc, const char **argv)
     {
         numerov::find_basis_set<scalar>( &helium_tf<scalar>, params, helium);
     }
+    if (params.atom() == "argon_tf")
+        {
+            numerov::find_basis_set<scalar>( &argon_tf<scalar>, params, argon);
+        }
     else if (params.atom() == "argon")
     {
         argon.N -= params.charge();
