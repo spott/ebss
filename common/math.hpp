@@ -61,8 +61,9 @@ template <typename scalar>
 scalar CGCoefficient(const BasisID &init, const BasisID &fin)
 {
     scalar out = gsl_sf_coupling_3j(init.l*2, 2, fin.l*2, 0, 0, 0);
-    out *= gsl_sf_coupling_3j(init.l*2, 2, fin.l*2, init.m * 2, 0, init.m * 2);
+    out *= gsl_sf_coupling_3j(init.l*2, 2, fin.l*2, -init.m * 2, 0, init.m * 2);
     out *= std::sqrt( ( 2 * init.l +1 ) * ( 2 * fin.l +1 ) );
+    out *= std::pow(-1, init.m);
     return out;
 }
 

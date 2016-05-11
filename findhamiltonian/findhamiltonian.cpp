@@ -132,6 +132,8 @@ int main( int argc, const char** argv )
     // decltype( params.basis_parameters()->grid() ) grid;
     std::vector<double> grid;
     auto prototype = params.prototype();
+    for (auto a : prototype)
+        std::cout << a << "\n";
 
     grid = params.basis_parameters()->grid();
 
@@ -258,6 +260,7 @@ int main( int argc, const char** argv )
                         math::integrateTrapezoidRule( a, b, grid );
                     PetscScalar angular = math::CGCoefficient<PetscScalar>(
                             prototype[i], prototype[j] );
+                    //std::cout << angular << std::endl;
                     if ( prototype[i].n == 2 && prototype[j].n == 2 )
                         std::cout << "n = 2 transition: " << radial* angular
                             << std::endl;
@@ -304,26 +307,26 @@ int main( int argc, const char** argv )
 
     params.save_parameters();
 
-    auto maximum_n_it = std::find_if(prototype.begin(), prototype.end(), [&params]( BasisID a ) { return a.n == params.nmax() - 1 && a.l == 0; });
-    int loc = maximum_n_it - prototype.begin();
+    // auto maximum_n_it = std::find_if(prototype.begin(), prototype.end(), [&params]( BasisID a ) { return a.n == params.nmax() - 1 && a.l == 0; });
+    // int loc = maximum_n_it - prototype.begin();
 
-    std::cout << "location for max n: " << loc << std::endl;
-    //find the appropriate absorber size vector:
-    Vec A, B;
-    MatGetVecs(H, &A, &B);
-    VecSetValue(A,loc,1.,INSERT_VALUES);
-    VecAssemblyBegin(A);
-    VecAssemblyEnd(A);
+    // std::cout << "location for max n: " << loc << std::endl;
+    // //find the appropriate absorber size vector:
+    // Vec A, B;
+    // MatGetVecs(H, &A, &B);
+    // VecSetValue(A,loc,1.,INSERT_VALUES);
+    // VecAssemblyBegin(A);
+    // VecAssemblyEnd(A);
 
-    MatMult(H, A, B);
+    // MatMult(H, A, B);
 
-    PetscViewer view;
+    // PetscViewer view;
 
-    PetscViewerBinaryOpen( params.comm(),
-            (params.hamiltonian_folder() + "/abs.dat").c_str(),
-            FILE_MODE_WRITE,
-            &view );
-    VecView( B, view );
+    // PetscViewerBinaryOpen( params.comm(),
+    //         (params.hamiltonian_folder() + "/abs.dat").c_str(),
+    //         FILE_MODE_WRITE,
+    //         &view );
+    // VecView( B, view );
 
     // delete params;
     PetscFinalize();
