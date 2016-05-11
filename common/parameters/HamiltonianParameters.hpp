@@ -143,8 +143,9 @@ public:
                                     else
                                         {
                                             auto state = BasisID(*loc);
-                                            if (m_)
-                                                state.m = m_;
+                                            state.m = m_;
+                                            // if (std::abs(state.m) >= state.l)
+                                            //     continue;
                                             prototype_.push_back(state);
                                         }
                                 }
@@ -168,8 +169,10 @@ public:
                                             else
                                                 {
                                                     auto state = BasisID(*loc);
-                                                    if (m_)
-                                                        state.m = m_;
+                                                    //if (m_)
+                                                    state.m = m_;
+                                                    // if (std::abs(state.m) >= state.l)
+                                                    //     continue;
                                                     prototype_.push_back(state);
                                                 }
                                         }
@@ -192,8 +195,10 @@ public:
                                             else
                                                 {
                                                     auto state = BasisID(*loc);
-                                                    if (m_)
-                                                        state.m = m_;
+                                                    //if (m_ != 0)
+                                                    state.m = m_;
+                                                    // if (std::abs(state.m) >= state.l)
+                                                    //     continue;
                                                     prototype_.push_back(state);
                                                 }
                                         }
@@ -216,7 +221,7 @@ public:
             {
                 for (int n = 1; n <= nmax_; ++n)
                 {
-                    if (l <= n-1)
+                    if (l <= n-1 ) //and std::abs(m_) <= l)
                         prototype_.push_back( {n, l, 0, m_, std::complex<double>( -1./(2. * n * n), 0) } );
                     else
                         continue;

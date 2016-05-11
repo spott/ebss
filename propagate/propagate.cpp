@@ -8,6 +8,7 @@
 #include <common/common.hpp>
 #include <common/output.hpp>
 #include <propagate/cranknicholson.hpp>
+//#include <propagate/perturbation_2.hpp>
 
 // slepc:
 #include <slepc.h>
@@ -105,7 +106,7 @@ int main( int argc, const char** argv )
     // Do the state stuff... remove rows/columns:
     MatSetOption( D, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE );
 	
-	if (empty_states_index.size() != 0) 
+	if (empty_states_index.size() != 0)
 		MatZeroRowsColumns( D,
 							empty_states_index.size(),
 							empty_states_index.data(),
@@ -115,6 +116,11 @@ int main( int argc, const char** argv )
 
 
     {
+        if (cntx->hparams->rank() == 0 )
+            {std::cout << "empty states" << std::endl;
+        for (auto a : empty_states_index)
+            std::cout << a << "\n";
+            }
         std::vector<PetscScalar> zeros( empty_states_index.size(), 0.0 );
         if ( zeros.size() != 0 )
             VecSetValues( H,
@@ -126,9 +132,9 @@ int main( int argc, const char** argv )
 
     //transition stuff...
     {
-		std::cout << "entering transition section" << std::endl;
+        if (cntx->hparams->rank() == 0 ) std::cout << "entering transition section" << std::endl;
         sparams->disallowed_transitions( D, params->prototype() );
-		std::cout << "after disallowed transitions" << std::endl;
+        if (cntx->hparams->rank() == 0 ) std::cout << "after disallowed transitions" << std::endl;
 //		auto zero = std::complex<double>(0.0, 0.0);
 //        if (disallowed[0].size() != disallowed[1].size())
 //            std::cout << "oops, sizes don't match: " << disallowed[0].size() << ", " << disallowed[1].size() << std::endl;
@@ -180,6 +186,7 @@ int main( int argc, const char** argv )
     // Propagate:
 
     cranknicholson::solve( &wf, cntx, &A );
+    //perturbation::solve(&wf, cntx, &A);
 
     // create a viewer in the current directory:
     // file_name = std::string("./final_wf.dat");
