@@ -117,6 +117,11 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A)
     PetscViewerSetFormat( view, PETSC_VIEWER_ASCII_SYMMODU );
     VecView( abs, view );
 
+    file_name = std::string( "./wf_init.dat" );
+    PetscViewerASCIIOpen( cntx->hparams->comm(), file_name.c_str(), &view );
+    PetscViewerSetFormat( view, PETSC_VIEWER_ASCII_SYMMODU );
+    VecView( *wf, view );
+
     VecDuplicate( *wf, &prob );
     VecAssemblyBegin( prob );
     VecAssemblyEnd( prob );
