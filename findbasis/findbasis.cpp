@@ -28,7 +28,10 @@ int main(int argc, const char **argv)
 
     // print out the parameters
     if (params.rank() == 0) 
+    {
+        std::cout << "#Git commit: " << GIT_COMMIT << std::endl;
         std::cout << params.print();
+    }
 
     std::vector< sae_param<scalar> > helium_params{
         {0, 0.33740902, 6.28379042},

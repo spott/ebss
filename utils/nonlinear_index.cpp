@@ -84,7 +84,10 @@ int main( int argc, const char** argv )
     std::cout << std::scientific;
 
 	if (params.rank() == 0)
-		std::cout << "reading in matrix:" << std::endl;
+  {
+      std::cout << "#Git commit: " << GIT_COMMIT << std::endl;
+      std::cout << "reading in matrix:" << std::endl;
+  }
 
     // read in the matrices
     Mat D = params.read_dipole_matrix();

@@ -6,9 +6,9 @@
 #include <common/parameters/Parameters.hpp>
 
 // stl:
+#include <numeric>
 #include <sstream>
 #include <string>
-#include <numeric>
 
 // petsc:
 //#include<petsc.h>
@@ -24,8 +24,7 @@ class LaserParameters : public Parameters
         opt.parse( argc, argv );
 
         get_parameters();
-    }
-    ;
+    };
 
     LaserParameters( MPI_Comm comm ) : Parameters( comm )
     {
@@ -116,12 +115,12 @@ void LaserParameters::get_parameters()
 std::string LaserParameters::print() const
 {
     std::ostringstream out;
-	out << std::scientific;
-	out.precision(15);
+    out << std::scientific;
+    out.precision( 15 );
     out << "laser_lambda: " << lambda_ << std::endl;
     out << "laser_intensity: " << intensity_ << std::endl;
-	out.unsetf ( std::ios::floatfield );
-	out.precision(5);
+    out.unsetf( std::ios::floatfield );
+    out.precision( 5 );
     out << "laser_cep: " << cep_ << std::endl;
     out << "laser_cycles: " << cycles_ << std::endl;
     out << "laser_dt: " << dt_ << std::endl;
@@ -135,13 +134,13 @@ std::string LaserParameters::print() const
 void LaserParameters::save_parameters() const
 {
     std::ofstream file;
-    file.open(std::string("./Laser.config"));
-	file << std::scientific;
-	file.precision(15);
+    file.open( std::string( "./Laser.config" ) );
+    file << std::scientific;
+    file.precision( 15 );
     file << "-laser_lambda " << lambda_ << std::endl;
     file << "-laser_intensity " << intensity_ << std::endl;
-	file.unsetf ( std::ios::floatfield );
-	file.precision(5);
+    file.unsetf( std::ios::floatfield );
+    file.precision( 5 );
     file << "-laser_cep " << cep_ << std::endl;
     file << "-laser_cycles " << cycles_ << std::endl;
     file << "-laser_dt " << dt_ << std::endl;
@@ -169,26 +168,11 @@ PetscReal LaserParameters::intensity() const
     return intensity_ / ( 3.5094452e16 );
 }
 //{ return intensity_/3.5101e+16; }
-PetscReal LaserParameters::cep() const
-{
-    return cep_;
-}
-PetscReal LaserParameters::cycles() const
-{
-    return cycles_;
-}
-PetscReal LaserParameters::dt() const
-{
-    return dt_;
-}
-PetscReal LaserParameters::dt_after() const
-{
-    return dt_after_;
-}
-PetscReal LaserParameters::t_after() const
-{
-    return t_after_;
-}
+PetscReal LaserParameters::cep() const { return cep_; }
+PetscReal LaserParameters::cycles() const { return cycles_; }
+PetscReal LaserParameters::dt() const { return dt_; }
+PetscReal LaserParameters::dt_after() const { return dt_after_; }
+PetscReal LaserParameters::t_after() const { return t_after_; }
 PetscReal LaserParameters::pulse_length() const
 {
     return ( ( math::PI * 2 * cycles() ) / frequency() ) + t_after();
@@ -200,7 +184,7 @@ std::string LaserParameters::laser_filename() const
 
 PetscScalar LaserParameters::envelope( PetscReal t, PetscReal t_start ) const
 {
-    if ( t < t_start || t > t_start + (pulse_length() - t_after()) ) return 0;
+    if ( t < t_start || t > t_start + ( pulse_length() - t_after() ) ) return 0;
 
     PetscReal efield = 0.0;
     if ( t < t_start + pulse_length() / 2. )
@@ -236,15 +220,13 @@ LaserParameters::read_efield( std::string filename ) const
 
 PetscScalar LaserParameters::efield( PetscReal t, PetscReal phase ) const
 {
-    if ( t > pulse_length() || t < 0)
-        return 0.0;
-    //if ( t * this->frequency() / ( this->cycles() * 2 ) > math::PI || t < 0 )
+    if ( t > pulse_length() || t < 0 ) return 0.0;
+    // if ( t * this->frequency() / ( this->cycles() * 2 ) > math::PI || t < 0 )
     PetscReal efield = std::sqrt( this->intensity() );
     return std::complex<double>(
-        efield *
-        envelope( t, 0.0 ) * 
-        //std::pow( std::sin( this->frequency() * t / ( this->cycles() * 2 ) ),
-                  //2 ) *
+        efield * envelope( t, 0.0 ) *
+        // std::pow( std::sin( this->frequency() * t / ( this->cycles() * 2 ) ),
+        // 2 ) *
         std::sin( this->frequency() * t + phase ) );
 }
 
@@ -277,78 +259,32 @@ void LaserParameters::register_parameters()
              "--help",                      // Flag token.
              "--usage"                      // Flag token.
              );
-    opt.add( "2",
-             0,
-             1,
-             0,
-             "front shape",
+    opt.add( "2", 0, 1, 0, "front shape",
              std::string( prefix ).append( "front_shape\0" ).c_str() );
-    opt.add( "2",
-             0,
-             1,
-             0,
-             "back shape",
+    opt.add( "2", 0, 1, 0, "back shape",
              std::string( prefix ).append( "back_shape\0" ).c_str() );
-    opt.add( "800",
-             0,
-             1,
-             0,
-             "wavelength of the laser in nm",
+    opt.add( "800", 0, 1, 0, "wavelength of the laser in nm",
              std::string( prefix ).append( "lambda\0" ).c_str() );
-    opt.add( "",
-             0,
-             1,
-             0,
+    opt.add( "", 0, 1, 0,
              "energy of the laser.  If this and the wavelength are specified, "
              "this will take precedence",
              std::string( prefix ).append( "energy\0" ).c_str() );
-    opt.add( "10e12",
-             0,
-             1,
-             0,
-             "intensity of laser in W/cm^2",
+    opt.add( "10e12", 0, 1, 0, "intensity of laser in W/cm^2",
              std::string( prefix ).append( "intensity\0" ).c_str() );
-    opt.add( "0",
-             0,
-             1,
-             0,
-             "Carrier Envelope Phase",
+    opt.add( "0", 0, 1, 0, "Carrier Envelope Phase",
              std::string( prefix ).append( "cep\0" ).c_str() );
-    opt.add( "10",
-             0,
-             1,
-             0,
-             "number of cycles of the carrier frequency",
+    opt.add( "10", 0, 1, 0, "number of cycles of the carrier frequency",
              std::string( prefix ).append( "cycles\0" ).c_str() );
-    opt.add( "0.01",
-             0,
-             1,
-             0,
-             "timestep durring the pulse (in A.U.)",
+    opt.add( "0.01", 0, 1, 0, "timestep durring the pulse (in A.U.)",
              std::string( prefix ).append( "dt\0" ).c_str() );
-    opt.add( "0.01",
-             0,
-             1,
-             0,
-             "timestep after the pulse (in A.U.)",
+    opt.add( "0.01", 0, 1, 0, "timestep after the pulse (in A.U.)",
              std::string( prefix ).append( "dt_after\0" ).c_str() );
-    opt.add( "0",
-             0,
-             1,
-             0,
-             "time after the pulse (in A.U.)",
+    opt.add( "0", 0, 1, 0, "time after the pulse (in A.U.)",
              std::string( prefix ).append( "t_after\0" ).c_str() );
-    opt.add( "./efield.dat",
-             0,
-             1,
-             0,
+    opt.add( "./efield.dat", 0, 1, 0,
              "filename to put the laser or pull the laser",
              std::string( prefix ).append( "filename\0" ).c_str() );
-    opt.add( "",
-             0,
-             1,
-             0,
-             "Config file to import",
+    opt.add( "", 0, 1, 0, "Config file to import",
              std::string( prefix ).append( "config\0" ).c_str() );
     opt.add(
         "", // Default.
