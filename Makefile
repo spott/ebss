@@ -3,14 +3,17 @@ include ./makefile.include
 SUBPROGRAMS=findbasis findhamiltonian propagate
 
 findbasis:
-	$(MAKE) -C findbasis/
+	$(MAKE) -C $@ $@
 
 findhamiltonian:
-	$(MAKE) -C $@
+	$(MAKE) -C $@ $@
 
 propagate:
-	$(MAKE) -C $@
+	$(MAKE) -C $@ $@
 
 all: $(SUBPROGRAMS)
 
-.PHONY: all
+clean::
+	$(foreach prog, $(SUBPROGRAMS), $(MAKE) -C $(prog) clean;)
+
+.PHONY: all clean $(SUBPROGRAMS)
