@@ -1,7 +1,7 @@
 #pragma once
-#include <unistd.h>
 #include <common/common.hpp>
 #include <common/parameters/Parameters.hpp>
+#include <unistd.h>
 
 #include <thread>
 
@@ -10,11 +10,12 @@ class BasisParameters : public Parameters
 {
   public:
     typedef compute_type_ compute_type;
-    typedef write_type_ write_type;
+    typedef write_type_   write_type;
     BasisParameters( int argc, const char** argv, MPI_Comm comm )
-        : Parameters( comm ), procs_( 0 ), fs_( false ), l_only_( false ), n_only_( false ),
-          charge_( 0 ), nmax_( 0 ), lmax_( 0 ), l_( 0 ), n_(0), points_( 0 ),
-          rmax_( 0 ), rmin_( 0 ), bo_( false ), atom_( "hydrogen" ), resume(false)
+        : Parameters( comm ), procs_( 0 ), fs_( false ), l_only_( false ),
+          n_only_( false ), charge_( 0 ), nmax_( 0 ), lmax_( 0 ), l_( 0 ),
+          n_( 0 ), points_( 0 ), rmax_( 0 ), rmin_( 0 ), resume( false ),
+          bo_( false ), atom_( "hydrogen" )
     {
         register_parameters();
 
@@ -76,72 +77,39 @@ class BasisParameters : public Parameters
 
         if ( opt.isSet( "-basis_resume" ) ) {
             resume = true;
-            init_from_file( folder_ + "/Basis.config");
-        }
-        else {
-            grid_ = std::vector<compute_type>( points_ );
+            init_from_file( folder_ + "/Basis.config" );
+        } else {
+            grid_            = std::vector<compute_type>( points_ );
             basis_prototype_ = std::vector<BasisID>();
         }
     };
 
-    BasisParameters( std::string filename, MPI_Comm comm )
-        : Parameters( comm )
+    BasisParameters( std::string filename, MPI_Comm comm ) : Parameters( comm )
     {
-        try { init_from_file( filename ); }
-        catch ( std::exception e ) { throw e; }
+        try {
+            init_from_file( filename );
+        } catch ( std::exception e ) {
+            throw e;
+        }
     };
 
     // The stuff that I care about:
-    PetscReal rmax() const
-    {
-        return rmax_;
-    };
-    PetscReal rmin() const
-    {
-        return rmin_;
-    };
-    PetscInt points() const
-    {
-        return points_;
-    };
-    PetscInt nmax() const
-    {
-        return nmax_;
-    };
-    PetscInt lmax() const
-    {
-        return lmax_;
-    };
-    PetscInt l() const
-    {
-        return l_;
-    };
-    PetscInt n() const
-    {
-        return n_;
-    };
-    PetscInt charge() const
-    {
-        return charge_;
-    };
-    bool fs() const
-    {
-        return fs_;
-    };
-    bool bound_only() const { return bo_; }
-    bool l_only() const { return l_only_; }
-    bool n_only() const { return n_only_; }
-    size_t procs() const { return procs_; }
-    std::string atom() const
-    {
-        return atom_;
-    };
-
+    PetscReal   rmax() const { return rmax_; };
+    PetscReal   rmin() const { return rmin_; };
+    PetscInt    points() const { return points_; };
+    PetscInt    nmax() const { return nmax_; };
+    PetscInt    lmax() const { return lmax_; };
+    PetscInt    l() const { return l_; };
+    PetscInt    n() const { return n_; };
+    PetscInt    charge() const { return charge_; };
+    bool        fs() const { return fs_; };
+    bool        bound_only() const { return bo_; }
+    bool        l_only() const { return l_only_; }
+    bool        n_only() const { return n_only_; }
+    size_t      procs() const { return procs_; }
+    std::string atom() const { return atom_; };
     // getting the folder:
-    std::string basis_folder() const
-    {
-        return folder_;
-    };
+    std::string basis_folder() const { return folder_; };
     std::string grid_filename() const
     {
         return std::string( folder_ ).append( "/grid.dat\0" );
@@ -150,39 +118,38 @@ class BasisParameters : public Parameters
     std::string basis_function_filename( BasisID a ) const;
     std::string l_block_filename( int l ) const;
     std::string basis_prototype_filename() const;
-    void save_parameters();
+    void        save_parameters();
     void init_from_file( std::string filename );
 
     std::vector<compute_type>& grid();
-    std::vector<BasisID>& basis_prototype();
-    bool resume;
+    std::vector<BasisID>&      basis_prototype();
+    bool                       resume;
 
   private:
-    std::vector<BasisID> basis_prototype_;
+    std::vector<BasisID>      basis_prototype_;
     std::vector<compute_type> grid_;
 
-    void register_parameters();
+    void               register_parameters();
     ez::ezOptionParser opt;
-    std::string folder_;
-    size_t procs_;
-    bool fs_;
-    bool l_only_;
-    bool n_only_;
-    int charge_;
-    int nmax_;
-    int lmax_;
-    int l_;
-    int n_;
-    int points_;
-    double rmax_;
-    double rmin_;
-    bool bo_;
-    std::string atom_;
+    std::string        folder_;
+    size_t             procs_;
+    bool               fs_;
+    bool               l_only_;
+    bool               n_only_;
+    int                charge_;
+    int                nmax_;
+    int                lmax_;
+    int                l_;
+    int                n_;
+    int                points_;
+    double             rmax_;
+    double             rmin_;
+    bool               bo_;
+    std::string        atom_;
 };
 
 template <typename compute_type_, typename write_type_>
-std::vector<compute_type_>&
-BasisParameters<compute_type_, write_type_>::grid()
+std::vector<compute_type_>& BasisParameters<compute_type_, write_type_>::grid()
 {
     return grid_;
 }
@@ -213,26 +180,19 @@ void BasisParameters<compute_type_, write_type_>::init_from_file(
     fs_ = opt.isSet( "-basis_fs" );
     bo_ = opt.isSet( "-basis_bound_only" );
 
-    try
-    {
-        this->grid_ =
-            common::vector_type_change<write_type_, compute_type_>(
-                common::import_vector_binary<write_type_>(
-                    this->grid_filename() ) );
-    }
-    catch ( std::exception e )
-    {
+    try {
+        this->grid_ = common::vector_type_change<write_type_, compute_type_>(
+            common::import_vector_binary<write_type_>(
+                this->grid_filename() ) );
+    } catch ( std::exception e ) {
         std::cout << "grid file not found" << std::endl;
         throw e;
     }
 
-    try
-    {
+    try {
         this->basis_prototype_ = common::import_vector_binary<BasisID>(
             this->basis_prototype_filename() );
-    }
-    catch ( std::exception e )
-    {
+    } catch ( std::exception e ) {
         std::cout << "prototype file not found" << std::endl;
         throw e;
     }
@@ -270,8 +230,7 @@ void BasisParameters<compute_type_, write_type_>::save_parameters()
 
 template <typename compute_type_, typename write_type_>
 std::string
-BasisParameters<compute_type_, write_type_>::l_block_filename( int l )
-    const
+BasisParameters<compute_type_, write_type_>::l_block_filename( int l ) const
 {
     std::ostringstream ss;
     ss << folder_;
@@ -298,8 +257,7 @@ BasisParameters<compute_type_, write_type_>::basis_function_filename(
 
 template <typename compute_type_, typename write_type_>
 std::string
-BasisParameters<compute_type_, write_type_>::basis_prototype_filename()
-    const
+BasisParameters<compute_type_, write_type_>::basis_prototype_filename() const
 {
     std::stringstream ss;
     ss << folder_;
@@ -329,115 +287,54 @@ template <typename compute_type_, typename write_type_>
 void BasisParameters<compute_type_, write_type_>::register_parameters()
 {
     std::string prefix = "-basis_";
-    opt.overview = "Basis Parameters";
-    opt.add( "", // Default.
-             0,  // Required?
-             0,  // Number of args expected.
-             0,  // Delimiter if expecting multiple args.
-             "Display usage instructions.", // Help description.
-             "-h",                          // Flag token.
-             "-help",                       // Flag token.
-             "--help",                      // Flag token.
-             "--usage"                      // Flag token.
+    opt.overview       = "Basis Parameters";
+    opt.add( "",  // Default.
+             0,   // Required?
+             0,   // Number of args expected.
+             0,   // Delimiter if expecting multiple args.
+             "Display usage instructions.",  // Help description.
+             "-h",                           // Flag token.
+             "-help",                        // Flag token.
+             "--help",                       // Flag token.
+             "--usage"                       // Flag token.
              );
-    opt.add( "0",
-             0,
-             1,
-             0,
-             "charge of the atom",
+    opt.add( "0", 0, 1, 0, "charge of the atom",
              std::string( prefix ).append( "charge\0" ).c_str() );
-    opt.add( "",
-             0,
-             0,
-             0,
-             "resume last (possibly failed) run",
+    opt.add( "", 0, 0, 0, "resume last (possibly failed) run",
              std::string( prefix ).append( "resume\0" ).c_str() );
-    opt.add( "",
-             0,
-             0,
-             0,
-             "finestructure included?",
+    opt.add( "", 0, 0, 0, "finestructure included?",
              std::string( prefix ).append( "fs\0" ).c_str() );
-    opt.add( "",
-             0,
-             0,
-             0,
-             "bound only?",
+    opt.add( "", 0, 0, 0, "bound only?",
              std::string( prefix ).append( "bound_only\0" ).c_str() );
-    opt.add( "",
-             0,
-             1,
-             0,
-             "number of processors",
+    opt.add( "", 0, 1, 0, "number of processors",
              std::string( prefix ).append( "procs\0" ).c_str() );
-    opt.add( "500",
-             0,
-             1,
-             0,
-             "Max n value",
+    opt.add( "500", 0, 1, 0, "Max n value",
              std::string( prefix ).append( "nmax\0" ).c_str() );
-    opt.add( "50",
-             0,
-             1,
-             0,
-             "Max l value",
+    opt.add( "50", 0, 1, 0, "Max l value",
              std::string( prefix ).append( "lmax\0" ).c_str() );
-    opt.add( "0",
-             0,
-             1,
-             0,
-             "single l value calculation (testing)",
+    opt.add( "0", 0, 1, 0, "single l value calculation (testing)",
              std::string( prefix ).append( "l\0" ).c_str() );
-    opt.add( "1",
-             0,
-             1,
-             0,
-             "single n value calculation (testing)",
+    opt.add( "1", 0, 1, 0, "single n value calculation (testing)",
              std::string( prefix ).append( "n\0" ).c_str() );
-    opt.add( "1000.",
-             0,
-             1,
-             0,
-             "Max r for grid",
+    opt.add( "1000.", 0, 1, 0, "Max r for grid",
              std::string( prefix ).append( "rmax\0" ).c_str() );
-    opt.add( "0.000001",
-             0,
-             1,
-             0,
-             "Min r for grid",
+    opt.add( "0.000001", 0, 1, 0, "Min r for grid",
              std::string( prefix ).append( "rmin\0" ).c_str() );
-    opt.add( "10000",
-             0,
-             1,
-             0,
-             "Number of points on the grid",
+    opt.add( "10000", 0, 1, 0, "Number of points on the grid",
              std::string( prefix ).append( "points\0" ).c_str() );
-    opt.add( "hydrogen",
-             1,
-             1,
-             0,
-             "the atom to simulate",
+    opt.add( "hydrogen", 1, 1, 0, "the atom to simulate",
              std::string( prefix ).append( "atom\0" ).c_str() );
-    opt.add( "./",
-             1,
-             1,
-             0,
-             "Where the vectors are held",
+    opt.add( "./", 1, 1, 0, "Where the vectors are held",
              std::string( prefix ).append( "folder\0" ).c_str() );
-    opt.add( "",
-             0,
-             1,
-             0,
-             "Config file to import",
+    opt.add( "", 0, 1, 0, "Config file to import",
              std::string( prefix ).append( "config\0" ).c_str() );
-    opt.add(
-        "", // Default.
-        0,  // Required?
-        0,  // Number of args expected.
-        0,  // Delimiter if expecting multiple args.
-        "Print all inputs and categories for debugging.", // Help
-                                                          // description.
-        "+d",
-        "--debug" // Flag token.
-        );
+    opt.add( "",  // Default.
+             0,   // Required?
+             0,   // Number of args expected.
+             0,   // Delimiter if expecting multiple args.
+             "Print all inputs and categories for debugging.",  // Help
+                                                                // description.
+             "+d",
+             "--debug"  // Flag token.
+             );
 }

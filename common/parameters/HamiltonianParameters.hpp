@@ -130,7 +130,7 @@ class HamiltonianParameters : public Parameters
                 // then n's.
 
                 auto start = this->basis_->basis_prototype().begin();
-                auto end = this->basis_->basis_prototype().end();
+                auto end   = this->basis_->basis_prototype().end();
                 if ( fs_ )
                     for ( int l = 0; l <= lmax_; ++l ) {
                         for ( int j = 2 * l - 1; j <= 2 * l + 1; j += 2 ) {
@@ -203,17 +203,16 @@ class HamiltonianParameters : public Parameters
         init_from_file( fname );
     }
 
-    int nmax() const { return nmax_; };
-    int lmax() const { return lmax_; };
-    int mmax() const { return mmax_; };
-
+    int         nmax() const { return nmax_; };
+    int         lmax() const { return lmax_; };
+    int         mmax() const { return mmax_; };
     std::string hamiltonian_folder() const { return folder_; };
     std::string dipole_matrix_filename() const;
     void write_dipole_matrix( Mat D );
-    Mat read_dipole_matrix();
+    Mat         read_dipole_matrix();
     std::string energy_eigenvalues_filename() const;
-    void write_energy_eigenvalues();
-    Vec read_energy_eigenvalues();
+    void        write_energy_eigenvalues();
+    Vec         read_energy_eigenvalues();
     std::string prototype_filename() const;
     BasisParameters<write_type_, write_type_>* basis_parameters() const
     {
@@ -221,29 +220,27 @@ class HamiltonianParameters : public Parameters
     };
 
     std::vector<BasisID>& prototype() { return prototype_; };
-
-    std::string print() const;
-    bool fs() const { return fs_; }
-    bool analytic() const { return analytic_; }
-    size_t mem_per_proc() const { return mem_; }
-
-    void save_parameters();
+    std::string           print() const;
+    bool                  fs() const { return fs_; }
+    bool                  analytic() const { return analytic_; }
+    size_t                mem_per_proc() const { return mem_; }
+    void                  save_parameters();
     void init_from_file( std::string filename );
 
   private:
     BasisParameters<write_type_, write_type_>* basis_;
     std::vector<BasisID> prototype_;
 
-    bool fs_;
-    void register_parameters();
+    bool               fs_;
+    void               register_parameters();
     ez::ezOptionParser opt;
-    int nmax_;
-    int lmax_;
-    int mmax_;
-    size_t mem_;
-    std::string folder_;
-    std::string basis_config_;
-    bool analytic_;
+    int                nmax_;
+    int                lmax_;
+    int                mmax_;
+    size_t             mem_;
+    std::string        folder_;
+    std::string        basis_config_;
+    bool               analytic_;
 };
 
 template <typename write_type_>
@@ -378,16 +375,16 @@ template <typename write_type_>
 void HamiltonianParameters<write_type_>::register_parameters()
 {
     std::string prefix = "-hamiltonian_";
-    opt.overview = "Hamiltonian Parameters";
-    opt.add( "", // Default.
-             0,  // Required?
-             0,  // Number of args expected.
-             0,  // Delimiter if expecting multiple args.
-             "Display usage instructions.", // Help description.
-             "-h",                          // Flag token.
-             "-help",                       // Flag token.
-             "--help",                      // Flag token.
-             "--usage"                      // Flag token.
+    opt.overview       = "Hamiltonian Parameters";
+    opt.add( "",  // Default.
+             0,   // Required?
+             0,   // Number of args expected.
+             0,   // Delimiter if expecting multiple args.
+             "Display usage instructions.",  // Help description.
+             "-h",                           // Flag token.
+             "-help",                        // Flag token.
+             "--help",                       // Flag token.
+             "--usage"                       // Flag token.
              );
     opt.add( "", 0, 0, 0, "calculate the analytical solution",
              std::string( prefix ).append( "analytical\0" ).c_str() );
@@ -408,12 +405,12 @@ void HamiltonianParameters<write_type_>::register_parameters()
     opt.add( "", 0, 1, 0, "Config file to import",
              std::string( prefix ).append( "config\0" ).c_str() );
     opt.add(
-        "", // Default.
-        0,  // Required?
-        0,  // Number of args expected.
-        0,  // Delimiter if expecting multiple args.
-        "Print all inputs and categories for debugging.", // Help description.
+        "",  // Default.
+        0,   // Required?
+        0,   // Number of args expected.
+        0,   // Delimiter if expecting multiple args.
+        "Print all inputs and categories for debugging.",  // Help description.
         "+d",
-        "--debug" // Flag token.
+        "--debug"  // Flag token.
         );
 }

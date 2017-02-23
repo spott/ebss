@@ -34,16 +34,16 @@ class LaserParameters : public Parameters
     // call after parsing:
     void get_parameters();
 
-    PetscReal lambda() const;
-    PetscReal frequency() const;
-    PetscReal intensity() const;
-    PetscReal cep() const;
-    PetscReal cycles() const;
-    PetscReal dt() const;
-    PetscReal dt_after() const;
-    PetscReal t_after() const;
+    PetscReal   lambda() const;
+    PetscReal   frequency() const;
+    PetscReal   intensity() const;
+    PetscReal   cep() const;
+    PetscReal   cycles() const;
+    PetscReal   dt() const;
+    PetscReal   dt_after() const;
+    PetscReal   t_after() const;
     std::string laser_filename() const;
-    PetscReal pulse_length() const;
+    PetscReal   pulse_length() const;
     PetscScalar envelope( PetscReal t, PetscReal t_start ) const;
     virtual PetscScalar efield( const PetscReal t,
                                 const PetscReal phase ) const;
@@ -57,19 +57,19 @@ class LaserParameters : public Parameters
 
   protected:
     ez::ezOptionParser opt;
-    void register_parameters();
-    double lambda_;
-    double intensity_;
-    double cep_;
-    double cycles_;
-    double dt_;
-    double dt_after_;
-    double t_after_;
-    double energy_;
-    std::string laser_filename_;
-    bool load_efield;
-    int laser_front_shape_;
-    int laser_back_shape_;
+    void               register_parameters();
+    double             lambda_;
+    double             intensity_;
+    double             cep_;
+    double             cycles_;
+    double             dt_;
+    double             dt_after_;
+    double             t_after_;
+    double             energy_;
+    std::string        laser_filename_;
+    bool               load_efield;
+    int                laser_front_shape_;
+    int                laser_back_shape_;
 };
 
 void LaserParameters::get_parameters()
@@ -207,7 +207,7 @@ LaserParameters::read_efield( std::string filename ) const
     for ( auto& i : t ) i *= .01;
 
     std::vector<double> e( 100 );
-    PetscReal efield = std::sqrt( this->intensity() );
+    PetscReal           efield = std::sqrt( this->intensity() );
     for ( size_t i = 0; i < 100; ++i ) {
         e[i] = efield * std::pow( std::sin( this->frequency() * t[i] /
                                             ( this->cycles() * 2 ) ),
@@ -248,16 +248,16 @@ PetscScalar LaserParameters::efield( PetscReal t ) const
 void LaserParameters::register_parameters()
 {
     std::string prefix = "-laser_";
-    opt.overview = "Laser Parameters";
-    opt.add( "", // Default.
-             0,  // Required?
-             0,  // Number of args expected.
-             0,  // Delimiter if expecting multiple args.
-             "Display usage instructions.", // Help description.
-             "-h",                          // Flag token.
-             "-help",                       // Flag token.
-             "--help",                      // Flag token.
-             "--usage"                      // Flag token.
+    opt.overview       = "Laser Parameters";
+    opt.add( "",  // Default.
+             0,   // Required?
+             0,   // Number of args expected.
+             0,   // Delimiter if expecting multiple args.
+             "Display usage instructions.",  // Help description.
+             "-h",                           // Flag token.
+             "-help",                        // Flag token.
+             "--help",                       // Flag token.
+             "--usage"                       // Flag token.
              );
     opt.add( "2", 0, 1, 0, "front shape",
              std::string( prefix ).append( "front_shape\0" ).c_str() );
@@ -287,12 +287,12 @@ void LaserParameters::register_parameters()
     opt.add( "", 0, 1, 0, "Config file to import",
              std::string( prefix ).append( "config\0" ).c_str() );
     opt.add(
-        "", // Default.
-        0,  // Required?
-        0,  // Number of args expected.
-        0,  // Delimiter if expecting multiple args.
-        "Print all inputs and categories for debugging.", // Help description.
+        "",  // Default.
+        0,   // Required?
+        0,   // Number of args expected.
+        0,   // Delimiter if expecting multiple args.
+        "Print all inputs and categories for debugging.",  // Help description.
         "+d",
-        "--debug" // Flag token.
+        "--debug"  // Flag token.
         );
 }

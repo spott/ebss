@@ -1,45 +1,45 @@
 
 // ebss:
+#include <common/common.hpp>
+#include <common/output.hpp>
+#include <common/parameters/AbsorberParameters.hpp>
+#include <common/parameters/DipoleParameters.hpp>
 #include <common/parameters/HamiltonianParameters.hpp>
 #include <common/parameters/PulsetrainParameters.hpp>
 #include <common/parameters/StateParameters.hpp>
-#include <common/parameters/AbsorberParameters.hpp>
-#include <common/parameters/DipoleParameters.hpp>
-#include <common/common.hpp>
-#include <common/output.hpp>
 #include <propagate/cranknicholson.hpp>
 
 // petsc:
 #include <petsc.h>
 
 // stl:
+#include <iostream>
 #include <sstream>
 #include <string>
-#include <iostream>
 
 
-PetscErrorCode
-Monitor( TS ts, PetscInt steps, PetscReal time, Vec x, void* ctx );
+PetscErrorCode Monitor( TS ts, PetscInt steps, PetscReal time, Vec x,
+                        void* ctx );
 
-PetscErrorCode HamiltonianJ(
-    TS ts, PetscReal t, Vec u, Mat* A, Mat* B, MatStructure* flag, void* ctx );
+PetscErrorCode HamiltonianJ( TS ts, PetscReal t, Vec u, Mat* A, Mat* B,
+                             MatStructure* flag, void* ctx );
 
 int main( int argc, const char** argv )
 {
-    int ac = argc;
-    char** av = new char* [argc+1];
+    int    ac = argc;
+    char** av = new char*[argc + 1];
     for ( size_t i = 0; i < argc; i++ ) {
         av[i] = new char[strlen( argv[i] ) + 1];
         std::copy( argv[i], argv[i] + strlen( argv[i] ) + 1, av[i] );
     }
-    av[argc]=NULL;
+    av[argc] = NULL;
     PetscInitialize( &ac, &av, PETSC_NULL, PETSC_NULL );
 
     // PetscViewer view;
     PetscBool flg = PETSC_FALSE;
-    char bagname[PETSC_MAX_PATH_LEN];
-    PetscOptionsGetString(
-        PETSC_NULL, "-hamiltonian_config", bagname, PETSC_MAX_PATH_LEN, &flg );
+    char      bagname[PETSC_MAX_PATH_LEN];
+    PetscOptionsGetString( NULL, NULL, "-hamiltonian_config", bagname,
+                           PETSC_MAX_PATH_LEN, &flg );
 
     if ( !flg ) {
         std::cerr << "I need a hamiltonian to propagate. (-hamiltonian_config )"
@@ -63,7 +63,8 @@ int main( int argc, const char** argv )
     auto empty_states_index =
         sparams->empty_states_index( params->prototype() );
     if ( params->rank() == 0 ) {
-        std::cout << "#Git commit: " << GIT_COMMIT << std::endl;
+        std::cout << "#Git commit: "
+                  << "GIT_COMMIT" << std::endl;
         std::cout << params->print();
         std::cout << lparams->print();
         std::cout << aparams->print();
@@ -80,20 +81,20 @@ int main( int argc, const char** argv )
     }
 
 
-    Mat D; // The Dipole Matrix
-    Vec H; // The eigenvalues of the field free hamiltonian
-    Vec wf; // The vec we are going to propagate
-    Mat A; // The matrix we are using durring the solving
+    Mat D;   // The Dipole Matrix
+    Vec H;   // The eigenvalues of the field free hamiltonian
+    Vec wf;  // The vec we are going to propagate
+    Mat A;   // The matrix we are using durring the solving
     // TS ts; //The timestep context
-    context* cntx = new context; // The context that we will pass around
+    context* cntx = new context;  // The context that we will pass around
 
     // fill the context:
-    cntx->hparams = params;
-    cntx->laser = lparams;
+    cntx->hparams  = params;
+    cntx->laser    = lparams;
     cntx->absorber = aparams;
-    cntx->dipole = dparams;
-    cntx->H = &H;
-    cntx->D = &D;
+    cntx->dipole   = dparams;
+    cntx->H        = &H;
+    cntx->D        = &D;
 
     D = params->read_dipole_matrix();
     MatAssemblyBegin( D, MAT_FINAL_ASSEMBLY );
@@ -105,45 +106,43 @@ int main( int argc, const char** argv )
 
     // Do the state stuff... remove rows/columns:
     MatSetOption( D, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE );
-    MatZeroRowsColumns( D,
-                        empty_states_index.size(),
-                        empty_states_index.data(),
-                        0.0,
-                        PETSC_NULL,
-                        PETSC_NULL );
+    MatZeroRowsColumns( D, empty_states_index.size(), empty_states_index.data(),
+                        0.0, PETSC_NULL, PETSC_NULL );
 
 
     {
         std::vector<PetscScalar> zeros( empty_states_index.size(), 0.0 );
         if ( zeros.size() != 0 )
-            VecSetValues( H,
-                          empty_states_index.size(),
-                          empty_states_index.data(),
-                          zeros.data(),
+            VecSetValues( H, empty_states_index.size(),
+                          empty_states_index.data(), zeros.data(),
                           INSERT_VALUES );
     }
 
-    //transition stuff...
+    // transition stuff...
     {
-		std::cout << "entering transition section" << std::endl;
+        std::cout << "entering transition section" << std::endl;
         sparams->disallowed_transitions( D, params->prototype() );
-		std::cout << "after disallowed transitions" << std::endl;
-//		auto zero = std::complex<double>(0.0, 0.0);
-//        if (disallowed[0].size() != disallowed[1].size())
-//            std::cout << "oops, sizes don't match: " << disallowed[0].size() << ", " << disallowed[1].size() << std::endl;
-//        if (disallowed[0].size() != 0)
-//            for (int i = 0; i < disallowed[0].size(); i++) 
-//			{
-//				if (params->rank() == 0)
-//					std::cout << i << ": (" << disallowed[0][i] << "," << disallowed[1][i] << ")...";
-//                MatSetValues( D,
-//                              1,
-//                              &(disallowed[0][i]),
-//                              1,
-//                              &(disallowed[1][i]),
-//                              &(zero),
-//                              INSERT_VALUES);
-//			}
+        std::cout << "after disallowed transitions" << std::endl;
+        //		auto zero = std::complex<double>(0.0, 0.0);
+        //        if (disallowed[0].size() != disallowed[1].size())
+        //            std::cout << "oops, sizes don't match: " <<
+        //            disallowed[0].size() << ", " << disallowed[1].size() <<
+        //            std::endl;
+        //        if (disallowed[0].size() != 0)
+        //            for (int i = 0; i < disallowed[0].size(); i++)
+        //			{
+        //				if (params->rank() == 0)
+        //					std::cout << i << ": (" << disallowed[0][i] << ","
+        //<<
+        // disallowed[1][i] << ")...";
+        //                MatSetValues( D,
+        //                              1,
+        //                              &(disallowed[0][i]),
+        //                              1,
+        //                              &(disallowed[1][i]),
+        //                              &(zero),
+        //                              INSERT_VALUES);
+        //			}
     }
 
     VecAssemblyBegin( H );
@@ -158,9 +157,9 @@ int main( int argc, const char** argv )
     // Setup the wavefunction:
     MatGetVecs( D, &wf, PETSC_NULL );
     sparams->initial_vector( &wf, params->prototype() );
-    //std::cout << output::blue << "WF: " << std::endl;
-    //VecView( wf, PETSC_VIEWER_STDOUT_WORLD );
-    //std::cout << output::reset << std::endl;
+    // std::cout << output::blue << "WF: " << std::endl;
+    // VecView( wf, PETSC_VIEWER_STDOUT_WORLD );
+    // std::cout << output::reset << std::endl;
 
 
     // Copy the non-zero pattern from D to A (the matrix we use in our solver)
@@ -224,10 +223,10 @@ int main( int argc, const char** argv )
     return 0;
 }
 
-PetscErrorCode
-Monitor( TS ts, PetscInt steps, PetscReal time, Vec x, void* ctx )
+PetscErrorCode Monitor( TS ts, PetscInt steps, PetscReal time, Vec x,
+                        void* ctx )
 {
-    context* cntx = (context*)ctx;
+    context*  cntx = (context*)ctx;
     PetscReal norm;
 
     VecNorm( x, NORM_2, &norm );
@@ -239,13 +238,13 @@ Monitor( TS ts, PetscInt steps, PetscReal time, Vec x, void* ctx )
     return 0;
 }
 
-PetscErrorCode HamiltonianJ(
-    TS ts, PetscReal t, Vec u, Mat* A, Mat* B, MatStructure* flag, void* ctx )
+PetscErrorCode HamiltonianJ( TS ts, PetscReal t, Vec u, Mat* A, Mat* B,
+                             MatStructure* flag, void* ctx )
 {
-    Mat AA = *A;
+    Mat            AA = *A;
     PetscErrorCode err;
-    context* cntx = (context*)ctx;
-    PetscScalar ef = cntx->laser->efield( t );
+    context*       cntx = (context*)ctx;
+    PetscScalar    ef   = cntx->laser->efield( t );
     if ( cntx->hparams->rank() == 0 ) std::cout << "ef: " << ef << std::endl;
 
     MatCopy( *( cntx->D ), AA, SAME_NONZERO_PATTERN );

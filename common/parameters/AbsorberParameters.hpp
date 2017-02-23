@@ -61,10 +61,10 @@ class AbsorberParameters : public Parameters
     //};
 
     // The stuff that I care about:
-    PetscReal cos_factor() const { return cos_factor_; };
-    PetscInt n_size() const { return n_size_; };
-    PetscInt l_size() const { return l_size_; };
-    PetscInt m_size() const { return m_size_; };
+    PetscReal   cos_factor() const { return cos_factor_; };
+    PetscInt    n_size() const { return n_size_; };
+    PetscInt    l_size() const { return l_size_; };
+    PetscInt    m_size() const { return m_size_; };
     std::string type() const
     {
         if ( type_ == COSINE )
@@ -86,16 +86,16 @@ class AbsorberParameters : public Parameters
     std::string print() const;
 
   private:
-    void register_parameters();
+    void               register_parameters();
     ez::ezOptionParser opt;
-    int n_size_;
-    int l_size_;
-    int m_size_;
-    double cos_factor_;
-    abs_type type_;
+    int                n_size_;
+    int                l_size_;
+    int                m_size_;
+    double             cos_factor_;
+    abs_type           type_;
 };
 
-void AbsorberParameters::absorb( Vec* abs,
+void AbsorberParameters::absorb( Vec*                              abs,
                                  HamiltonianParameters<PetscReal>* hparams )
 {
     PetscInt start, end;
@@ -200,16 +200,16 @@ void AbsorberParameters::save_parameters()
 void AbsorberParameters::register_parameters()
 {
     std::string prefix = "-absorber_";
-    opt.overview = "Absorber Parameters";
-    opt.add( "", // Default.
-             0,  // Required?
-             0,  // Number of args expected.
-             0,  // Delimiter if expecting multiple args.
-             "Display usage instructions.", // Help description.
-             "-h",                          // Flag token.
-             "-help",                       // Flag token.
-             "--help",                      // Flag token.
-             "--usage"                      // Flag token.
+    opt.overview       = "Absorber Parameters";
+    opt.add( "",  // Default.
+             0,   // Required?
+             0,   // Number of args expected.
+             0,   // Delimiter if expecting multiple args.
+             "Display usage instructions.",  // Help description.
+             "-h",                           // Flag token.
+             "-help",                        // Flag token.
+             "--help",                       // Flag token.
+             "--usage"                       // Flag token.
              );
     opt.add( "40", 0, 1, 0, "size of absorber in n",
              std::string( prefix ).append( "n_size\0" ).c_str() );
@@ -224,12 +224,12 @@ void AbsorberParameters::register_parameters()
     opt.add( "", 0, 1, 0, "Config file to import",
              std::string( prefix ).append( "config\0" ).c_str() );
     opt.add(
-        "", // Default.
-        0,  // Required?
-        0,  // Number of args expected.
-        0,  // Delimiter if expecting multiple args.
-        "Print all inputs and categories for debugging.", // Help description.
+        "",  // Default.
+        0,   // Required?
+        0,   // Number of args expected.
+        0,   // Delimiter if expecting multiple args.
+        "Print all inputs and categories for debugging.",  // Help description.
         "+d",
-        "--debug" // Flag token.
+        "--debug"  // Flag token.
         );
 }

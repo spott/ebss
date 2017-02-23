@@ -241,7 +241,7 @@ template<>
 struct Serialize<0>
 {
     template<class Archive, typename... Args>
-    static void serialize(Archive & ar, std::tuple<Args...> & t, const unsigned int version)
+    static void serialize(Archive & , std::tuple<Args...> & , const unsigned int )
     {
     }
 };

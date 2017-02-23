@@ -122,7 +122,7 @@ namespace common
     Vec eigen_balls(Mat mat)
     {
         Vec v;
-        MatGetVecs(mat, &v, PETSC_NULL);
+        MatCreateVecs(mat, &v, PETSC_NULL);
         VecSet(v,0.0);
         PetscInt       start = 0, end = 0, row;
         PetscScalar   *array;
@@ -156,7 +156,7 @@ namespace common
             char* a = new char[1025];
             getcwd(a, 1025);
             std::string cwd = std::string(a);
-            delete a;
+            delete[] a;
             return cwd.append("/").append(rel_path);
         }
         else

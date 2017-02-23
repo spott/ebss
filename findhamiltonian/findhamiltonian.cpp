@@ -27,7 +27,7 @@
 
 void handler( int sig )
 {
-    void* array[10];
+    void*  array[10];
     size_t size;
 
     // get void*'s for all entries on the stack
@@ -86,7 +86,7 @@ double dipole_matrix_element( double r, void* params )
 
     gsl_sf_result left;
     gsl_sf_result right;
-    auto error_handler = gsl_set_error_handler_off();
+    auto          error_handler = gsl_set_error_handler_off();
     // auto left = gsl_sf_hydrogenicR (p->a.n, p->a.l, 1, r);
     // auto right = gsl_sf_hydrogenicR (p->b.n, p->b.l, 1, r);
     auto err = gsl_sf_hydrogenicR_e( p->a.n, p->a.l, 1, r, &left );
@@ -113,7 +113,7 @@ double dipole_matrix_element( double r, void* params )
 
 int main( int argc, const char** argv )
 {
-    int ac = argc;
+    int    ac = argc;
     char** av = new char*[argc + 1];
     for ( size_t i = 0; i < argc; i++ ) {
         av[i] = new char[strlen( argv[i] )];
@@ -125,7 +125,8 @@ int main( int argc, const char** argv )
 
     HamiltonianParameters<PetscReal> params( argc, argv, MPI_COMM_WORLD );
     if ( params.rank() == 0 ) {
-        std::cout << "#Git commit: " << GIT_COMMIT << std::endl;
+        std::cout << "#Git commit: "
+                  << "GIT_COMMIT" << std::endl;
         std::cout << params.print();
     }
 
@@ -133,7 +134,7 @@ int main( int argc, const char** argv )
 
     // decltype( params.basis_parameters()->grid() ) grid;
     std::vector<double> grid;
-    auto prototype = params.prototype();
+    auto                prototype = params.prototype();
 
     grid = params.basis_parameters()->grid();
 
@@ -141,7 +142,7 @@ int main( int argc, const char** argv )
 
 
     std::ofstream reduced_out;
-    std::string fname = std::string( "./reduced_log_" +
+    std::string   fname = std::string( "./reduced_log_" +
                                      std::to_string( params.rank() ) + ".txt" );
     reduced_out.open( fname, std::ios_base::out );
     {
@@ -166,11 +167,11 @@ int main( int argc, const char** argv )
                 BasisID a ) -> Range<typename std::vector<double>::iterator>
         {
             typedef typename std::vector<double>::iterator iterator;
-            static std::vector<double> l_block1;
-            static int l1 = -1;
-            static std::vector<double> l_block2;
-            static int l2 = -1;
-            static bool b = false;
+            static std::vector<double>                     l_block1;
+            static int                                     l1 = -1;
+            static std::vector<double>                     l_block2;
+            static int                                     l2 = -1;
+            static bool                                    b  = false;
             // std::cout << "l1: " << l1 << " l2: " << l2 << " l " << a.l << "
             // b " << b << std::endl;
             if ( a.l == l1 )
@@ -194,7 +195,7 @@ int main( int argc, const char** argv )
                     l_block2.begin() + ( a.n - ( a.l + 1 ) ) * grid.size() +
                         grid.size()};
             } else if ( a.l != l1 && a.l != l2 && !b ) {
-                l1 = a.l;
+                l1       = a.l;
                 l_block1 = common::import_binary_to_vector<double>(
                     params.basis_parameters()->l_block_filename( a.l ),
                     l_block1 );
@@ -214,7 +215,7 @@ int main( int argc, const char** argv )
                 if ( i == j ) return 0.0;
                 auto a = import_wf( prototype[i] );
                 auto b = import_wf( prototype[j] );
-                int s = 0;
+                int  s = 0;
 
                 PetscScalar radial = math::integrateTrapezoidRule( a, b, grid );
                 PetscScalar angular = math::CGCoefficient<PetscScalar>(
@@ -231,7 +232,7 @@ int main( int argc, const char** argv )
                 if ( prototype[i].n == 2 && prototype[j].n == 2 )
                     std::cout << "n = 2 transition: " << radial * angular
                               << std::endl;
-                if ( angular != angular || radial != radial ) // check for NaNs
+                if ( angular != angular || radial != radial )  // check for NaNs
                 {
                     std::cerr << " got a NaN @ (" << i << ", " << j
                               << "): " << prototype[i] << " <=> "
@@ -259,7 +260,7 @@ int main( int argc, const char** argv )
                 if ( prototype[i].n == 2 && prototype[j].n == 2 )
                     std::cout << "n = 2 transition: " << radial * angular
                               << std::endl;
-                if ( angular != angular || radial != radial ) // check for NaNs
+                if ( angular != angular || radial != radial )  // check for NaNs
                 {
                     std::cerr << " got a NaN @ (" << i << ", " << j
                               << "): " << prototype[i] << " <=> "
