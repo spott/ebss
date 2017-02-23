@@ -8,9 +8,11 @@
 //#include<common/special/coulomb/test_rec_rel.>
 
 // fftw3:
+#if defined( USE_FFTW )
 extern "C" {
 #include <fftw3.h>
 }
+#endif
 
 // stl:
 #include <cassert>
@@ -66,9 +68,14 @@ inline constexpr int signum( T x )
 template <typename scalar>
 scalar CGCoefficient( const BasisID& init, const BasisID& fin )
 {
+    // scalar out = gsl_sf_coupling_3j( init.l * 2, 2, fin.l * 2, 0, 0, 0 );
+    // out *= out;
+    // out *= std::sqrt( ( 2 * init.l + 1 ) * ( 2 * fin.l + 1 ) );
     scalar out = gsl_sf_coupling_3j( init.l * 2, 2, fin.l * 2, 0, 0, 0 );
-    out *= out;
+    out *= gsl_sf_coupling_3j( init.l * 2, 2, fin.l * 2, -init.m * 2, 0,
+                               init.m * 2 );
     out *= std::sqrt( ( 2 * init.l + 1 ) * ( 2 * fin.l + 1 ) );
+    out *= std::pow( -1, init.m );
     return out;
 }
 
@@ -697,7 +704,8 @@ std::vector<std::tuple<PetscScalar, int>> VecSort( Vec a, Comparator comp )
     VecGetOwnershipRange( a, &low, &high );
     VecGetArray( a, &array );
 
-    for ( int i = 0; i < high - low; ++i ) out.push_back( {array[i], i} );
+    for ( int i = 0; i < high - low; ++i )
+        out.push_back( std::make_tuple( array[i], i ) );
 
     std::sort( out.begin(), out.end(),
                [comp]( indexed_value a, indexed_value b ) {
@@ -724,6 +732,37 @@ std::vector<std::tuple<PetscScalar, int>> VecSort( Vec a, Comparator comp )
 
     broadcast( world, out, 0 );
 
+    return out;
+}
+
+template <typename Selector>
+std::vector<std::tuple<PetscScalar, int>> VecStupidSelect( Vec a,
+                                                           Selector select )
+{
+    Vec        local;
+    VecScatter scatter;
+    VecScatterCreateToAll( a, &scatter, &local );
+
+    typedef std::tuple<PetscScalar, int> indexed_value;
+    std::vector<indexed_value> out;
+
+    VecScatterBegin( scatter, a, local, INSERT_VALUES, SCATTER_FORWARD );
+    VecScatterEnd( scatter, a, local, INSERT_VALUES, SCATTER_FORWARD );
+
+    PetscScalar* array;
+    int          low, high;
+
+    VecGetOwnershipRange( local, &low, &high );
+    VecGetArray( local, &array );
+
+    for ( int i = 0; i < high - low; ++i )
+        if ( select( i, array[i] ) )
+            out.push_back( std::make_tuple( array[i], i ) );
+
+    VecRestoreArray( local, &array );
+
+    VecScatterDestroy( &scatter );
+    VecDestroy( &local );
     return out;
 }
 
@@ -852,6 +891,7 @@ std::vector<T> second_difference( const std::vector<T>& in, const T& h )
 }
 
 // fourier
+#if defined( USE_FFTW )
 std::vector<std::complex<double>> fourier( std::vector<double>&& time_series )
 {
     std::vector<std::complex<double>> out( ( time_series.size() ) );
@@ -862,6 +902,7 @@ std::vector<std::complex<double>> fourier( std::vector<double>&& time_series )
     fftw_destroy_plan( p );
     return out;
 }
+#endif
 
 // windowing functions:
 

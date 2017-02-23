@@ -74,8 +74,7 @@ int main( int argc, const char** argv )
     std::cout << std::scientific;
 
     if ( params.rank() == 0 ) {
-        std::
-        cout << "#Git commit: " << GIT_COMMIT << std::endl;
+        std::cout << "#Git commit: " << GIT_COMMIT << std::endl;
         std::cout << "reading in matrix:" << std::endl;
     }
 
@@ -89,7 +88,7 @@ int main( int argc, const char** argv )
     VecAssemblyEnd( H0 );
     int size;
     VecGetSize( H0, &size );
-    // std::cout << size << std::endl;
+    std::cout << size << std::endl;
 
     assert( size == int( prototype.size() ) );
     std::function<bool( int, int )> dipole_selection_rules = [prototype](
@@ -130,9 +129,15 @@ int main( int argc, const char** argv )
         psi1 = common::petsc_binary_read<Vec>( nparams.wf_filename(),
                                                params.comm() );
         // Sort vector:
-        maxes = math::VecStupidSort( psi1, []( PetscScalar a, PetscScalar b ) {
-            return std::abs( a ) > std::abs( b );
-        } );
+        // maxes = math::VecFirstNSort(psi1, 100 ,[](PetscScalar a, PetscScalar
+        // b) { return std::abs(a) > std::abs(b); });
+        maxes =
+            math::VecStupidSelect( psi1, [prototype]( int i, PetscScalar a ) {
+                return prototype[i].n < 4;
+            } );
+        // maxes = math::VecStupidSort( psi1, []( PetscScalar a, PetscScalar b )
+        // {
+        //         return std::abs( a ) > std::abs( b );
     }
 
 
@@ -217,8 +222,14 @@ int main( int argc, const char** argv )
                 PetscScalar total = 0;
                 for ( auto max1 : maxes ) {
                     for ( auto max2 : maxes ) {
-                        VecSet( psi0, 0 );
-                        VecSet( psi1, 0 );
+                        // // From argon_added.  appears to be for dealing with non-pure non-ground initial states
+                        // auto diff =
+                        //     std::abs( prototype[std::get<1>( max1 )].l -
+                        //               prototype[std::get<1>( max2 )].l );
+                        // if ( diff % 2 != 0 || diff > 2 ||
+                        //      std::abs( std::get<0>( max1 ) ) < 1e-5 ||
+                        //      std::abs( std::get<0>( max2 ) ) < 1e-5 )
+                        //     break;
 
                         VecSetValue( psi0, std::get<1>( max2 ), 1.,
                                      INSERT_VALUES );
@@ -240,9 +251,14 @@ int main( int argc, const char** argv )
                             std::cout
                                 << "========================================="
                                 << std::endl
-                                << *i << ": (" << std::get<1>( max1 ) << ","
-                                << std::get<1>( max2 ) << ") wg: " << wg0
-                                << ", " << wg1 << std::endl;
+                                << *i << ": (" << prototype[std::get<1>( max1 )]
+                                << " [" << std::get<0>( max1 ) << "] -> "
+                                << prototype[std::get<1>( max2 )] << " ["
+                                << std::get<0>( max2 ) << "]) wg: " << wg0
+                                << ", " << wg1 << "|| pop = "
+                                << std::conj( std::get<0>( max1 ) ) *
+                                       std::get<0>( max2 )
+                                << std::endl;
                         std::vector<double> freq{( *i ) * freqs[f]};
                         Vec p0 = psi( 0, freq.cbegin(), freq.cend(), wg0, H0, D,
                                       psi0, psi0, prototype );
@@ -265,21 +281,29 @@ int main( int argc, const char** argv )
                                  std::conj( std::get<0>( max1 ) ) *
                                  std::get<0>( max2 );
                         if ( params.rank() == 0 &&
-                             std::abs( t1 + t2 ) >= 1e-16 )
+                             std::abs( ( t1 + t2 ) *
+                                       std::conj( std::get<0>( max1 ) ) * // These two lines aren't in the older version..
+                                       std::get<0>( max2 ) ) >= 1e-16 )
                             std::cout
                                 << "========================================="
                                 << std::endl
-                                << *i << ": (" << std::get<1>( max1 ) << ","
-                                << std::get<1>( max2 ) << ") wg: " << wg0
+                                << *i << ": (" << prototype[std::get<1>( max1 )]
+                                << " [" << std::get<0>( max1 ) << "] -> "
+                                << prototype[std::get<1>( max2 )] << " ["
+                                << std::get<0>( max2 ) << "]) wg: " << wg0
                                 << ", " << wg1 << std::endl;
                         if ( params.rank() == 0 &&
-                             std::abs( t1 + t2 ) >= 1e-16 )
+                             std::abs( ( t1 + t2 ) *
+                                       std::conj( std::get<0>( max1 ) ) * // These two lines aren't in the older version..
+                                       std::get<0>( max2 ) ) >= 1e-16 )
                             std::cout << "terms ("
                                       << prototype[std::get<1>( max1 )] << "->"
                                       << prototype[std::get<1>( max2 )]
                                       << "): " << t1 << ", " << t2 << std::endl;
                         if ( params.rank() == 0 &&
-                             std::abs( t1 + t2 ) >= 1e-16 )
+                             std::abs( ( t1 + t2 ) *
+                                       std::conj( std::get<0>( max1 ) ) * // These two lines aren't in the older version..
+                                       std::get<0>( max2 ) ) >= 1e-16 )
                             std::cout << "final: ("
                                       << prototype[std::get<1>( max1 )] << "->"
                                       << prototype[std::get<1>( max2 )] << "): "
@@ -304,10 +328,13 @@ int main( int argc, const char** argv )
                 PetscScalar total = 0;
                 for ( auto max1 : maxes ) {
                     for ( auto max2 : maxes ) {
-                        if ( std::abs( prototype[std::get<1>( max1 )].l -
-                                       prototype[std::get<1>( max2 )].l ) %
-                                 2 !=
-                             0 )
+                        auto diff =
+                            std::abs( prototype[std::get<1>( max1 )].l -
+                                      prototype[std::get<1>( max2 )].l );
+                        if ( diff % 2 != 0 ||
+                             diff > 4 )  // || std::abs(std::get<0>(max1)) <=
+                                         // 1e-6 || std::abs(std::get<0>(max2))
+                                         // <= 1e-6 )
                             break;
                         VecSet( psi0, 0 );
                         VecSet( psi1, 0 );
@@ -332,8 +359,8 @@ int main( int argc, const char** argv )
                                 << "========================================="
                                 << std::endl
                                 << *i << ": (" << prototype[std::get<1>( max1 )]
-                                << " [" << prototype[std::get<0>( max1 )]
-                                << "]," << std::get<1>( max2 ) << " ["
+                                << " [" << std::get<0>( max1 ) << "] -> "
+                                << prototype[std::get<1>( max2 )] << " ["
                                 << std::get<0>( max2 ) << "]) wg: " << wg0
                                 << ", " << wg1 << std::endl;
                         std::sort( ( *i ).begin(), ( *i ).end() );
@@ -389,10 +416,12 @@ int main( int argc, const char** argv )
                                       std::conj( std::get<0>( max1 ) ) *
                                       std::get<0>( max2 );
                             if ( params.rank() == 0 &&
-                                 std::abs( t1 + t2 + t3 + t4 ) >= 1e-16 )
+                                 std::abs( ( t1 + t2 + t3 + t4 ) *
+                                           std::conj( std::get<0>( max1 ) ) * //These two lines aren't in the old version.
+                                           std::get<0>( max2 ) ) >= 1e-16 )
                                 std::cout
-                                    << "terms: ("
-                                    << prototype[std::get<1>( max1 )] << ","
+                                    << *i << " terms: ("
+                                    << prototype[std::get<1>( max1 )] << "->"
                                     << prototype[std::get<1>( max2 )]
                                     << "): " << t1 << ", " << t2 << ", " << t3
                                     << ", " << t4 << " || "
@@ -409,10 +438,9 @@ int main( int argc, const char** argv )
                             VecDestroy( &p0c );
                         } while ( std::next_permutation( ( *i ).begin(),
                                                          ( *i ).end() ) );
-                        if ( params.rank() == 0 &&
-                             std::abs( t1 + t2 + t3 + t4 ) >= 1e-16 )
+                        if ( params.rank() == 0 && std::abs( result ) >= 1e-16 )
                             std::cout << "final: ("
-                                      << prototype[std::get<1>( max1 )] << ","
+                                      << prototype[std::get<1>( max1 )] << "->"
                                       << prototype[std::get<1>( max2 )]
                                       << "): " << result << " multiplicity "
                                       << multiplicity << std::endl;
@@ -508,9 +536,9 @@ int main( int argc, const char** argv )
                     MatMult( D, p0, c );
                     VecDot( p5c, c, &t6 );
                     if ( params.rank() == 0 )
-                        std::cout << "terms: " << t1 << ", " << t2 << ", " << t3
-                                  << ", " << t4 << ", " << t5 << ", " << t6
-                                  << std::endl;
+                        std::cout << *i << " terms: " << t1 << ", " << t2
+                                  << ", " << t3 << ", " << t4 << ", " << t5
+                                  << ", " << t6 << std::endl;
                     result += ( t1 + t2 + t3 + t4 );
                     VecDestroy( &p5 );
                     VecDestroy( &p4 );
@@ -1008,11 +1036,10 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin,
     // we must have enough frequencies to do the calculation:
     assert( frequencies_end - frequencies_begin >= order );
 
-    // the out vector (the one we return)
     Vec out;
-
-    // a temporary vector
     Vec tmp;
+    Vec orthog_projector;
+
     Vec orthog_projector;
 
     MPI_Comm comm;
@@ -1026,7 +1053,10 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin,
     VecSet( orthog_projector, 1 );
     VecAXPY( orthog_projector, -1, mask );
 
-    // out starts as psi0
+    VecDuplicate( mask, &orthog_projector );
+    VecSet( orthog_projector, 1 );
+    VecAXPY( orthog_projector, -1, mask );
+
     VecCopy( psi0, out );
     // VecCopy(H0, tmp);
     // VecSet(out, 1.);
@@ -1056,8 +1086,13 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin,
         VecPointwiseMult( out, orthog_projector, out );
     }
 
+    // PetscReal norm;
+    // VecNormalize(out, &norm);
+    // if (rank == 0)
+    // std::cout << "norm: " << norm << std::endl;
     // destroy the temporary
     VecDestroy( &tmp );
+    VecDestroy( &orthog_projector );
 
     return out;
 }
@@ -1069,9 +1104,9 @@ Vec psi_conjugate( int                                 order,
                    std::vector<BasisID>& /*prototype*/ )
 {
     assert( frequencies_end - frequencies_begin >= order );
-    Vec      out;
-    Vec      tmp;
-    Vec      orthog_projector;
+    Vec out;
+    Vec tmp;
+    Vec orthog_projector;
     MPI_Comm comm;
     PetscObjectGetComm( (PetscObject)psi0, &comm );
     int rank;
@@ -1079,6 +1114,10 @@ Vec psi_conjugate( int                                 order,
     VecDuplicate( psi0, &out );
     VecDuplicate( H0, &tmp );
     VecCopy( psi0, out );
+
+    VecDuplicate( mask, &orthog_projector );
+    VecSet( orthog_projector, 1 );
+    VecAXPY( orthog_projector, -1, mask );
 
     VecDuplicate( mask, orthog_projector );
     VecSet( orthog_projector, 1 );
@@ -1099,7 +1138,12 @@ Vec psi_conjugate( int                                 order,
         VecPointwiseMult( out, orthog_projector, out );
     }
 
+    // PetscReal norm;
+    // VecNormalize(out, &norm);
+    // if (rank == 0)
+    // std::cout << "norm: " << norm << std::endl;
     VecDestroy( &tmp );
+    VecDestroy( &orthog_projector );
 
     return out;
 }

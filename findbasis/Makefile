@@ -5,8 +5,8 @@ include ../makefile.include
 
 #OMPI_CXX=g++
 
-LDFLAGS+=-lboost_mpi-mt -lboost_serialization-mt
-
+LDFLAGS+=-L${CURC_BOOST_LIB} -lboost_mpi -lboost_serialization
+#-lboost_mpi_mt
 OMPI_CXX=clang++-HEAD
 TESTS=bspline/bspline-test.cpp
 SOURCES=findbasis.cpp

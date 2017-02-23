@@ -279,8 +279,7 @@ namespace units {
 
 
     template<typename T>
-    double toEnergy( T ) {
-    };
+    double toEnergy( T ) {};
 
     template<>
     double toEnergy< Meter > ( Meter from ) { return 4.556335e-8 / from.value(); };

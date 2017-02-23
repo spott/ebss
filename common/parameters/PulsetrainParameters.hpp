@@ -28,8 +28,8 @@ class PulsetrainParameters : public LaserParameters
         if (test_)
         {
             auto a = test();
-            common::export_vector_binary("./time_test.dat", a[0]);
-            common::export_vector_binary("./efield_test.dat", a[1]);
+            common::export_vector_binary<double>("./time_test.dat", a[0]);
+            common::export_vector_binary<double>("./efield_test.dat", a[1]);
         }
     }
     ;

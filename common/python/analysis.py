@@ -4,6 +4,7 @@ import struct
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import os
+from __future__ import print_function, division
 
 #we are interested in the energy levels:
 
@@ -59,9 +60,9 @@ def import_k_spectrum( filename ):
         return npy.reshape(size[0], size[1])
 
 def gen_x_y_matrices( kmax, dk, dtheta ):
-    print (kmax)
-    print (dk)
-    print (dtheta)
+    print(kmax)
+    print(dk)
+    print(dtheta)
     dim_x = int(kmax / dk);
     dim_y = int(numpy.pi / dtheta) + 1;
     X = numpy.ndarray((dim_x, dim_y))
@@ -75,8 +76,8 @@ def gen_x_y_matrices( kmax, dk, dtheta ):
 def gen_k_spectrum_figure( spectrum_filename, kmax, out_filename, r = []):
     ks = import_k_spectrum( spectrum_filename )
     ma = numpy.max(ks)
-    print (ks.shape)
-    print (ma)
+    print(ks.shape)
+    print(ma)
     (X,Y) = gen_x_y_matrices( kmax, kmax / float(ks.shape[0]), numpy.pi / float(ks.shape[1]) )
     if (len(r) == 0):
         r.append(numpy.log10(ma) - 4)

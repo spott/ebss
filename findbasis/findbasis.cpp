@@ -1,7 +1,7 @@
 #include <common/parameters/BasisParameters.hpp>
-#include <findbasis/finite_difference.hpp>
 #include <findbasis/numerov.hpp>
 #include <findbasis/single_active_electron.hpp>
+//#include<findbasis/finite_difference.hpp>
 //#include<common/special/bspline.hpp>
 //#include<common/math.hpp>
 #include <functional>
@@ -68,6 +68,12 @@ int main( int argc, const char** argv )
 
     // call function to find all the energy states here:
     if ( params.atom() == "hydrogen" ) {
+        if ( params.zeff() != 0.0 ) {
+            hydrogen.N = 0;
+            hydrogen.Z = params.zeff() - 1;
+            hydrogen.gs_energy += std::pow( 2, params.zeff() );
+        }
+
         hydrogen.N -= params.charge();
         if ( params.charge() > 0 ) {
             std::cerr << "hydrogen with zero electrons is just stupid..."
@@ -96,6 +102,8 @@ int main( int argc, const char** argv )
     }
     if ( params.atom() == "helium_tf" ) {
         numerov::find_basis_set<scalar>( &helium_tf<scalar>, params, helium );
+    } else if ( params.atom() == "argon_tf" ) {
+        numerov::find_basis_set<scalar>( &argon_tf<scalar>, params, argon );
     } else if ( params.atom() == "argon" ) {
         argon.N -= params.charge();
         if ( params.charge() > 0 )

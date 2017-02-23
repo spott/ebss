@@ -68,6 +68,8 @@ class StateParameters : public Parameters
         else
             noboundcontinuum = false;
 
+        opt.get( "-state_m")->getInt(m_);
+
         std::vector<std::vector<int>> init;
         opt.get( "-state_init" )->getMultiInts( init );
         init_.n = init[0][0];
@@ -113,6 +115,7 @@ class StateParameters : public Parameters
     ez::ezOptionParser opt;
     void register_parameters();
     BasisID init_;
+    int m_;
     std::vector<BasisID> empty_states_;
     std::vector<BasisID> add_states;
     std::string filename_;
@@ -123,7 +126,7 @@ class StateParameters : public Parameters
 std::vector<BasisID>
 StateParameters::empty_states( const std::vector<BasisID> prototype )
 {
-    if ( !nobound && !nocontinuum ) return empty_states_;
+    if ( !nobound && !nocontinuum && m_ == 0 ) return empty_states_;
 
     for ( auto p : prototype ) {
         if ( p.e.real() < 0 && nobound &&
@@ -131,6 +134,9 @@ StateParameters::empty_states( const std::vector<BasisID> prototype )
             empty_states_.push_back( p );
 
         } else if (p.e.real() > 0 && nocontinuum) {
+            empty_states_.push_back(p);
+        } else if (p.l < std::abs(p.m)) {
+            std::cout << "removing state: " << std::endl;
             empty_states_.push_back(p);
         }
     }
@@ -152,7 +158,7 @@ StateParameters::empty_states( const std::vector<BasisID> prototype )
 
 void StateParameters::disallowed_transitions( Mat& D, const std::vector<BasisID>& prototype )
 {
-    if (!notransitions || !noboundcontinuum) return;
+    if (!notransitions && !noboundcontinuum) return;
     //std::vector<int> from_states;
     //std::vector<int> to_states;
 
@@ -186,11 +192,11 @@ void StateParameters::disallowed_transitions( Mat& D, const std::vector<BasisID>
                                   INSERT_VALUES);
                 }
             if (noboundcontinuum)
-                if (i->e.real() > 0.0 && j->e.real() < 0.0 && (std::abs(j->l - i->l) == 1))
+                if (i->e.real() < 0.0 && j->e.real() > 0.0 && (std::abs(j->l - i->l) == 1))
                 {
                     std::vector<int> column;
                     std::vector<std::complex<double>> zeros;
-                    while( j->e.real() < 0.0 && (std::abs(j->l - i->l) == 1) && j < prototype.cend())
+                    while( j->e.real() > 0.0 && (std::abs(j->l - i->l) == 1) && j < prototype.cend())
                     {
                         column.push_back(j - prototype.cbegin());
                         zeros.push_back(zero);
@@ -272,6 +278,7 @@ std::string StateParameters::print() const
     out << "state_no_continuum " << nocontinuum << std::endl;
     out << "state_filename " << filename_ << std::endl;
     out << "state_init " << init_ << std::endl;
+    out << "state_m " << m_ << std::endl;
 
     return out.str();
 }
@@ -292,6 +299,7 @@ void StateParameters::save_parameters() const
     for ( auto a : empty_states_ ) {
         file << "-state_rem " << a.n << "," << a.l << "," << a.j << std::endl;
     }
+    file << "-state_m " << m_ << std::endl;
     file.close();
 }
 
@@ -353,6 +361,14 @@ void StateParameters::register_parameters()
              ',',
              "initial state: (n,l,j pair)",
              std::string( prefix ).append( "init\0" ).c_str() );
+
+    opt.add( "",
+             0,
+             1,
+             ',',
+             "m state",
+             std::string( prefix ).append( "m\0" ).c_str() );
+
 
     opt.add( "",
              0,

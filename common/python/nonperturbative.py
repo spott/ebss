@@ -4,13 +4,16 @@ nonperturbative.py:
 
 """
 
-
+from __future__ import print_function, division
 import numpy as np
 import os
 import pandas as pd
 import scipy.signal
 from common import import_petsc_vec
 from units import atomic
+import sys
+from window import *
+
 
 import fourier
 
@@ -214,8 +217,8 @@ class NonperturbativeSet(object):
                                 files.append( (lambda x: fun(np.conj(x)), "dipole_" + f[1] + f[0] + ".dat") )
                             else:
                                 files.append( (fun, "dipole_" + f + ".dat"))
-            print files
-            print self.folder
+            print(files)
+            print(self.folder)
             dp = np.zeros(timesize, dtype='d')
             for func, f in files:
                 with open(os.path.join(self.folder, f), 'rb') as dipolef:
@@ -229,7 +232,7 @@ class NonperturbativeSet(object):
                     else:
                         raise Exception("dipole: dipole file does not have a filesize equal to, or double that of the time file")
             #dp *= -1
-            print dp
+            print( dp)
             if window is not None:
                 return fourier.Fourier(time, dp, window)
             else:
@@ -362,3 +365,95 @@ class NonperturbativeSet(object):
                 m.append(int(i[3]))
                 e.append(float(i[4]))
             return pd.MultiIndex.from_arrays([n, l, j, m, e], names=["n,l,j,m,e"])
+
+
+
+def sum_dipoles(df, dipoles):
+    name = '+'.join(dipoles)
+    simple = []
+    conj = []
+    for dipole in dipoles:
+        if dipole in df.columns:
+            simple.append(dipole)
+        elif (dipole[1] + dipole[0]) in df.columns:
+            conj.append((dipole[1] + dipole[0]))
+        else:
+            raise(Exception("dipole element doesn't exist" + (dipole[1] + dipole[0])))
+    data = df[simple].join(df[conj].apply(np.conjugate), rsuffix='conj')
+    return pd.DataFrame(data.sum(axis=1), columns=[name])
+
+
+def get_stft_data(folder, t=None, name="All",
+                  window_fn=flattop,
+                  cycles=5, freq=None, ra=[0, -1], filt=None):
+    if freq is None:
+        freq = cycles
+    if t is not None:
+        print("calculating for " + folder + " " + str(t) + ", " + window_fn.name + " cycles: " + str(cycles) + "...")
+    elif t is None:
+        print("calculating for " + folder + " All, " + window_fn.name + " cycles: " + str(cycles) + "...")
+
+    print("importing folder...", end="")
+    sys.stdout.flush()
+    run = NonperturbativeSet.Nonperturbative(folder)
+    print("done.")
+
+    # 1 period
+    period = 2. * np.pi / atomic.from_wavelength(run.wavelength)
+
+    print("finding dipole moment...", end="")
+    sys.stdout.flush()
+    dipole = run.dipole(t=t)
+    efield = run.efield()
+    print("done.")
+
+    if (ra[1] == -1):
+        ra[1] = dipole.time[-1]
+
+    window = np.searchsorted(dipole.time, [period * cycles], "left")[0]
+    jump = window - 100 # int(window_fn.rov * window)
+
+    ra[0] = ra[0] - window/2.
+    ra[1] = ra[1] + window/2.
+
+    ra = np.searchsorted(dipole.time, ra)
+    print("window: ",window," jump: ", jump)
+    print("find stft for dipole...", end="")
+    sys.stdout.flush()
+    time, td_dipole = dipole.stft(window, jump,
+                                  window_fn=window_fn,
+                                  ra=ra, filt=filt)
+    print("done")
+    print("find stft for efield...", end="")
+    sys.stdout.flush()
+    _, td_ef = efield.stft(window, jump,
+                           window_fn=window_fn,
+                           ra=ra, filt=filt)
+    print("done")
+
+    #from scipy.optimize import curve_fit
+
+    #def sinsquared(x, a):
+        #return np.select([x <= (2*30890 * .05), x > (2*30890 * .05)],
+                         #[a * np.sin(x * np.pi / (2*30890 * .05))**2, 0])
+
+    #popt, pconv = curve_fit(sinsquared,
+                            #time,
+                            #np.abs(td_ef.T[cycles]), [1])
+    run_df = pd.DataFrame.from_dict({
+                "dipole": td_dipole.T[freq],
+                "efield": td_ef.T[freq],
+                "susceptibility": td_dipole.T[freq] / td_ef.T[freq]})
+                #"susceptibility_fit": td_dipole.T[freq] / np.array(
+                    #sinsquared(time, popt[0]) * np.exp(1j * atomic.from_wavelength(run.wavelength) * time - 1j * np.pi / 2))})
+    run_df.index = pd.Index(time, name="time")
+    window_fn = window_fn.name
+    filt = "None" if filt is None else filt
+    run_df.columns = pd.MultiIndex.from_tuples([(run.intensity, window_fn, filt, freq, cycles, name, "dipole"),
+                                                (run.intensity, window_fn, filt, freq, cycles, name, "efield"),
+                                                (run.intensity, window_fn, filt, freq, cycles, name, "susceptibility")],
+                                                #(run.intensity, window_fn, filt, freq, cycles, name, "susceptibility_fit")], 
+                                                names=["intensity", "windowing function", "filter", "freq", "cycle", "decomp" ,"value"])
+    print("done")
+    return run_df
+

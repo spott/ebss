@@ -12,10 +12,9 @@ class BasisParameters : public Parameters
     typedef compute_type_ compute_type;
     typedef write_type_   write_type;
     BasisParameters( int argc, const char** argv, MPI_Comm comm )
-        : Parameters( comm ), procs_( 0 ), fs_( false ), l_only_( false ),
-          n_only_( false ), charge_( 0 ), nmax_( 0 ), lmax_( 0 ), l_( 0 ),
-          n_( 0 ), points_( 0 ), rmax_( 0 ), rmin_( 0 ), resume( false ),
-          bo_( false ), atom_( "hydrogen" )
+        : Parameters( comm ), procs_( 0 ), fs_( false ), l_only_( false ), n_only_( false ),
+          charge_( 0 ), zeff_(0), nmax_( 0 ), lmax_( 0 ), l_( 0 ), n_(0), points_( 0 ),
+          rmax_( 0 ), rmin_( 0 ), bo_( false ), atom_( "hydrogen" ), resume(false)
     {
         register_parameters();
 
@@ -50,7 +49,9 @@ class BasisParameters : public Parameters
             n_only_ = true;
         }
 
-        opt.get( "-basis_charge" )->getInt( charge_ );
+        opt.get( "-basis_charge" )->getDouble( charge_ );
+        if (opt.isSet("-basis_zeff"))
+            opt.get( "-basis_zeff" )->getDouble( zeff_ );
         opt.get( "-basis_nmax" )->getInt( nmax_ );
         opt.get( "-basis_lmax" )->getInt( lmax_ );
         opt.get( "-basis_rmax" )->getDouble( rmax_ );
@@ -94,20 +95,55 @@ class BasisParameters : public Parameters
     };
 
     // The stuff that I care about:
-    PetscReal   rmax() const { return rmax_; };
-    PetscReal   rmin() const { return rmin_; };
-    PetscInt    points() const { return points_; };
-    PetscInt    nmax() const { return nmax_; };
-    PetscInt    lmax() const { return lmax_; };
-    PetscInt    l() const { return l_; };
-    PetscInt    n() const { return n_; };
-    PetscInt    charge() const { return charge_; };
-    bool        fs() const { return fs_; };
-    bool        bound_only() const { return bo_; }
-    bool        l_only() const { return l_only_; }
-    bool        n_only() const { return n_only_; }
-    size_t      procs() const { return procs_; }
-    std::string atom() const { return atom_; };
+    PetscReal rmax() const
+    {
+        return rmax_;
+    };
+    PetscReal rmin() const
+    {
+        return rmin_;
+    };
+    PetscInt points() const
+    {
+        return points_;
+    };
+    PetscInt nmax() const
+    {
+        return nmax_;
+    };
+    PetscInt lmax() const
+    {
+        return lmax_;
+    };
+    PetscInt l() const
+    {
+        return l_;
+    };
+    PetscInt n() const
+    {
+        return n_;
+    };
+    PetscReal charge() const
+    {
+        return charge_;
+    };
+    PetscReal zeff() const
+        {
+            return zeff_;
+        };
+    bool fs() const
+    {
+        return fs_;
+    };
+    bool bound_only() const { return bo_; }
+    bool l_only() const { return l_only_; }
+    bool n_only() const { return n_only_; }
+    size_t procs() const { return procs_; }
+    std::string atom() const
+    {
+        return atom_;
+    };
+
     // getting the folder:
     std::string basis_folder() const { return folder_; };
     std::string grid_filename() const
@@ -131,21 +167,22 @@ class BasisParameters : public Parameters
 
     void               register_parameters();
     ez::ezOptionParser opt;
-    std::string        folder_;
-    size_t             procs_;
-    bool               fs_;
-    bool               l_only_;
-    bool               n_only_;
-    int                charge_;
-    int                nmax_;
-    int                lmax_;
-    int                l_;
-    int                n_;
-    int                points_;
-    double             rmax_;
-    double             rmin_;
-    bool               bo_;
-    std::string        atom_;
+    std::string folder_;
+    size_t procs_;
+    bool fs_;
+    bool l_only_;
+    bool n_only_;
+    double charge_;
+    double zeff_;
+    int nmax_;
+    int lmax_;
+    int l_;
+    int n_;
+    int points_;
+    double rmax_;
+    double rmin_;
+    bool bo_;
+    std::string atom_;
 };
 
 template <typename compute_type_, typename write_type_>
@@ -169,7 +206,8 @@ void BasisParameters<compute_type_, write_type_>::init_from_file(
     register_parameters();
     opt.importFile( filename.c_str(), '#' );
 
-    opt.get( "-basis_charge" )->getInt( charge_ );
+    opt.get( "-basis_charge" )->getDouble( charge_ );
+    opt.get( "-basis_zeff" )->getDouble( zeff_ );
     opt.get( "-basis_nmax" )->getInt( nmax_ );
     opt.get( "-basis_lmax" )->getInt( lmax_ );
     opt.get( "-basis_rmax" )->getDouble( rmax_ );
@@ -222,6 +260,7 @@ void BasisParameters<compute_type_, write_type_>::save_parameters()
         file << "-basis_folder " << folder_ << std::endl;
         file << "-basis_atom " << atom_ << std::endl;
         file << "-basis_charge " << charge_ << std::endl;
+        file << "-basis_zeff " << zeff_ << std::endl;
         if ( fs_ ) file << "-basis_fs" << std::endl;
         if ( bo_ ) file << "-basis_bound_only" << std::endl;
         file.close();
@@ -278,6 +317,7 @@ std::string BasisParameters<compute_type_, write_type_>::print() const
     out << "basis_atom: " << atom_ << std::endl;
     out << "basis_procs: " << procs_ << std::endl;
     out << "basis_charge " << charge_ << std::endl;
+    out << "basis_zeff " << zeff_ << std::endl;
     if ( fs_ ) out << "basis_fs" << std::endl;
     if ( bo_ ) out << "-basis_bound_only" << std::endl;
     return out.str();
@@ -300,7 +340,17 @@ void BasisParameters<compute_type_, write_type_>::register_parameters()
              );
     opt.add( "0", 0, 1, 0, "charge of the atom",
              std::string( prefix ).append( "charge\0" ).c_str() );
-    opt.add( "", 0, 0, 0, "resume last (possibly failed) run",
+    opt.add( "",
+             0,
+             1,
+             0,
+             "zeff of the atom",
+             std::string( prefix ).append( "zeff\0" ).c_str() );
+    opt.add( "",
+             0,
+             0,
+             0,
+             "resume last (possibly failed) run",
              std::string( prefix ).append( "resume\0" ).c_str() );
     opt.add( "", 0, 0, 0, "finestructure included?",
              std::string( prefix ).append( "fs\0" ).c_str() );

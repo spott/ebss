@@ -2,6 +2,8 @@
 
 #include <common/common.hpp>
 #include <common/parameters/Parameters.hpp>
+#include <common/parameters/HamiltonianParameters.hpp>
+#include <common/math.hpp>
 
 enum abs_type { COSINE, CX_ROT, CX_SCALE };
 
@@ -114,34 +116,28 @@ void AbsorberParameters::absorb( Vec*                              abs,
             std::cerr << "cos_factor: " << cos_factor_ << std::endl;
 
 
-        for ( size_t i = start; i < end; i++ ) {
+        for (int i = start; i < end; i++)
+        {
             val = 1.;
-            if ( ( hparams->nmax() - prototype[i].n ) < n_size() )
-                val *=
-                    std::pow( std::sin( ( ( hparams->nmax() - prototype[i].n ) *
-                                          math::PI ) /
-                                        ( 2 * n_size() ) ),
-                              cos_factor() );
-            if ( ( hparams->lmax() - prototype[i].l ) < l_size() )
-                val *=
-                    std::pow( std::sin( ( ( hparams->lmax() - prototype[i].l ) *
-                                          math::PI ) /
-                                        ( 2 * l_size() ) ),
-                              cos_factor() );
-            if ( ( hparams->mmax() - std::abs( prototype[i].m ) ) < m_size() )
-                val *=
-                    std::pow( std::sin( ( ( hparams->mmax() - prototype[i].m ) *
-                                          math::PI ) /
-                                        ( 2 * m_size() ) ),
-                              cos_factor() );
-            VecSetValue( *abs, i, val, INSERT_VALUES );
+            if ((hparams->nmax() - prototype[i].n) < n_size())
+                val *= std::pow(std::sin(
+                            ((hparams->nmax() - prototype[i].n) * math::PI)/(2*n_size())
+                            ),cos_factor());
+            if ((hparams->lmax() - prototype[i].l) < l_size())
+                val *= std::pow(std::sin(
+                            ((hparams->lmax() - prototype[i].l) * math::PI)/(2*l_size())),
+                        cos_factor());
+            // if ((hparams->mmax() - std::abs(prototype[i].m)) < m_size())
+            //     val *= std::pow(std::sin(
+            //                 ((hparams->mmax() - prototype[i].m) * math::PI)/(2*m_size())),
+            //             cos_factor());
+            VecSetValue(*abs, i, val, INSERT_VALUES);
         }
     } else if ( type_ == CX_ROT ) {
         PetscScalar val;
-        std::cerr
-            << "complex rotation is still being tested!  no l-absorber yet"
-            << std::endl;
-        for ( size_t i = start; i < end; i++ ) {
+        std::cerr << "complex rotation is still being tested!  no l-absorber yet" << std::endl;
+        for (int i = start; i < end; i++)
+        {
             val = 1.;
             if ( ( hparams->nmax() - prototype[i].n ) < n_size() ) {
                 val = std::complex<double>(

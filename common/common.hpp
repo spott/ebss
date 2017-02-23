@@ -212,12 +212,19 @@ namespace common
         Mat v;
         MatCreate(comm,&v);
         MatSetType(v, MATAIJ);
+        //MatSetBlockSize(v,50);
         MatSetFromOptions(v);
         PetscViewer view;
         PetscViewerBinaryOpen(comm, filename.c_str(), FILE_MODE_READ, &view);
         MatLoad(v,view);
         PetscViewerDestroy(&view);
-        //std::cerr << "done" << std::endl;
+        int block_size;
+        MatGetBlockSize(v, &block_size);
+		int rank;
+		MPI_Comm_rank(comm, &rank);
+
+		if (rank == 0)
+			std::cerr << "done " << block_size << std::endl;
         return v;
     }
 

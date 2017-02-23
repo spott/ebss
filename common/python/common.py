@@ -5,6 +5,7 @@ A bunch of common utilities.  currently a frange, and two files for
 importing binary files or petsc files
 """
 
+from __future__ import print_function,division
 import os
 import math
 import numpy as np

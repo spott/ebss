@@ -43,7 +43,8 @@ class LaserParameters : public Parameters
     PetscReal   dt_after() const;
     PetscReal   t_after() const;
     std::string laser_filename() const;
-    PetscReal   pulse_length() const;
+    PetscReal pulse_length() const;
+    std::string shape() const { return laser_shape_; };
     PetscScalar envelope( PetscReal t, PetscReal t_start ) const;
     virtual PetscScalar efield( const PetscReal t,
                                 const PetscReal phase ) const;
@@ -57,19 +58,21 @@ class LaserParameters : public Parameters
 
   protected:
     ez::ezOptionParser opt;
-    void               register_parameters();
-    double             lambda_;
-    double             intensity_;
-    double             cep_;
-    double             cycles_;
-    double             dt_;
-    double             dt_after_;
-    double             t_after_;
-    double             energy_;
-    std::string        laser_filename_;
-    bool               load_efield;
-    int                laser_front_shape_;
-    int                laser_back_shape_;
+    void register_parameters();
+    double lambda_;
+    double intensity_;
+    double cep_;
+    double cycles_;
+    double dt_;
+    double dt_after_;
+    double t_after_;
+    double energy_;
+    double start_height_;
+    std::string laser_filename_;
+    std::string laser_shape_;
+    bool load_efield;
+    int laser_front_shape_;
+    int laser_back_shape_;
 };
 
 void LaserParameters::get_parameters()
@@ -110,6 +113,8 @@ void LaserParameters::get_parameters()
     opt.get( "-laser_filename" )->getString( laser_filename_ );
     opt.get( "-laser_front_shape" )->getInt( laser_front_shape_ );
     opt.get( "-laser_back_shape" )->getInt( laser_back_shape_ );
+    opt.get( "-laser_envelope" )->getString( laser_shape_ );
+    opt.get( "-laser_height" )->getDouble( start_height_ );
 }
 
 std::string LaserParameters::print() const
@@ -129,6 +134,9 @@ std::string LaserParameters::print() const
     out << "laser_filename: " << laser_filename_ << std::endl;
     out << "laser_front_shape " << laser_front_shape_ << std::endl;
     out << "laser_back_shape " << laser_back_shape_ << std::endl;
+    out << "laser_envelope " << laser_shape_ << std::endl;
+    out << "laser_height " << start_height_ << std::endl;
+
     return out.str();
 }
 void LaserParameters::save_parameters() const
@@ -149,6 +157,8 @@ void LaserParameters::save_parameters() const
     file << "-laser_filename " << laser_filename_ << std::endl;
     file << "-laser_front_shape " << laser_front_shape_ << std::endl;
     file << "-laser_back_shape " << laser_back_shape_ << std::endl;
+    file << "-laser_envelope " << laser_shape_ << std::endl;
+    file << "-laser_height " << start_height_ << std::endl;
     file.close();
 }
 
@@ -175,31 +185,57 @@ PetscReal LaserParameters::dt_after() const { return dt_after_; }
 PetscReal LaserParameters::t_after() const { return t_after_; }
 PetscReal LaserParameters::pulse_length() const
 {
-    return ( ( math::PI * 2 * cycles() ) / frequency() ) + t_after();
+    if ( this->shape() == "sin_squared" )
+        return ( ( math::PI * 2 * cycles() ) / frequency() ) + t_after();
+    else if ( this->shape() == "gaussian" ) {
+        PetscReal fwhm_time = ( math::PI * 2 * cycles() ) / frequency();
+        PetscReal mean =
+            fwhm_time * std::sqrt( std::log( 1. / this->start_height_ ) ) /
+            ( 2. * std::sqrt( std::log( 2. ) ) );
+        return mean * 2.;
+    }
 }
 std::string LaserParameters::laser_filename() const
 {
     return std::string( laser_filename_ );
 }
 
-PetscScalar LaserParameters::envelope( PetscReal t, PetscReal t_start ) const
+PetscScalar LaserParameters::envelope( PetscReal t,
+                                       PetscReal t_start ) const
 {
-    if ( t < t_start || t > t_start + ( pulse_length() - t_after() ) ) return 0;
+    if ( this->shape() == "sin_squared" ) {
 
-    PetscReal efield = 0.0;
-    if ( t < t_start + pulse_length() / 2. )
-        efield = std::pow( std::sin( this->frequency() * ( t - t_start ) /
-                                     ( this->cycles() * 2 ) ),
-                           laser_front_shape_ );
-    if ( t >= t_start + pulse_length() / 2. )
-        efield = std::pow( std::sin( this->frequency() * ( t - t_start ) /
-                                     ( this->cycles() * 2 ) ),
-                           laser_back_shape_ );
-    return efield;
+        if ( t < t_start || t > t_start + ( pulse_length() - t_after() ) )
+            return 0;
+
+        PetscReal efield = 0.0;
+        if ( t < t_start + pulse_length() / 2. )
+            efield =
+                std::pow( std::sin( this->frequency() * ( t - t_start ) /
+                                    ( this->cycles() * 2 ) ),
+                          laser_front_shape_ );
+        if ( t >= t_start + pulse_length() / 2. )
+            efield =
+                std::pow( std::sin( this->frequency() * ( t - t_start ) /
+                                    ( this->cycles() * 2 ) ),
+                          laser_back_shape_ );
+        return efield;
+    } else if ( this->shape() == "gaussian" ) {
+        PetscReal fwhm_time = ( math::PI * 2 * cycles() ) / frequency();
+        PetscReal mean =
+            fwhm_time * std::sqrt( std::log( 1. / this->start_height_ ) ) /
+                ( 2. * std::sqrt( std::log( 2. ) ) ) +
+            t_start;
+        PetscReal std_deviation =
+            fwhm_time / std::sqrt( 8. * std::log( 2. ) );
+
+        return std::exp( -( t - mean ) * ( t - mean ) /
+                         ( 2. * std_deviation * std_deviation ) );
+    }
 }
 
 std::pair<std::vector<double>, std::vector<double>>
-LaserParameters::read_efield( std::string filename ) const
+    LaserParameters::read_efield( std::string /*filename*/ ) const
 {
     // ignore reading it in this time:
     std::vector<double> t( 100 );
@@ -221,11 +257,13 @@ LaserParameters::read_efield( std::string filename ) const
 PetscScalar LaserParameters::efield( PetscReal t, PetscReal phase ) const
 {
     if ( t > pulse_length() || t < 0 ) return 0.0;
-    // if ( t * this->frequency() / ( this->cycles() * 2 ) > math::PI || t < 0 )
+    // if ( t * this->frequency() / ( this->cycles() * 2 ) > math::PI || t
+    // < 0 )
     PetscReal efield = std::sqrt( this->intensity() );
     return std::complex<double>(
         efield * envelope( t, 0.0 ) *
-        // std::pow( std::sin( this->frequency() * t / ( this->cycles() * 2 ) ),
+        // std::pow( std::sin( this->frequency() * t / ( this->cycles() * 2
+        // ) ),
         // 2 ) *
         std::sin( this->frequency() * t + phase ) );
 }
@@ -265,10 +303,16 @@ void LaserParameters::register_parameters()
              std::string( prefix ).append( "back_shape\0" ).c_str() );
     opt.add( "800", 0, 1, 0, "wavelength of the laser in nm",
              std::string( prefix ).append( "lambda\0" ).c_str() );
-    opt.add( "", 0, 1, 0,
-             "energy of the laser.  If this and the wavelength are specified, "
-             "this will take precedence",
-             std::string( prefix ).append( "energy\0" ).c_str() );
+    opt.add(
+        "", 0, 1, 0,
+        "energy of the laser.  If this and the wavelength are specified, "
+        "this will take precedence",
+        std::string( prefix ).append( "energy\0" ).c_str() );
+    opt.add( "sin_squared", 0, 1, 0, "Pulse envelope shape",
+             std::string( prefix ).append( "envelope\0" ).c_str() );
+    opt.add( "1e-16", 0, 1, 0,
+             "for a gaussian pulse, the initial envelope value",
+             std::string( prefix ).append( "height\0" ).c_str() );
     opt.add( "10e12", 0, 1, 0, "intensity of laser in W/cm^2",
              std::string( prefix ).append( "intensity\0" ).c_str() );
     opt.add( "0", 0, 1, 0, "Carrier Envelope Phase",
@@ -286,13 +330,13 @@ void LaserParameters::register_parameters()
              std::string( prefix ).append( "filename\0" ).c_str() );
     opt.add( "", 0, 1, 0, "Config file to import",
              std::string( prefix ).append( "config\0" ).c_str() );
-    opt.add(
-        "",  // Default.
-        0,   // Required?
-        0,   // Number of args expected.
-        0,   // Delimiter if expecting multiple args.
-        "Print all inputs and categories for debugging.",  // Help description.
-        "+d",
-        "--debug"  // Flag token.
-        );
+    opt.add( "", // Default.
+             0,  // Required?
+             0,  // Number of args expected.
+             0,  // Delimiter if expecting multiple args.
+             "Print all inputs and categories for debugging.", // Help
+             // description.
+             "+d",
+             "--debug" // Flag token.
+             );
 }

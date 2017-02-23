@@ -63,12 +63,14 @@ class HamiltonianParameters : public Parameters
             mem_ = static_cast<size_t>( m ) * 1024;
 
 
-        opt.get( "-hamiltonian_nmax" )->getInt( nmax_ );
-        opt.get( "-hamiltonian_lmax" )->getInt( lmax_ );
-        opt.get( "-hamiltonian_mmax" )->getInt( mmax_ );
-        opt.get( "-hamiltonian_folder" )->getString( folder_ );
+        opt.get("-hamiltonian_nmax")->getInt(nmax_);
+        opt.get("-hamiltonian_lmax")->getInt(lmax_);
+        opt.get("-hamiltonian_mmax")->getInt(mmax_);
+        opt.get("-hamiltonian_m")->getInt(m_);
+        opt.get("-hamiltonian_folder")->getString(folder_);
 
-        analytic_ = opt.isSet( "-hamiltonian_analytical" );
+        analytic_ = opt.isSet("-hamiltonian_analytical");
+        bad_ = opt.isSet("-hamiltonian_bad_ordering");
 
         folder_ = common::absolute_path( folder_ );
 
@@ -149,29 +151,69 @@ class HamiltonianParameters : public Parameters
                                             "looking for when making the "
                                             "prototype" );
                                     else
-                                        prototype_.push_back( *loc );
-                                } else
-                                    continue;
+                                        {
+                                            auto state = BasisID(*loc);
+                                            state.m = m_;
+                                            // if (std::abs(state.m) >= state.l)
+                                            //     continue;
+                                            prototype_.push_back(state);
+                                        }
+                                }
+                                else continue;
                             }
                         }
                     }
+                else if(bad_)
+                    for(int n = 1; n <= nmax_; ++n )
+                        {
+                            for (int l = 0; l <= lmax_; ++l)
+                                {
+                                    if (l <= n-1)
+                                        {
+                                            auto loc = std::find_if(
+                                                start, end, [n, l](const BasisID& a ) {
+                                                    return a.n == n && a.l == l;
+                                                } );
+                                            if (loc == end)
+                                                throw std::out_of_range("didn't find the value we were looking for when making the prototype");
+                                            else
+                                                {
+                                                    auto state = BasisID(*loc);
+                                                    //if (m_)
+                                                    state.m = m_;
+                                                    // if (std::abs(state.m) >= state.l)
+                                                    //     continue;
+                                                    prototype_.push_back(state);
+                                                }
+                                        }
+                                    else continue;
+                                }
+                    }
                 else
-                    for ( int l = 0; l <= lmax_; ++l ) {
-                        for ( int n = 1; n <= nmax_; ++n ) {
-                            if ( l <= n - 1 ) {
-                                auto loc = std::find_if(
-                                    start, end, [n, l]( const BasisID& a ) {
-                                        return a.n == n && a.l == l;
-                                    } );
-                                if ( loc == end )
-                                    throw std::out_of_range(
-                                        "didn't find the value we were looking "
-                                        "for when making the prototype" );
-                                else
-                                    prototype_.push_back( *loc );
-                            } else
-                                continue;
-                        }
+                    for(int l = 0; l <= lmax_; ++l )
+                        {
+                            for (int n = 1; n <= nmax_; ++n)
+                                {
+                                    if (l <= n-1)
+                                        {
+                                            auto loc = std::find_if(
+                                                start, end, [n, l](const BasisID& a ) {
+                                                    return a.n == n && a.l == l;
+                                                } );
+                                            if (loc == end)
+                                                throw std::out_of_range("didn't find the value we were looking for when making the prototype");
+                                            else
+                                                {
+                                                    auto state = BasisID(*loc);
+                                                    //if (m_ != 0)
+                                                    state.m = m_;
+                                                    // if (std::abs(state.m) >= state.l)
+                                                    //     continue;
+                                                    prototype_.push_back(state);
+                                                }
+                                        }
+                                    else continue;
+                                }
                     }
                 // for(const auto i: *(this->basis_->basis_prototype()))
                 //{
@@ -180,15 +222,17 @@ class HamiltonianParameters : public Parameters
                 //}
                 this->prototype_.shrink_to_fit();
             }
-        } else {
-            // make the prototype:
-            // go though l's first, then n's to reduce communication:
-            for ( int l = 0; l <= lmax_; ++l ) {
-                for ( int n = 1; n <= nmax_; ++n ) {
-                    if ( l <= n - 1 )
-                        prototype_.push_back(
-                            {n, l, 0, 0,
-                             std::complex<double>( -1. / ( 2. * n * n ), 0 )} );
+        }
+        else
+        {
+            //make the prototype:
+            //go though l's first, then n's to reduce communication:
+            for(int l = 0; l <= lmax_; ++l )
+            {
+                for (int n = 1; n <= nmax_; ++n)
+                {
+                    if (l <= n-1 ) //and std::abs(m_) <= l)
+                        prototype_.push_back( {n, l, 0, m_, std::complex<double>( -1./(2. * n * n), 0) } );
                     else
                         continue;
                 }
@@ -234,13 +278,15 @@ class HamiltonianParameters : public Parameters
     bool               fs_;
     void               register_parameters();
     ez::ezOptionParser opt;
-    int                nmax_;
-    int                lmax_;
-    int                mmax_;
-    size_t             mem_;
-    std::string        folder_;
-    std::string        basis_config_;
-    bool               analytic_;
+    int nmax_;
+    int lmax_;
+    int mmax_;
+    bool bad_;
+    int m_;
+    size_t mem_;
+    std::string folder_;
+    std::string basis_config_;
+    bool analytic_;
 };
 
 template <typename write_type_>
@@ -256,6 +302,7 @@ void HamiltonianParameters<write_type_>::save_parameters()
     file << "-hamiltonian_nmax " << nmax_ << std::endl;
     file << "-hamiltonian_lmax " << lmax_ << std::endl;
     file << "-hamiltonian_mmax " << mmax_ << std::endl;
+    file << "-hamiltonian_m " << m_ << std::endl;
     file << "-hamiltonian_folder " << folder_ << std::endl;
     if ( !analytic_ )
         file << "-hamiltonian_basis_config " << basis_config_ << std::endl;
@@ -267,18 +314,20 @@ template <typename write_type_>
 void HamiltonianParameters<write_type_>::init_from_file( std::string filename )
 {
     register_parameters();
-    opt.importFile( filename.c_str(), '#' );
+    opt.importFile(filename.c_str(), '#');
 
-    opt.get( "-hamiltonian_nmax" )->getInt( nmax_ );
-    opt.get( "-hamiltonian_lmax" )->getInt( lmax_ );
-    opt.get( "-hamiltonian_mmax" )->getInt( mmax_ );
-    opt.get( "-hamiltonian_folder" )->getString( folder_ );
-    analytic_ = opt.isSet( "-hamiltonian_analytical" );
-    if ( !analytic_ ) {
-        opt.get( "-hamiltonian_basis_config" )->getString( basis_config_ );
-        basis_ = new BasisParameters<write_type_, write_type_>( basis_config_,
-                                                                comm_ );
-    } else
+    opt.get("-hamiltonian_nmax")->getInt(nmax_);
+    opt.get("-hamiltonian_lmax")->getInt(lmax_);
+    opt.get("-hamiltonian_mmax")->getInt(mmax_);
+    opt.get("-hamiltonian_m")->getInt(m_);
+    opt.get("-hamiltonian_folder")->getString(folder_);
+    analytic_ = opt.isSet("-hamiltonian_analytical");
+    if (!analytic_)
+    {
+        opt.get("-hamiltonian_basis_config")->getString(basis_config_);
+        basis_ = new BasisParameters<write_type_, write_type_>(basis_config_, comm_);
+    }
+    else
         basis_ = nullptr;
 
     this->prototype_ =
@@ -362,9 +411,10 @@ std::string HamiltonianParameters<write_type_>::print() const
     out << "hamiltonian_nmax: " << nmax_ << std::endl;
     out << "hamiltonian_lmax: " << lmax_ << std::endl;
     out << "hamiltonian_mmax: " << mmax_ << std::endl;
-    out << "hamiltonian_folder " << folder_ << std::endl;
-    out << "hamiltonian_mem_per_proc " << mem_ << std::endl;
-    if ( !analytic_ )
+    out << "hamiltonian_m: " << m_ << std::endl;
+    out << "hamiltonian_folder: " << folder_ << std::endl;
+	out << "hamiltonian_mem_per_proc " << mem_ << std::endl;
+    if (!analytic_)
         out << basis_->print();
     else
         out << "hamiltonian_analytical" << std::endl;
@@ -375,35 +425,106 @@ template <typename write_type_>
 void HamiltonianParameters<write_type_>::register_parameters()
 {
     std::string prefix = "-hamiltonian_";
-    opt.overview       = "Hamiltonian Parameters";
-    opt.add( "",  // Default.
-             0,   // Required?
-             0,   // Number of args expected.
-             0,   // Delimiter if expecting multiple args.
-             "Display usage instructions.",  // Help description.
-             "-h",                           // Flag token.
-             "-help",                        // Flag token.
-             "--help",                       // Flag token.
-             "--usage"                       // Flag token.
-             );
-    opt.add( "", 0, 0, 0, "calculate the analytical solution",
-             std::string( prefix ).append( "analytical\0" ).c_str() );
-    opt.add( "193274000", 0, 1, 0, "mememory available per processor (in kb)",
-             std::string( prefix ).append( "mem_per_proc\0" ).c_str() );
-    opt.add( "500", 0, 1, 0, "Max n value",
-             std::string( prefix ).append( "nmax\0" ).c_str() );
-    opt.add( "50", 0, 1, 0, "Max l value",
-             std::string( prefix ).append( "lmax\0" ).c_str() );
-    opt.add( "0", 0, 1, 0, "Max m value (abs)",
-             std::string( prefix ).append( "mmax\0" ).c_str() );
-    opt.add( "", 1, 1, 0, "Basis config to import",
-             std::string( prefix ).append( "basis_config\0" ).c_str() );
-    opt.add( "./", 0, 1, 0, "folder for hamiltonian",
-             std::string( prefix ).append( "folder\0" ).c_str() );
-    opt.add( "", 0, 0, 0, "the basis doesn't have a finestructure",
-             std::string( prefix ).append( "nofs\0" ).c_str() );
-    opt.add( "", 0, 1, 0, "Config file to import",
-             std::string( prefix ).append( "config\0" ).c_str() );
+    opt.overview = "Hamiltonian Parameters";
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Display usage instructions.", // Help description.
+            "-h",     // Flag token. 
+            "-help",  // Flag token.
+            "--help", // Flag token.
+            "--usage" // Flag token.
+           );
+    opt.add(
+            "",
+            0,
+            0,
+            0,
+            "calculate the analytical solution",
+            std::string(prefix).append("analytical\0").c_str()
+           );
+    opt.add(
+        "",
+        0,
+        0,
+        0,
+        "Bad ordering",
+        std::string(prefix).append("bad_ordering\0").c_str()
+        );
+    opt.add(
+            "193274000",
+            0,
+            1,
+            0,
+            "mememory available per processor (in kb)",
+            std::string(prefix).append("mem_per_proc\0").c_str()
+           );
+    opt.add(
+            "500",
+            0,
+            1,
+            0,
+            "Max n value",
+            std::string(prefix).append("nmax\0").c_str()
+           );
+    opt.add(
+            "50",
+            0,
+            1,
+            0,
+            "Max l value",
+            std::string(prefix).append("lmax\0").c_str()
+           );
+    opt.add(
+            "0",
+            0,
+            1,
+            0,
+            "Max m value (abs)",
+            std::string(prefix).append("mmax\0").c_str()
+           );
+    opt.add(
+        "0",
+        0,
+        1,
+        0,
+        "m value",
+        std::string(prefix).append("m\0").c_str()
+        );
+    opt.add(
+            "",
+            1,
+            1,
+            0,
+            "Basis config to import",
+            std::string(prefix).append("basis_config\0").c_str()
+           );
+    opt.add(
+            "./",
+            0,
+            1,
+            0,
+            "folder for hamiltonian",
+            std::string(prefix).append("folder\0").c_str()
+           );
+    opt.add(
+            "",
+            0,
+            0,
+            0,
+            "the basis doesn't have a finestructure",
+            std::string(prefix).append("nofs\0").c_str()
+           );
+    opt.add(
+            "",
+            0,
+            1,
+            0,
+            "Config file to import",
+            std::string(prefix).append("config\0").c_str()
+           );
     opt.add(
         "",  // Default.
         0,   // Required?
