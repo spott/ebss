@@ -27,6 +27,9 @@ int main( int argc, const char** argv )
 
     // print out the parameters
     if ( params.rank() == 0 ) {
+        std::ofstream out( "git_commit.txt" );
+        out << GIT_COMMIT << std::endl;
+        out.close();
         std::cout << "#Git commit: " << GIT_COMMIT << std::endl;
         std::cout << params.print();
     }

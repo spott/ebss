@@ -10,7 +10,7 @@ utils:
 
 all: $(SUBPROGRAMS) utils
 
-${SUBPROGRAMS}:
+$(SUBPROGRAMS):
 	$(MAKE) -C $@ $@
 
 clean::

@@ -64,6 +64,9 @@ int main( int argc, const char** argv )
     auto empty_states_index =
         sparams->empty_states_index( params->prototype() );
     if ( params->rank() == 0 ) {
+        std::ofstream out( "git_commit.txt" );
+        out << GIT_COMMIT << std::endl;
+        out.close();
         std::cout << "#Git commit: " << GIT_COMMIT << std::endl;
         std::cout << params->print();
         std::cout << lparams->print();
