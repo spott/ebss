@@ -18,9 +18,8 @@ DEFAULT=all
 
 all: $(SOURCES) $(EXECUTABLE)
 
-${TEXECUTABLE}: ${TOBJECTS}  chkopts
+${TEXECUTABLE}: ${TOBJECTS}  chkopts style chk_git
 	-${CLINKER} -o ${TEXECUTABLE} ${TOBJECTS} ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
 
-${EXECUTABLE}: ${OBJECTS}  chkopts
+${EXECUTABLE}: ${OBJECTS}  chkopts style chk_git
 	-${CLINKER} -o ${BINDIR}/${EXECUTABLE} ${OBJECTS} ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
-

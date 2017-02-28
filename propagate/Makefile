@@ -10,5 +10,5 @@ DEFAULT=all
 
 all: $(SOURCES) $(EXECUTABLE)
 
-${EXECUTABLE}: ${OBJECTS}  chkopts
+${EXECUTABLE}: ${OBJECTS}  chkopts style chk_git
 	-${CLINKER} -o ${BINDIR}/${EXECUTABLE} ${OBJECTS} ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}

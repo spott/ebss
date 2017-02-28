@@ -2,18 +2,19 @@ include ./makefile.include
 
 SUBPROGRAMS=findbasis findhamiltonian propagate
 
-findbasis:
-	$(MAKE) -C $@ $@
+nonlinear:
+	$(MAKE) -C utils nonlinear
 
-findhamiltonian:
-	$(MAKE) -C $@ $@
+utils:
+	$(MAKE) -C utils all
 
-propagate:
-	$(MAKE) -C $@ $@
+all: $(SUBPROGRAMS) utils
 
-all: $(SUBPROGRAMS)
+${SUBPROGRAMS}:
+	$(MAKE) -C $@ $@
 
 clean::
 	$(foreach prog, $(SUBPROGRAMS), $(MAKE) -C $(prog) clean;)
+	$(MAKE) -C utils clean;
 
-.PHONY: all clean $(SUBPROGRAMS)
+.PHONY: all clean $(SUBPROGRAMS) nonlinear utils

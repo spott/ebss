@@ -222,7 +222,8 @@ int main( int argc, const char** argv )
                 PetscScalar total = 0;
                 for ( auto max1 : maxes ) {
                     for ( auto max2 : maxes ) {
-                        // // From argon_added.  appears to be for dealing with non-pure non-ground initial states
+                        // // From argon_added.  appears to be for dealing with
+                        // non-pure non-ground initial states
                         // auto diff =
                         //     std::abs( prototype[std::get<1>( max1 )].l -
                         //               prototype[std::get<1>( max2 )].l );
@@ -282,7 +283,9 @@ int main( int argc, const char** argv )
                                  std::get<0>( max2 );
                         if ( params.rank() == 0 &&
                              std::abs( ( t1 + t2 ) *
-                                       std::conj( std::get<0>( max1 ) ) * // These two lines aren't in the older version..
+                                       std::conj( std::get<0>(
+                                           max1 ) ) *  // These two lines aren't
+                                                       // in the older version..
                                        std::get<0>( max2 ) ) >= 1e-16 )
                             std::cout
                                 << "========================================="
@@ -294,7 +297,9 @@ int main( int argc, const char** argv )
                                 << ", " << wg1 << std::endl;
                         if ( params.rank() == 0 &&
                              std::abs( ( t1 + t2 ) *
-                                       std::conj( std::get<0>( max1 ) ) * // These two lines aren't in the older version..
+                                       std::conj( std::get<0>(
+                                           max1 ) ) *  // These two lines aren't
+                                                       // in the older version..
                                        std::get<0>( max2 ) ) >= 1e-16 )
                             std::cout << "terms ("
                                       << prototype[std::get<1>( max1 )] << "->"
@@ -302,7 +307,9 @@ int main( int argc, const char** argv )
                                       << "): " << t1 << ", " << t2 << std::endl;
                         if ( params.rank() == 0 &&
                              std::abs( ( t1 + t2 ) *
-                                       std::conj( std::get<0>( max1 ) ) * // These two lines aren't in the older version..
+                                       std::conj( std::get<0>(
+                                           max1 ) ) *  // These two lines aren't
+                                                       // in the older version..
                                        std::get<0>( max2 ) ) >= 1e-16 )
                             std::cout << "final: ("
                                       << prototype[std::get<1>( max1 )] << "->"
@@ -417,7 +424,10 @@ int main( int argc, const char** argv )
                                       std::get<0>( max2 );
                             if ( params.rank() == 0 &&
                                  std::abs( ( t1 + t2 + t3 + t4 ) *
-                                           std::conj( std::get<0>( max1 ) ) * //These two lines aren't in the old version.
+                                           std::conj( std::get<0>(
+                                               max1 ) ) *  // These two lines
+                                                           // aren't in the old
+                                                           // version.
                                            std::get<0>( max2 ) ) >= 1e-16 )
                                 std::cout
                                     << *i << " terms: ("
@@ -1040,8 +1050,6 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin,
     Vec tmp;
     Vec orthog_projector;
 
-    Vec orthog_projector;
-
     MPI_Comm comm;
     PetscObjectGetComm( (PetscObject)psi0, &comm );
     int rank;
@@ -1049,9 +1057,6 @@ Vec psi( int order, std::vector<double>::const_iterator frequencies_begin,
     // make sure that out and tmp have the correct memory layout.
     VecDuplicate( psi0, &out );
     VecDuplicate( H0, &tmp );
-    VecDuplicate( mask, orthog_projector );
-    VecSet( orthog_projector, 1 );
-    VecAXPY( orthog_projector, -1, mask );
 
     VecDuplicate( mask, &orthog_projector );
     VecSet( orthog_projector, 1 );
@@ -1104,9 +1109,9 @@ Vec psi_conjugate( int                                 order,
                    std::vector<BasisID>& /*prototype*/ )
 {
     assert( frequencies_end - frequencies_begin >= order );
-    Vec out;
-    Vec tmp;
-    Vec orthog_projector;
+    Vec      out;
+    Vec      tmp;
+    Vec      orthog_projector;
     MPI_Comm comm;
     PetscObjectGetComm( (PetscObject)psi0, &comm );
     int rank;
@@ -1116,10 +1121,6 @@ Vec psi_conjugate( int                                 order,
     VecCopy( psi0, out );
 
     VecDuplicate( mask, &orthog_projector );
-    VecSet( orthog_projector, 1 );
-    VecAXPY( orthog_projector, -1, mask );
-
-    VecDuplicate( mask, orthog_projector );
     VecSet( orthog_projector, 1 );
     VecAXPY( orthog_projector, -1, mask );
 

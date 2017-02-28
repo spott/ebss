@@ -125,8 +125,7 @@ int main( int argc, const char** argv )
 
     HamiltonianParameters<PetscReal> params( argc, argv, MPI_COMM_WORLD );
     if ( params.rank() == 0 ) {
-        std::cout << "#Git commit: "
-                  << "GIT_COMMIT" << std::endl;
+        std::cout << "#Git commit: " << GIT_COMMIT << std::endl;
         std::cout << params.print();
     }
 
@@ -134,9 +133,8 @@ int main( int argc, const char** argv )
 
     // decltype( params.basis_parameters()->grid() ) grid;
     std::vector<double> grid;
-    auto prototype = params.prototype();
-    for (auto a : prototype)
-        std::cout << a << "\n";
+    auto                prototype = params.prototype();
+    for ( auto a : prototype ) std::cout << a << "\n";
 
     grid = params.basis_parameters()->grid();
 
@@ -246,48 +244,61 @@ int main( int argc, const char** argv )
         } else {
             findvalue = [&prototype, &grid, &import_wf,
                          &reduced_out]( int i, int j ) -> PetscScalar {
-                    //static BasisID ab1{1,0,0,0,0};
-                    //static BasisID ab2{1,0,0,0,0};
-                    //static PetscScalar afin = 0;
-                    //static BasisID bb1{1,0,0,0,0};
-                    //static BasisID bb2{1,0,0,0,0};
-                    //static PetscScalar bfin = 0;
-                    if ( i == j ) return 0.0;
-                    auto a = import_wf( prototype[i] );
-                    auto b = import_wf( prototype[j] );
+                // static BasisID ab1{1,0,0,0,0};
+                // static BasisID ab2{1,0,0,0,0};
+                // static PetscScalar afin = 0;
+                // static BasisID bb1{1,0,0,0,0};
+                // static BasisID bb2{1,0,0,0,0};
+                // static PetscScalar bfin = 0;
+                if ( i == j ) return 0.0;
+                auto a = import_wf( prototype[i] );
+                auto b = import_wf( prototype[j] );
 
-                    PetscScalar radial =
-                        math::integrateTrapezoidRule( a, b, grid );
-                    PetscScalar angular = math::CGCoefficient<PetscScalar>(
-                            prototype[i], prototype[j] );
-                    //std::cout << angular << std::endl;
-                    if ( prototype[i].n == 2 && prototype[j].n == 2 )
-                        std::cout << "n = 2 transition: " << radial* angular
-                            << std::endl;
-                    if (angular != angular || radial != radial) //check for NaNs
-                    {
-                        std::cerr << " got a NaN @ (" << i << ", " << j << "): " << prototype[i] << " <=> " << prototype[j] << std::endl;
-                        throw std::exception();
-                    }
-                    //PetscScalar fin = radial * angular;
-                    //if ( prototype[i].n != prototype[j].n && prototype[i].n > 100 && prototype[j].n > 100 && prototype[i].n == ab1.n && ab1.l == prototype[i].l && ab2.l == prototype[j].l && prototype[j].n < ab2.n && std::abs(afin.real()) < std::abs(fin.real()) )
-                    //{
-                        //reduced_out << "basis: " << prototype[i] << "; " << prototype[j] << std::endl;
-                        //reduced_out << " last < current " << afin << ", " << fin << std::endl;
-                    //}
-                    //else if (prototype[i].n != prototype[j].n && prototype[i].n > 100 && prototype[j].n > 100 && prototype[i].n == ab1.n && ab1.l == prototype[i].l && ab2.l == prototype[j].l && prototype[j].n > ab2.n && std::abs(afin.real()) < std::abs(fin.real()) )
-                    //{
-                        //reduced_out << "basis: " << prototype[i] << "; " << prototype[j] << std::endl;
-                        //reduced_out << " last > current " << afin << ", " << fin << std::endl;
-                    //}
-                    //afin = bfin;
-                    //bfin = fin;
-                    //ab1 = bb1;
-                    //bb1 = prototype[i];
-                    //ab2 = bb2;
-                    //bb2 = prototype[j];
-                    return radial * angular;
-                };
+                PetscScalar radial = math::integrateTrapezoidRule( a, b, grid );
+                PetscScalar angular = math::CGCoefficient<PetscScalar>(
+                    prototype[i], prototype[j] );
+                // std::cout << angular << std::endl;
+                if ( prototype[i].n == 2 && prototype[j].n == 2 )
+                    std::cout << "n = 2 transition: " << radial * angular
+                              << std::endl;
+                if ( angular != angular || radial != radial )  // check for NaNs
+                {
+                    std::cerr << " got a NaN @ (" << i << ", " << j
+                              << "): " << prototype[i] << " <=> "
+                              << prototype[j] << std::endl;
+                    throw std::exception();
+                }
+                // PetscScalar fin = radial * angular;
+                // if ( prototype[i].n != prototype[j].n && prototype[i].n > 100
+                // && prototype[j].n > 100 && prototype[i].n == ab1.n && ab1.l
+                // == prototype[i].l && ab2.l == prototype[j].l &&
+                // prototype[j].n < ab2.n && std::abs(afin.real()) <
+                // std::abs(fin.real()) )
+                //{
+                // reduced_out << "basis: " << prototype[i] << "; " <<
+                // prototype[j] << std::endl;
+                // reduced_out << " last < current " << afin << ", " << fin <<
+                // std::endl;
+                //}
+                // else if (prototype[i].n != prototype[j].n && prototype[i].n >
+                // 100 && prototype[j].n > 100 && prototype[i].n == ab1.n &&
+                // ab1.l == prototype[i].l && ab2.l == prototype[j].l &&
+                // prototype[j].n > ab2.n && std::abs(afin.real()) <
+                // std::abs(fin.real()) )
+                //{
+                // reduced_out << "basis: " << prototype[i] << "; " <<
+                // prototype[j] << std::endl;
+                // reduced_out << " last > current " << afin << ", " << fin <<
+                // std::endl;
+                //}
+                // afin = bfin;
+                // bfin = fin;
+                // ab1 = bb1;
+                // bb1 = prototype[i];
+                // ab2 = bb2;
+                // bb2 = prototype[j];
+                return radial * angular;
+            };
         }
 
 
@@ -302,7 +313,8 @@ int main( int argc, const char** argv )
 
     params.save_parameters();
 
-    // auto maximum_n_it = std::find_if(prototype.begin(), prototype.end(), [&params]( BasisID a ) { return a.n == params.nmax() - 1 && a.l == 0; });
+    // auto maximum_n_it = std::find_if(prototype.begin(), prototype.end(),
+    // [&params]( BasisID a ) { return a.n == params.nmax() - 1 && a.l == 0; });
     // int loc = maximum_n_it - prototype.begin();
 
     // std::cout << "location for max n: " << loc << std::endl;
@@ -318,7 +330,8 @@ int main( int argc, const char** argv )
     // PetscViewer view;
 
     // PetscViewerBinaryOpen( params.comm(),
-    //                        ( params.hamiltonian_folder() + "/abs.dat" ).c_str(),
+    //                        ( params.hamiltonian_folder() + "/abs.dat"
+    //                        ).c_str(),
     //                        FILE_MODE_WRITE, &view );
     // VecView( B, view );
 

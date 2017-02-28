@@ -27,13 +27,13 @@ PetscErrorCode HamiltonianJ( TS ts, PetscReal t, Vec u, Mat* A, Mat* B,
 
 int main( int argc, const char** argv )
 {
-    int ac = argc;
-    char** av = new char* [argc+1];
+    int    ac = argc;
+    char** av = new char*[argc + 1];
     for ( int i = 0; i < argc; i++ ) {
         av[i] = new char[strlen( argv[i] ) + 1];
         std::copy( argv[i], argv[i] + strlen( argv[i] ) + 1, av[i] );
     }
-    av[argc]=NULL;
+    av[argc] = NULL;
     SlepcInitialize( &ac, &av, PETSC_NULL, PETSC_NULL );
 
     // PetscViewer view;
@@ -64,8 +64,7 @@ int main( int argc, const char** argv )
     auto empty_states_index =
         sparams->empty_states_index( params->prototype() );
     if ( params->rank() == 0 ) {
-        std::cout << "#Git commit: "
-                  << "GIT_COMMIT" << std::endl;
+        std::cout << "#Git commit: " << GIT_COMMIT << std::endl;
         std::cout << params->print();
         std::cout << lparams->print();
         std::cout << aparams->print();
@@ -108,21 +107,17 @@ int main( int argc, const char** argv )
     // Do the state stuff... remove rows/columns:
     MatSetOption( D, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE );
 
-	if (empty_states_index.size() != 0)
-		MatZeroRowsColumns( D,
-							empty_states_index.size(),
-							empty_states_index.data(),
-							0.0,
-							PETSC_NULL,
-							PETSC_NULL );
+    if ( empty_states_index.size() != 0 )
+        MatZeroRowsColumns( D, empty_states_index.size(),
+                            empty_states_index.data(), 0.0, PETSC_NULL,
+                            PETSC_NULL );
 
 
     {
-        if (cntx->hparams->rank() == 0 )
-            {std::cout << "empty states" << std::endl;
-        for (auto a : empty_states_index)
-            std::cout << a << "\n";
-            }
+        if ( cntx->hparams->rank() == 0 ) {
+            std::cout << "empty states" << std::endl;
+            for ( auto a : empty_states_index ) std::cout << a << "\n";
+        }
         std::vector<PetscScalar> zeros( empty_states_index.size(), 0.0 );
         if ( zeros.size() != 0 )
             VecSetValues( H, empty_states_index.size(),
@@ -132,25 +127,31 @@ int main( int argc, const char** argv )
 
     // transition stuff...
     {
-        if (cntx->hparams->rank() == 0 ) std::cout << "entering transition section" << std::endl;
+        if ( cntx->hparams->rank() == 0 )
+            std::cout << "entering transition section" << std::endl;
         sparams->disallowed_transitions( D, params->prototype() );
-        if (cntx->hparams->rank() == 0 ) std::cout << "after disallowed transitions" << std::endl;
-//		auto zero = std::complex<double>(0.0, 0.0);
-//        if (disallowed[0].size() != disallowed[1].size())
-//            std::cout << "oops, sizes don't match: " << disallowed[0].size() << ", " << disallowed[1].size() << std::endl;
-//        if (disallowed[0].size() != 0)
-//            for (int i = 0; i < disallowed[0].size(); i++) 
-//			{
-//				if (params->rank() == 0)
-//					std::cout << i << ": (" << disallowed[0][i] << "," << disallowed[1][i] << ")...";
-//                MatSetValues( D,
-//                              1,
-//                              &(disallowed[0][i]),
-//                              1,
-//                              &(disallowed[1][i]),
-//                              &(zero),
-//                              INSERT_VALUES);
-//			}
+        if ( cntx->hparams->rank() == 0 )
+            std::cout << "after disallowed transitions" << std::endl;
+        //		auto zero = std::complex<double>(0.0, 0.0);
+        //        if (disallowed[0].size() != disallowed[1].size())
+        //            std::cout << "oops, sizes don't match: " <<
+        //            disallowed[0].size() << ", " << disallowed[1].size() <<
+        //            std::endl;
+        //        if (disallowed[0].size() != 0)
+        //            for (int i = 0; i < disallowed[0].size(); i++)
+        //			{
+        //				if (params->rank() == 0)
+        //					std::cout << i << ": (" << disallowed[0][i] << ","
+        //<<
+        // disallowed[1][i] << ")...";
+        //                MatSetValues( D,
+        //                              1,
+        //                              &(disallowed[0][i]),
+        //                              1,
+        //                              &(disallowed[1][i]),
+        //                              &(zero),
+        //                              INSERT_VALUES);
+        //			}
     }
 
     VecAssemblyBegin( H );
@@ -186,7 +187,7 @@ int main( int argc, const char** argv )
     // Propagate:
 
     cranknicholson::solve( &wf, cntx, &A );
-    //perturbation::solve(&wf, cntx, &A);
+    // perturbation::solve(&wf, cntx, &A);
 
     // create a viewer in the current directory:
     // file_name = std::string("./final_wf.dat");
@@ -232,8 +233,7 @@ int main( int argc, const char** argv )
     return 0;
 }
 
-PetscErrorCode
-Monitor( TS, PetscInt steps, PetscReal time, Vec x, void* ctx )
+PetscErrorCode Monitor( TS, PetscInt steps, PetscReal time, Vec x, void* ctx )
 {
     context*  cntx = (context*)ctx;
     PetscReal norm;
@@ -247,8 +247,8 @@ Monitor( TS, PetscInt steps, PetscReal time, Vec x, void* ctx )
     return 0;
 }
 
-PetscErrorCode HamiltonianJ(
-    TS, PetscReal t, Vec , Mat* A, Mat* , MatStructure* flag, void* ctx )
+PetscErrorCode HamiltonianJ( TS, PetscReal t, Vec, Mat* A, Mat*,
+                             MatStructure* flag, void* ctx )
 {
     Mat            AA = *A;
     PetscErrorCode err;
