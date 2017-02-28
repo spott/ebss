@@ -65,6 +65,10 @@ int main( int argc, const char** argv )
         {3, 1.95999037, 2.84608178},  {4, -0.13294584, 2.36656543}};
     sae<scalar> potassium = {potassium_params, 19, 19, -128.71233201};
 
+    std::vector<sae_param<scalar>> krypton_params{
+        {}
+    };
+
     sae<scalar> hydrogen = {std::vector<sae_param<scalar>>( 0 ), 1, 1, -.5};
 
 
@@ -106,6 +110,8 @@ int main( int argc, const char** argv )
         numerov::find_basis_set<scalar>( &helium_tf<scalar>, params, helium );
     } else if ( params.atom() == "argon_tf" ) {
         numerov::find_basis_set<scalar>( &argon_tf<scalar>, params, argon );
+    } else if ( params.atom() == "krypton" ) {
+        numerov::find_basis_set<scalar>( &krypton_michelle<scalar>, params, argon );
     } else if ( params.atom() == "argon" ) {
         argon.N -= params.charge();
         if ( params.charge() > 0 )

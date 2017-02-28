@@ -175,12 +175,11 @@ bool file_exists( const std::string& fname )
 }
 
 template <typename T>
-T petsc_binary_read( const std::string& filename, MPI_Comm comm );
+T petsc_binary_read( std::string filename, MPI_Comm comm );
 
 template <>
-Vec petsc_binary_read<Vec>( const std::string& filename, MPI_Comm comm )
+Vec petsc_binary_read<Vec>( std::string filename, MPI_Comm comm )
 {
-    // std::cerr << "importing " << filename << " into vector... " << std::endl;
     if ( !file_exists( filename ) ) {
         std::cerr << "file doesn't exist" << std::endl;
         throw( std::exception() );
@@ -198,14 +197,15 @@ Vec petsc_binary_read<Vec>( const std::string& filename, MPI_Comm comm )
 }
 
 template <>
-Mat petsc_binary_read<Mat>( const std::string& filename, MPI_Comm comm )
+Mat petsc_binary_read<Mat>( std::string filename, MPI_Comm comm )
 {
-    // std::cerr << "importing " << filename.c_str() << " into matrix... " <<
-    // std::endl;
-    if ( !file_exists( filename ) ) {
+    // look for gzipped file as well:
+    if ( !file_exists( filename ) and !file_exists( filename + ".gz" )) {
         std::cerr << "file doesn't exist" << std::endl;
         throw( std::exception() );
     }
+    if ( !file_exists(filename) )
+        filename = filename + ".gz";
     Mat v;
     MatCreate( comm, &v );
     MatSetType( v, MATAIJ );
@@ -224,15 +224,16 @@ Mat petsc_binary_read<Mat>( const std::string& filename, MPI_Comm comm )
     return v;
 }
 
-void petsc_binary_write( const std::string& filename, Mat v, MPI_Comm comm )
+void petsc_binary_write( std::string filename, Mat v, MPI_Comm comm )
 {
+    filename = filename + ".gz";
     PetscViewer view;
     PetscViewerBinaryOpen( comm, filename.c_str(), FILE_MODE_WRITE, &view );
     MatView( v, view );
     PetscViewerDestroy( &view );
 }
 
-void petsc_binary_write( const std::string& filename, Vec v, MPI_Comm comm )
+void petsc_binary_write( std::string filename, Vec v, MPI_Comm comm )
 {
     PetscViewer view;
     PetscViewerBinaryOpen( comm, filename.c_str(), FILE_MODE_WRITE, &view );

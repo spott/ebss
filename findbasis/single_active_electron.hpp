@@ -21,6 +21,7 @@ struct sae {
     T                         gs_energy;
 };
 
+
 template <typename T>
 T parameterized_pot( const T r, const sae<T>& atom, const BasisID& state )
 {
@@ -70,6 +71,23 @@ T argon_tf( const T r, const BasisID& state )
     a /= r;
     return a;
 }
+
+template <typename T>
+T krypton_michelle( const T r, const BasisID& state )
+{
+    // Michelle SAE potential:
+    // V(r) = -c0./r - (Zc.*exp(-r0.*r))./r - a1.*exp(-b1.*r) - a2.*exp(-b2.*r)
+    // - a3.*exp(-b3.*r) - a4.*exp(-b4.*r)
+    // 1	35	1.78886177	-984.162936	18.613213	951.023767	18.958577	-61.9173561
+    // 3.29525736	3.49098308	199.999977
+    T a = -1.0/r - 35. * std::exp( -1.78886177 * r )/r +
+          984.162936 * std::exp( -18.613213 * r ) -
+          951.023767 * std::exp( -18.958577 * r ) +
+          61.9173561 * std::exp( -3.29525736 * r ) -
+          3.49098308 * std::exp( -199.999977 * r );
+    return a;
+}
+
 
 template <typename T>
 std::function<T( const T, BasisID )> memoized_pot( const sae<T>& atom )
