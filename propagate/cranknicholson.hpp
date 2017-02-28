@@ -37,9 +37,9 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
         zero = common::import_vector_binary<int>( "./failed" ).back();
         std::cout << "found recovery file, got: " << zero << " from it"
                   << std::endl;
-    } catch ( ... ) {
+    } catch ( const std::ios_base::failure& e ) {
         std::cout
-            << "didn't find a recovery file.  proceeding as if from scratch"
+            << "didn't find a recovery file.  proceeding as if from scratch: "
             << std::endl;
         restore = false;
         zero    = 0;

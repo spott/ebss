@@ -444,11 +444,11 @@ std::vector<T> import_vector_binary( const std::string& filename )
             file.close();
         } else {
             std::cerr << "file is empty!: " << filename << std::endl;
-            throw std::exception();
+            throw std::ios_base::failure("file is empty");
         }
     } else {
         std::cerr << "error opening file: " << filename << std::endl;
-        throw std::exception();
+        throw std::ios_base::failure("couldn't open file");
     }
 
     return vec;

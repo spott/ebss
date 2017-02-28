@@ -11,4 +11,4 @@ DEFAULT=all
 all: $(SOURCES) $(EXECUTABLE)
 
 ${EXECUTABLE}: ${OBJECTS}  chkopts style chk_git
-	-${CLINKER} -o ${BINDIR}/${EXECUTABLE} ${OBJECTS} ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
+	-${CLINKER} -Wl,-keep_dwarf_unwind -o ${BINDIR}/${EXECUTABLE} ${OBJECTS} ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}

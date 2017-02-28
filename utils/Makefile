@@ -11,16 +11,16 @@ DEFAULT=all
 all: $(SOURCES) $(EXECUTABLE)
 
 mat_diff: mat_diff.o chkopts style chk_git
-	-${CLINKER} -o ${BINDIR}/mat_diff mat_diff.o ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
+	-${CLINKER} -Wl,-keep_dwarf_unwind  -o ${BINDIR}/mat_diff mat_diff.o ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
 
 mat_view: mat_examine.o chkopts style chk_git
-	-${CLINKER} -o ${BINDIR}/mat_view mat_examine.o ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
+	-${CLINKER} -Wl,-keep_dwarf_unwind -o ${BINDIR}/mat_view mat_examine.o ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
 
 vec_view: vec_view.o chkopts style chk_git
-	-${CLINKER} -o ${BINDIR}/vec_view vec_view.o ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
+	-${CLINKER} -Wl,-keep_dwarf_unwind -o ${BINDIR}/vec_view vec_view.o ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
 
-fourier: fourier.o chkopts style chk_git
-	#-${CLINKER} -o ${BINDIR}/fourier fourier.o ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
+#fourier: fourier.o chkopts style chk_git
+#	-${CLINKER} -o ${BINDIR}/fourier fourier.o ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
 
 #etok: etok.o chkopts
 	#-${CLINKER} -o ${BINDIR}/etok etok.o ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
@@ -33,10 +33,10 @@ fourier: fourier.o chkopts style chk_git
 	#-${CLINKER} -o ${BINDIR}/nonlinear_index nonlinear_index.o ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
 
 ${EXECUTABLE}: ${OBJECTS}  chkopts style chk_git
-	-${CLINKER} -o ${BINDIR}/${EXECUTABLE} ${OBJECTS} ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
+	-${CLINKER} -Wl,-keep_dwarf_unwind -o ${BINDIR}/${EXECUTABLE} ${OBJECTS} ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
 
 #.phony clean: 
 	#rm *.o
-.PHONEY: clean
-clean::
-	rm *.o
+# .PHONEY: clean
+# clean::
+# 	-rm *.o
