@@ -162,8 +162,8 @@ class interpolate
     }
 
 
-    const std::vector<double> &y_, x_;
-    std::vector<double>        coefficient;
+    const std::vector<double>&y_, x_;
+    std::vector<double>       coefficient;
 };
 
 template <typename scalar>

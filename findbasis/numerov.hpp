@@ -1,16 +1,16 @@
 #pragma once
 
 // stl
-#include <vector>
-#include <forward_list>
 #include <array>
-#include <iterator>
 #include <cmath>
-#include <iostream>
-#include <limits>
-#include <future>
-#include <stdexcept>
 #include <csignal>
+#include <forward_list>
+#include <future>
+#include <iostream>
+#include <iterator>
+#include <limits>
+#include <stdexcept>
+#include <vector>
 
 // ebss
 #include <common/common.hpp>
@@ -33,16 +33,12 @@
 
 volatile sig_atomic_t sig = 0;
 
-void signal_handler(int signal)
-{
-    sig = signal;
-}
+void signal_handler( int signal ) { sig = signal; }
 
 namespace numerov
 {
-
-    std::ofstream err_out;
-    std::ofstream reduced_out;
+std::ofstream err_out;
+std::ofstream reduced_out;
 
 void wait_for_key()
 {
@@ -56,25 +52,21 @@ void wait_for_key()
 
 #if defined( DEBUG )
 template <typename scalar>
-void display_function( Gnuplot& g,
-                       const std::vector<scalar>& grid,
-                       const std::vector<scalar>& wf,
-                       int point = -1,
-                       bool wait = false,
-                       std::array<double, 2> range = {0, 20},
+void display_function( Gnuplot& g, const std::vector<scalar>& grid,
+                       const std::vector<scalar>& wf, int point = -1,
+                       bool wait = false, std::array<double, 2> range = {0, 20},
                        std::string style = "lines" )
 {
     g.reset_all();
     g.set_xrange( range[0], range[1] );
     g.set_style( style.c_str() )
         .plot_xy( common::vector_type_change<scalar, double>( grid ),
-                  common::vector_type_change<scalar, double>( wf ),
-                  "wf" );
+                  common::vector_type_change<scalar, double>( wf ), "wf" );
     if ( point > 0 && point < grid.size() )
-        g.set_style( "points" ).plot_xy(
-            std::vector<double>{static_cast<double>( grid[point] )},
-            std::vector<double>{static_cast<double>( wf[point] )},
-            "turnover" );
+        g.set_style( "points" )
+            .plot_xy( std::vector<double>{static_cast<double>( grid[point] )},
+                      std::vector<double>{static_cast<double>( wf[point] )},
+                      "turnover" );
     if ( wait ) wait_for_key();
     g.remove_tmpfiles();
 }
@@ -82,10 +74,9 @@ void display_function( Gnuplot& g,
 
 // the basis to return:
 template <typename scalar>
-struct basis
-{
+struct basis {
     std::vector<scalar> wf;
-    scalar energy;
+    scalar              energy;
     // we also want to keep track of error and error estimates
     scalar de;
     size_t iterations;
@@ -93,8 +84,7 @@ struct basis
 
 // the grid description;
 template <typename scalar>
-struct xgrid
-{
+struct xgrid {
     scalar xmin, xmax;
     size_t points;
 
@@ -102,42 +92,41 @@ struct xgrid
 };
 
 template <typename scalar>
-std::ostream& operator<<( std::ostream& out,
-                          const xgrid<scalar>& b ) // output
+std::ostream& operator<<( std::ostream&        out,
+                          const xgrid<scalar>& b )  // output
 {
-    out << "xmin: " << b.xmin << " xmax: " << b.xmax
-        << " points: " << b.points << " dx: " << b.dx();
+    out << "xmin: " << b.xmin << " xmax: " << b.xmax << " points: " << b.points
+        << " dx: " << b.dx();
     return out;
 }
 
 // describes the iteration
 template <typename scalar>
-struct iteration
-{
+struct iteration {
     size_t it = 0;
-    scalar energy_upper;  // Upper bound on the energy
-    scalar energy_lower;  // Lower bound on the energy
-    bool excited = false; // does the classical turnover point exist?
-    scalar energy;        // the energy of this iteration
-    int nodes;            // how many nodes for this iteration
-    int turnover = -1;    // where the turnover is...
+    scalar energy_upper;     // Upper bound on the energy
+    scalar energy_lower;     // Lower bound on the energy
+    bool   excited = false;  // does the classical turnover point exist?
+    scalar energy;           // the energy of this iteration
+    int    nodes;            // how many nodes for this iteration
+    int    turnover = -1;    // where the turnover is...
 
     void upper_bound_bisect()
     {
         energy_upper = energy;
-        energy = ( energy_upper + energy_lower ) / 2.;
+        energy       = ( energy_upper + energy_lower ) / 2.;
     }
 
     void lower_bound_bisect()
     {
         energy_lower = energy;
-        energy = ( energy_upper + energy_lower ) / 2.;
+        energy       = ( energy_upper + energy_lower ) / 2.;
     }
 };
 
 template <typename scalar>
-std::ostream& operator<<( std::ostream& out,
-                          const iteration<scalar>& b ) // output
+std::ostream& operator<<( std::ostream&            out,
+                          const iteration<scalar>& b )  // output
 {
     out << "iteration: " << b.it << " energy_upper: " << b.energy_upper
         << " energy_lower: " << b.energy_lower
@@ -148,8 +137,7 @@ std::ostream& operator<<( std::ostream& out,
 }
 
 template <typename scalar>
-void normalize( std::vector<scalar>& wf,
-                const std::vector<scalar>& rgrid,
+void normalize( std::vector<scalar>& wf, const std::vector<scalar>& rgrid,
                 const scalar dx )
 {
     scalar norm = 0;
@@ -162,9 +150,7 @@ void normalize( std::vector<scalar>& wf,
 }
 
 template <typename iterator, typename citerator>
-int numerov( citerator fstart,
-             citerator fend,
-             iterator wfstart,
+int numerov( citerator fstart, citerator fend, iterator wfstart,
              iterator wfend )
 {
     unsigned int nodes = 0;
@@ -191,9 +177,8 @@ int numerov( citerator fstart,
              ( wfstart[i] ) != ( wfstart[i] ) ) {
             wfstart[i] = wfstart[i - 1];
             std::cerr << "infinity detected at " << i
-                      << " last two values: " << *( wfstart + i - 1 )
-                      << ", " << wfstart[i - 2] << " nodes: " << nodes
-                      << std::endl;
+                      << " last two values: " << *( wfstart + i - 1 ) << ", "
+                      << wfstart[i - 2] << " nodes: " << nodes << std::endl;
             throw( std::out_of_range( "infinity detected" ) );
             inf = true;
         }
@@ -208,10 +193,9 @@ std::vector<scalar> make_rgrid( xgrid<scalar> current_grid )
     std::vector<scalar> g;
     g.reserve( current_grid.points );
     for ( size_t i = 0; i < current_grid.points; ++i )
-        g.push_back(
-            std::exp( current_grid.xmin +
-                      i * ( current_grid.xmax - current_grid.xmin ) /
-                          ( current_grid.points - 1 ) ) );
+        g.push_back( std::exp( current_grid.xmin +
+                               i * ( current_grid.xmax - current_grid.xmin ) /
+                                   ( current_grid.points - 1 ) ) );
     return g;
 }
 
@@ -227,10 +211,8 @@ void print_range( iterator a, iterator b, int star_num = -1 )
 }
 
 template <typename scalar>
-int make_f( const std::vector<scalar>& rgrid,
-            const BasisID& state,
-            const scalar energy,
-            const scalar dx,
+int make_f( const std::vector<scalar>& rgrid, const BasisID& state,
+            const scalar energy, const scalar               dx,
             const std::function<scalar( scalar, BasisID )>& pot,
             std::vector<scalar>& f )
 {
@@ -244,8 +226,7 @@ int make_f( const std::vector<scalar>& rgrid,
                 dx * dx / 12 *
                 ( std::pow( ( static_cast<scalar>( state.l ) + .5 ), 2 ) +
                   2 * std::pow( r, 2 ) * ( pot( r, state ) - energy ) ) );
-            if ( f.back() * flast < 0 && f.back() > 0 )
-                turnover = f.size();
+            if ( f.back() * flast < 0 && f.back() > 0 ) turnover = f.size();
         } else {
             f.push_back(
                 dx * dx / 12 *
@@ -262,30 +243,25 @@ int make_f( const std::vector<scalar>& rgrid,
 template <typename scalar>
 std::array<int, 2> numerov_from_both_sides( const std::vector<scalar>& f,
                                             std::vector<scalar>& wf,
-                                            int turnover )
+                                            int                  turnover )
 {
     std::array<int, 2> nodes;
-    nodes[0] = numerov( f.begin(),
-                        f.begin() + turnover,
-                        wf.begin(),
+    nodes[0] = numerov( f.begin(), f.begin() + turnover, wf.begin(),
                         wf.begin() + turnover );
     scalar temp = wf[turnover - 1];
-    nodes[1] = numerov( f.rbegin() + 1,
-                        f.rend() - turnover + 1,
-                        wf.rbegin() + 1,
-                        wf.rend() - turnover + 1 );
+    nodes[1]    = numerov( f.rbegin() + 1, f.rend() - turnover + 1,
+                        wf.rbegin() + 1, wf.rend() - turnover + 1 );
     temp /= wf[turnover - 1];
 
     // match:
-    for ( auto i = wf.rbegin(); i < wf.rend() - turnover + 1; ++i )
-        *i *= temp;
+    for ( auto i = wf.rbegin(); i < wf.rend() - turnover + 1; ++i ) *i *= temp;
 
     return nodes;
 }
 
 template <typename scalar>
 int numerov_from_one_side( const std::vector<scalar>& f,
-                           std::vector<scalar>& wf )
+                           std::vector<scalar>&       wf )
 {
     int nodes;
     nodes = numerov( f.begin(), f.end(), wf.begin(), wf.end() );
@@ -295,27 +271,20 @@ int numerov_from_one_side( const std::vector<scalar>& f,
 template <typename scalar>
 std::array<scalar, 6> derivatives( const std::vector<scalar> wf,
                                    const std::vector<scalar> f,
-                                   const int turnover,
-                                   bool errcheck = false )
+                                   const int turnover, bool errcheck = false )
 {
     // copy the wavefunction, and then propagate it around the turnover
     // point (both forward and backward)
     std::vector<scalar> forward( 3 );
-    std::copy( wf.begin() + turnover - 2,
-               wf.begin() + turnover + 1,
+    std::copy( wf.begin() + turnover - 2, wf.begin() + turnover + 1,
                forward.begin() );
-    numerov( f.begin() + turnover - 2,
-             f.begin() + turnover + 1,
-             forward.begin(),
-             forward.end() );
+    numerov( f.begin() + turnover - 2, f.begin() + turnover + 1,
+             forward.begin(), forward.end() );
     std::vector<scalar> backward( 3 );
-    std::copy( wf.rend() - turnover - 1,
-               wf.rend() - turnover + 2,
+    std::copy( wf.rend() - turnover - 1, wf.rend() - turnover + 2,
                backward.rbegin() );
-    numerov( f.rend() - turnover - 1,
-             f.rend() - turnover + 2,
-             backward.rbegin(),
-             backward.rend() );
+    numerov( f.rend() - turnover - 1, f.rend() - turnover + 2,
+             backward.rbegin(), backward.rend() );
 
     if ( errcheck ) {
         err_out << "forward: ";
@@ -323,8 +292,7 @@ std::array<scalar, 6> derivatives( const std::vector<scalar> wf,
         err_out << "\t\tbackward: ";
         for ( auto a : backward ) err_out << a << ", ";
         err_out << std::endl << "wavefunction: ";
-        for ( auto a = wf.begin() + turnover - 2;
-              a < wf.begin() + turnover + 1;
+        for ( auto a = wf.begin() + turnover - 2; a < wf.begin() + turnover + 1;
               ++a )
             err_out << *a << ", ";
         err_out << std::endl;
@@ -334,34 +302,31 @@ std::array<scalar, 6> derivatives( const std::vector<scalar> wf,
     auto d22 = backward[0] - 2 * backward[1] + backward[2];
     if ( errcheck ) {
         err_out << " d2forward: " << d21 << ", d2backward: " << d22
-                  << ", d2fraction: " << d21 / d22 - 1 << std::endl;
+                << ", d2fraction: " << d21 / d22 - 1 << std::endl;
     }
 
     auto d11 = forward[0] - forward[2];
     auto d12 = backward[0] - backward[2];
     if ( errcheck ) {
         err_out << " d1forward: " << d11 << ", d1backward: " << d12
-                  << ", d1 subtraction " << d12 - d11 << std::endl;
+                << ", d1 subtraction " << d12 - d11 << std::endl;
     }
 
-    auto sign = d11 * d12 < 0 ? math::signum(d11 * forward[0]) : 1;
+    auto sign = d11 * d12 < 0 ? math::signum( d11 * forward[0] ) : 1;
 
     return std::array<scalar, 6>{
-        { -( d11/d12 - 1 ), ( d21 / d22 - 1 ), d11, d12, d21, d22}};
+        {-( d11 / d12 - 1 ), ( d21 / d22 - 1 ), d11, d12, d21, d22}};
     //( d21 / d22 - 1 ) * std::abs( d21 - d22 )}};
 }
 
 
 template <typename scalar>
-bool
-find_ground_state( const BasisID state,
-                   const xgrid<scalar> grid,
-                   const std::function<scalar( scalar, BasisID )>& pot,
-                   iteration<scalar>& it,
-                   const scalar err )
+bool find_ground_state( const BasisID state, const xgrid<scalar>        grid,
+                        const std::function<scalar( scalar, BasisID )>& pot,
+                        iteration<scalar>& it, const scalar err )
 {
 // finding the ground state is easier than finding other states.
-#if defined(DEBUGGROUND) || defined(DEBUGGROUND1)
+#if defined( DEBUGGROUND ) || defined( DEBUGGROUND1 )
     Gnuplot g( "wf" );
 #endif
     err_out << "FINDING GROUND STATE" << std::endl;
@@ -371,7 +336,7 @@ find_ground_state( const BasisID state,
     // create a new, smaller grid to iterate on initially:
     auto smallgrid( grid );
     smallgrid.points = static_cast<int>( std::exp( grid.xmax ) );
-    auto rgrid = make_rgrid( smallgrid );
+    auto rgrid       = make_rgrid( smallgrid );
 
     // create the wf and f function from rgrid.
     std::vector<scalar> f( smallgrid.points );
@@ -386,18 +351,17 @@ find_ground_state( const BasisID state,
 
     it.energy_lower = 0;
     for ( auto r : rgrid )
-        it.energy_lower = std::min( it.energy_lower,
-                                    std::pow( state.l + .5, 2 ) /
-                                            ( 2. * std::pow( r, 2 ) ) +
-                                        pot( r, state ) );
+        it.energy_lower =
+            std::min( it.energy_lower,
+                      std::pow( state.l + .5, 2 ) / ( 2. * std::pow( r, 2 ) ) +
+                          pot( r, state ) );
     it.energy = ( it.energy_upper + it.energy_lower ) / 2.;
 
     // first loop on the smaller grid:
     bool converged = false;
     while ( !converged && it.it < 100 ) {
         it.it++;
-        it.turnover =
-            make_f( rgrid, state, it.energy, smallgrid.dx(), pot, f );
+        it.turnover = make_f( rgrid, state, it.energy, smallgrid.dx(), pot, f );
         err_out << "turnover: " << it.turnover << std::endl;
         // display_function( g2,
         // rgrid,
@@ -408,47 +372,44 @@ find_ground_state( const BasisID state,
 
         if ( it.turnover < 0 || it.turnover > smallgrid.points - 4 ) {
             it.turnover = smallgrid.points / 2;
-            it.excited = true;
+            it.excited  = true;
         }
         err_out << "turnover: " << it.turnover << std::endl;
 
         // the first couple points:
-        wf[0] =
-            std::pow( rgrid.front(), state.l + 1 ) *
-            ( 1. - 2. * rgrid.front() / ( 2. * scalar( state.l ) + 2. ) ) /
-            std::sqrt( rgrid.front() );
+        wf[0] = std::pow( rgrid.front(), state.l + 1 ) *
+                ( 1. - 2. * rgrid.front() / ( 2. * scalar( state.l ) + 2. ) ) /
+                std::sqrt( rgrid.front() );
         wf[1] = std::pow( rgrid[1], state.l + 1 ) *
                 ( 1. - 2. * rgrid[1] / ( 2. * scalar( state.l ) + 2. ) ) /
                 std::sqrt( rgrid[1] );
 
         // the last couple points:
-        wf.back() = 0;
+        wf.back()         = 0;
         wf[wf.size() - 2] = smallgrid.dx();
-        wf[wf.size() - 3] = ( 12 - f[f.size() - 2] * 10 ) *
-                            wf[wf.size() - 2] / f[wf.size() - 2];
+        wf[wf.size() - 3] = ( 12 - f[f.size() - 2] * 10 ) * wf[wf.size() - 2] /
+                            f[wf.size() - 2];
 
 
         auto nodes = numerov_from_both_sides( f, wf, it.turnover );
         normalize( wf, rgrid, smallgrid.dx() );
 
 
-        auto e = derivatives( wf, f, it.turnover );
-        int correct_nodes = state.n - state.l - 1;
-        it.nodes = nodes[0];
+        auto e             = derivatives( wf, f, it.turnover );
+        int  correct_nodes = state.n - state.l - 1;
+        it.nodes           = nodes[0];
 
-        err_out << " 1st deriv: " << e[0] << ": " << e[2] << "," << e[3] << std::endl
-                << " 2nd deriv: " << e[1] << ": " << e[4] << "," << e[5] << std::endl;
+        err_out << " 1st deriv: " << e[0] << ": " << e[2] << "," << e[3]
+                << std::endl
+                << " 2nd deriv: " << e[1] << ": " << e[4] << "," << e[5]
+                << std::endl;
         err_out << " nodes: " << nodes[0]
-                  << ", correct_nodes: " << correct_nodes << std::endl;
+                << ", correct_nodes: " << correct_nodes << std::endl;
         err_out << it << std::endl;
 
 #ifdef DEBUGGROUND1
         display_function(
-            g,
-            rgrid,
-            wf,
-            it.turnover - 1,
-            true,
+            g, rgrid, wf, it.turnover - 1, true,
             {0., static_cast<double>( rgrid[it.turnover] * 1.5 )} );
 #endif
 
@@ -458,11 +419,11 @@ find_ground_state( const BasisID state,
         }
         if ( e[1] > 0 ) {
             it.lower_bound_bisect();
-            if ( std::abs( e[1] * (e[2] - e[3]) ) < err ) break;
+            if ( std::abs( e[1] * ( e[2] - e[3] ) ) < err ) break;
         }
         if ( e[1] < 0 ) {
             it.upper_bound_bisect();
-            if ( std::abs( e[1] * (e[2] - e[3]) ) < err ) break;
+            if ( std::abs( e[1] * ( e[2] - e[3] ) ) < err ) break;
         }
     }
 
@@ -480,41 +441,43 @@ find_ground_state( const BasisID state,
     err_out << "FINDING GROUND STATE pt 2" << std::endl;
     err_out << "====================" << std::endl;
     err_out << "====================" << std::endl;
-    
+
     while ( !converged && it.it < 1000 ) {
         it.it++;
         it.turnover = make_f( rgrid, state, it.energy, grid.dx(), pot, f );
 
         if ( it.turnover < 0 || it.turnover > grid.points - 2 ) {
             it.turnover = grid.points / 2;
-            it.excited = true;
+            it.excited  = true;
         }
         err_out << "turnover: " << it.turnover << std::endl;
 
         // the first couple points:
-        wf[0] =
-            std::pow( rgrid.front(), state.l + 1 ) *
-            ( 1. - 2. * rgrid.front() / ( 2. * scalar( state.l ) + 2. ) ) /
-            std::sqrt( rgrid.front() );
+        wf[0] = std::pow( rgrid.front(), state.l + 1 ) *
+                ( 1. - 2. * rgrid.front() / ( 2. * scalar( state.l ) + 2. ) ) /
+                std::sqrt( rgrid.front() );
         wf[1] = std::pow( rgrid[1], state.l + 1 ) *
                 ( 1. - 2. * rgrid[1] / ( 2. * scalar( state.l ) + 2. ) ) /
                 std::sqrt( rgrid[1] );
 
         // the last couple points:
-        wf.back() = 0;
+        wf.back()         = 0;
         wf[wf.size() - 2] = grid.dx() * scale_factor;
-        wf[wf.size() - 3] = ( 12 - f[f.size() - 2] * 10 ) *
-                            wf[wf.size() - 2] / f[wf.size() - 2];
+        wf[wf.size() - 3] = ( 12 - f[f.size() - 2] * 10 ) * wf[wf.size() - 2] /
+                            f[wf.size() - 2];
 
         std::array<int, 2> nodes;
     infty:
-        try{
+        try {
             nodes = numerov_from_both_sides( f, wf, it.turnover );
-        } catch (const std::out_of_range e) {
-            if (wf[0] == 0 or wf[1] == 0 or wf[wf.size() - 2] == 0 or wf[wf.size() - 3] == 0)
+        } catch ( const std::out_of_range e ) {
+            if ( wf[0] == 0 or wf[1] == 0 or wf[wf.size() - 2] == 0 or
+                 wf[wf.size() - 3] == 0 )
                 throw e;
-            err_out << "wf.front: " << wf[0] << ", " << wf[1] << ", " << wf[2] << std::endl;
-            err_out << "wf.back: " << wf.back() << ", " << wf[wf.size() - 2] << ", " << wf[wf.size() - 3] << std::endl;
+            err_out << "wf.front: " << wf[0] << ", " << wf[1] << ", " << wf[2]
+                    << std::endl;
+            err_out << "wf.back: " << wf.back() << ", " << wf[wf.size() - 2]
+                    << ", " << wf[wf.size() - 3] << std::endl;
             wf[wf.size() - 1] /= 1e4;
             wf[wf.size() - 2] /= 1e4;
             wf[wf.size() - 3] /= 1e4;
@@ -524,24 +487,22 @@ find_ground_state( const BasisID state,
         normalize( wf, rgrid, grid.dx() );
 
 
-        auto e = derivatives( wf, f, it.turnover );
-        int correct_nodes = state.n - state.l - 1;
-        it.nodes = nodes[0];
+        auto e             = derivatives( wf, f, it.turnover );
+        int  correct_nodes = state.n - state.l - 1;
+        it.nodes           = nodes[0];
 
-        err_out << " 1st deriv: " << e[0] << ": " << e[2] << "," << e[3] << std::endl
-                << " 2nd deriv: " << e[1] << ": " << e[4] << "," << e[5] << std::endl;
+        err_out << " 1st deriv: " << e[0] << ": " << e[2] << "," << e[3]
+                << std::endl
+                << " 2nd deriv: " << e[1] << ": " << e[4] << "," << e[5]
+                << std::endl;
         err_out << " nodes: " << nodes[0]
-                  << ", correct_nodes: " << correct_nodes << std::endl;
+                << ", correct_nodes: " << correct_nodes << std::endl;
         err_out << it << std::endl;
 
 #ifdef DEBUGGROUND
         display_function(
-            g,
-            rgrid,
-            wf,
-            it.turnover - 1,
-            true,
-            {0 , static_cast<double>( rgrid[it.turnover]) * 1.5} );
+            g, rgrid, wf, it.turnover - 1, true,
+            {0, static_cast<double>( rgrid[it.turnover] ) * 1.5} );
 // display_function( g, rgrid, wf, it.turnover - 1, true );
 #endif
 
@@ -553,28 +514,27 @@ find_ground_state( const BasisID state,
             it.upper_bound_bisect();
             continue;
         }
-        scalar d = std::abs(e[1]) > std::abs(e[0]) ? e[1] : e[0];
+        scalar d = std::abs( e[1] ) > std::abs( e[0] ) ? e[1] : e[0];
 
         if ( d > 0 ) it.lower_bound_bisect();
         if ( d < 0 ) it.upper_bound_bisect();
         if ( d == 0 ) converged = true;
-        //if ( e[1] > 0 ) it.lower_bound_bisect();
-        //if ( e[1] < 0 ) it.upper_bound_bisect();
-        //if ( e[1] == 0 && e[0] > 0 ) it.lower_bound_bisect();
-        //if ( e[1] == 0 && e[0] < 0 ) it.upper_bound_bisect();
-        //if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] > 0 ) it.lower_bound_bisect();
-        //if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] < 0) it.upper_bound_bisect();
+        // if ( e[1] > 0 ) it.lower_bound_bisect();
+        // if ( e[1] < 0 ) it.upper_bound_bisect();
+        // if ( e[1] == 0 && e[0] > 0 ) it.lower_bound_bisect();
+        // if ( e[1] == 0 && e[0] < 0 ) it.upper_bound_bisect();
+        // if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] > 0 )
+        // it.lower_bound_bisect();
+        // if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] < 0)
+        // it.upper_bound_bisect();
     }
     return converged;
 }
 
 template <typename scalar>
-bool
-converge_on_nodes( const BasisID state,
-                   const xgrid<scalar> grid,
-                   const std::function<scalar( scalar, BasisID )>& pot,
-                   iteration<scalar>& it,
-                   const scalar err )
+bool converge_on_nodes( const BasisID state, const xgrid<scalar>        grid,
+                        const std::function<scalar( scalar, BasisID )>& pot,
+                        iteration<scalar>& it, const scalar err )
 {
 // we assume that the energy is at least bounded by the ground state
 // and the infinite square well energy
@@ -596,13 +556,13 @@ converge_on_nodes( const BasisID state,
     std::vector<scalar> wf( grid.points,
                             std::numeric_limits<scalar>::quiet_NaN() );
 
-    it.energy = ( it.energy_upper + it.energy_lower ) / 2.;
+    it.energy      = ( it.energy_upper + it.energy_lower ) / 2.;
     bool converged = false;
 
     while ( !converged && it.it < 100 ) {
         it.it++;
         it.turnover = make_f( rgrid, state, it.energy, grid.dx(), pot, f );
-        //err_out << "turnover: " << it.turnover << std::endl;
+        // err_out << "turnover: " << it.turnover << std::endl;
         // display_function( g2,
         // rgrid,
         // f,
@@ -612,34 +572,33 @@ converge_on_nodes( const BasisID state,
 
         if ( it.turnover < 0 || it.turnover > grid.points - 4 ) {
             it.turnover = grid.points / 2;
-            it.excited = true;
+            it.excited  = true;
         } else if ( it.turnover >
-                    grid.points * .95 ) { // this is close enough to the
-                                          // edge tha twe should be better
-                                          // about convergence
+                    grid.points * .95 ) {  // this is close enough to the
+                                           // edge tha twe should be better
+                                           // about convergence
             it.excited = true;
         } else
             it.excited = false;
         err_out << "turnover: " << it.turnover << std::endl;
 
         // the first couple points:
-        wf[0] =
-            std::pow( rgrid.front(), state.l + 1 ) *
-            ( 1. - 2. * rgrid.front() / ( 2. * scalar( state.l ) + 2. ) ) /
-            std::sqrt( rgrid.front() );
+        wf[0] = std::pow( rgrid.front(), state.l + 1 ) *
+                ( 1. - 2. * rgrid.front() / ( 2. * scalar( state.l ) + 2. ) ) /
+                std::sqrt( rgrid.front() );
         wf[1] = std::pow( rgrid[1], state.l + 1 ) *
                 ( 1. - 2. * rgrid[1] / ( 2. * scalar( state.l ) + 2. ) ) /
                 std::sqrt( rgrid[1] );
 
         // the last couple points:
-        wf.back() = 0;
+        wf.back()         = 0;
         wf[wf.size() - 2] = grid.dx();
-        wf[wf.size() - 3] = ( 12 - f[f.size() - 2] * 10 ) *
-                            wf[wf.size() - 2] / f[wf.size() - 2];
+        wf[wf.size() - 3] = ( 12 - f[f.size() - 2] * 10 ) * wf[wf.size() - 2] /
+                            f[wf.size() - 2];
 
 
         if ( !it.excited ) {
-            auto n = numerov_from_both_sides( f, wf, it.turnover );
+            auto n   = numerov_from_both_sides( f, wf, it.turnover );
             it.nodes = n[0];
         } else
             it.nodes = numerov_from_one_side( f, wf );
@@ -648,15 +607,11 @@ converge_on_nodes( const BasisID state,
         auto correct_nodes = state.n - state.l - 1;
 
         err_out << " nodes: " << it.nodes
-                  << ", correct_nodes: " << correct_nodes << std::endl;
+                << ", correct_nodes: " << correct_nodes << std::endl;
         err_out << it << std::endl;
 
 #ifdef DEBUGNODES
-        display_function( g,
-                          rgrid,
-                          wf,
-                          it.turnover - 1,
-                          true,
+        display_function( g, rgrid, wf, it.turnover - 1, true,
                           {0., static_cast<double>( rgrid.back() )} );
 #endif
 
@@ -680,11 +635,9 @@ converge_on_nodes( const BasisID state,
 }
 
 template <typename scalar>
-bool converge_excited( const BasisID state,
-                       const xgrid<scalar> grid,
+bool converge_excited( const BasisID state, const xgrid<scalar>        grid,
                        const std::function<scalar( scalar, BasisID )>& pot,
-                       iteration<scalar>& it,
-                       const scalar err )
+                       iteration<scalar>& it, const scalar err )
 {
 // we assume that the energy is at least bounded by the ground state
 // and the infinite square well energy
@@ -707,7 +660,7 @@ bool converge_excited( const BasisID state,
     std::vector<scalar> wf( grid.points,
                             std::numeric_limits<scalar>::quiet_NaN() );
 
-    it.energy = ( it.energy_upper + it.energy_lower ) / 2.;
+    it.energy      = ( it.energy_upper + it.energy_lower ) / 2.;
     bool converged = false;
 
     int last_nodes = it.nodes;
@@ -726,7 +679,7 @@ bool converge_excited( const BasisID state,
         // we already know how this is going to turn out though
         if ( it.turnover < 0 || it.turnover > grid.points - 4 ) {
             it.turnover = grid.points * 3 / 4;
-            it.excited = true;
+            it.excited  = true;
         } else if ( it.turnover < grid.points * .95 ) {
             // if the state is too close to the edge, we want to ignore the
             // "excited" change.
@@ -738,23 +691,22 @@ bool converge_excited( const BasisID state,
         err_out << "turnover: " << it.turnover << std::endl;
 
         // the first couple points:
-        wf[0] =
-            std::pow( rgrid.front(), state.l + 1 ) *
-            ( 1. - 2. * rgrid.front() / ( 2. * scalar( state.l ) + 2. ) ) /
-            std::sqrt( rgrid.front() );
+        wf[0] = std::pow( rgrid.front(), state.l + 1 ) *
+                ( 1. - 2. * rgrid.front() / ( 2. * scalar( state.l ) + 2. ) ) /
+                std::sqrt( rgrid.front() );
         wf[1] = std::pow( rgrid[1], state.l + 1 ) *
                 ( 1. - 2. * rgrid[1] / ( 2. * scalar( state.l ) + 2. ) ) /
                 std::sqrt( rgrid[1] );
 
         // the last couple points:
-        wf.back() = 0;
+        wf.back()         = 0;
         wf[wf.size() - 2] = grid.dx();
-        wf[wf.size() - 3] = ( 12 - f[f.size() - 2] * 10 ) *
-                            wf[wf.size() - 2] / f[wf.size() - 2];
+        wf[wf.size() - 3] = ( 12 - f[f.size() - 2] * 10 ) * wf[wf.size() - 2] /
+                            f[wf.size() - 2];
 
 
         if ( !it.excited ) {
-            auto n = numerov_from_both_sides( f, wf, it.turnover );
+            auto n   = numerov_from_both_sides( f, wf, it.turnover );
             it.nodes = n[0];
         } else
             it.nodes = numerov_from_one_side( f, wf );
@@ -763,15 +715,11 @@ bool converge_excited( const BasisID state,
         auto correct_nodes = state.n - state.l - 1;
 
         err_out << " nodes: " << it.nodes
-                  << ", correct_nodes: " << correct_nodes << std::endl;
+                << ", correct_nodes: " << correct_nodes << std::endl;
         err_out << it << std::endl;
 
 #ifdef DEBUGEXCITED
-        display_function( g,
-                          rgrid,
-                          wf,
-                          it.turnover - 1,
-                          true,
+        display_function( g, rgrid, wf, it.turnover - 1, true,
                           {0., static_cast<double>( rgrid.back() )} );
 #endif
 
@@ -790,19 +738,16 @@ bool converge_excited( const BasisID state,
                 it.lower_bound_bisect();
             else if ( last_nodes == it.nodes )
                 it.lower_bound_bisect();
-            if ( it.energy_upper - it.energy_lower < err )
-                converged = true;
+            if ( it.energy_upper - it.energy_lower < err ) converged = true;
         }
     }
     return converged;
 }
 
 template <typename scalar>
-bool converge_bound( const BasisID state,
-                     const xgrid<scalar> grid,
+bool converge_bound( const BasisID state, const xgrid<scalar>       grid,
                      const std::function<scalar( scalar, BasisID )> pot,
-                     iteration<scalar>& it,
-                     const scalar err )
+                     iteration<scalar>& it, const scalar err )
 {
 // we assume that the energy is at least bounded by the ground state
 // and the infinite square well energy
@@ -825,13 +770,13 @@ bool converge_bound( const BasisID state,
     std::vector<scalar> wf( grid.points,
                             std::numeric_limits<scalar>::quiet_NaN() );
 
-    it.energy = ( it.energy_upper + it.energy_lower ) / 2.;
+    it.energy      = ( it.energy_upper + it.energy_lower ) / 2.;
     bool converged = false;
 
     while ( !converged && it.it < 1000 ) {
         it.it++;
         it.turnover = make_f( rgrid, state, it.energy, grid.dx(), pot, f );
-        //err_out << "turnover: " << it.turnover << std::endl;
+        // err_out << "turnover: " << it.turnover << std::endl;
         // display_function( g2,
         // rgrid,
         // f,
@@ -842,51 +787,48 @@ bool converge_bound( const BasisID state,
         // we already know how this is going to turn out though
         if ( it.turnover < 0 || it.turnover > grid.points - 4 ) {
             it.turnover = 3 * grid.points / 4;
-            it.excited = true;
+            it.excited  = true;
             break;
         } else
             it.excited = false;
         err_out << "turnover: " << it.turnover << std::endl;
 
         // the first couple points:
-        wf[0] =
-            std::pow( rgrid.front(), state.l + 1 ) *
-            ( 1. - 2. * rgrid.front() / ( 2. * scalar( state.l ) + 2. ) ) /
-            std::sqrt( rgrid.front() );
+        wf[0] = std::pow( rgrid.front(), state.l + 1 ) *
+                ( 1. - 2. * rgrid.front() / ( 2. * scalar( state.l ) + 2. ) ) /
+                std::sqrt( rgrid.front() );
         wf[1] = std::pow( rgrid[1], state.l + 1 ) *
                 ( 1. - 2. * rgrid[1] / ( 2. * scalar( state.l ) + 2. ) ) /
                 std::sqrt( rgrid[1] );
 
         // the last couple points:
-        wf.back() = 0;
+        wf.back()         = 0;
         wf[wf.size() - 2] = grid.dx();
-        wf[wf.size() - 3] = ( 12 - f[f.size() - 2] * 10 ) *
-                            wf[wf.size() - 2] / f[wf.size() - 2];
+        wf[wf.size() - 3] = ( 12 - f[f.size() - 2] * 10 ) * wf[wf.size() - 2] /
+                            f[wf.size() - 2];
 
 
         if ( !it.excited ) {
-            auto n = numerov_from_both_sides( f, wf, it.turnover );
+            auto n   = numerov_from_both_sides( f, wf, it.turnover );
             it.nodes = n[0];
         } else
             it.nodes = numerov_from_one_side( f, wf );
         normalize( wf, rgrid, grid.dx() );
 
         auto correct_nodes = state.n - state.l - 1;
-        auto e = derivatives( wf, f, it.turnover );
+        auto e             = derivatives( wf, f, it.turnover );
 
 
-        err_out << " 1st deriv: " << e[0] << ": " << e[2] << "," << e[3] << std::endl
-                << " 2nd deriv: " << e[1] << ": " << e[4] << "," << e[5] << std::endl;
+        err_out << " 1st deriv: " << e[0] << ": " << e[2] << "," << e[3]
+                << std::endl
+                << " 2nd deriv: " << e[1] << ": " << e[4] << "," << e[5]
+                << std::endl;
         err_out << " nodes: " << it.nodes
-                  << ", correct_nodes: " << correct_nodes;
+                << ", correct_nodes: " << correct_nodes;
         err_out << it << std::endl;
 
 #ifdef DEBUGBOUND
-        display_function( g,
-                          rgrid,
-                          wf,
-                          it.turnover - 1,
-                          true,
+        display_function( g, rgrid, wf, it.turnover - 1, true,
                           {0., static_cast<double>( rgrid.back() )} );
 #endif
 
@@ -899,29 +841,29 @@ bool converge_bound( const BasisID state,
             continue;
         }
         if ( it.nodes == correct_nodes ) {
-            auto a = (e[2] + e[3]) / 2;
-            auto b = (e[4] + e[5]) / 2;
-            scalar& d = std::abs(e[1] * a) > std::abs(e[0] * b) ? e[1] : e[0];
+            auto    a = ( e[2] + e[3] ) / 2;
+            auto    b = ( e[4] + e[5] ) / 2;
+            scalar& d =
+                std::abs( e[1] * a ) > std::abs( e[0] * b ) ? e[1] : e[0];
 
             if ( d > 0 ) it.lower_bound_bisect();
             if ( d < 0 ) it.upper_bound_bisect();
-            //if ( e[1] == 0 && e[0] > 0 ) it.lower_bound_bisect();
-            //if ( e[1] == 0 && e[0] < 0 ) it.upper_bound_bisect();
-            //if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] > 0 ) it.lower_bound_bisect();
-            //if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] < 0) it.upper_bound_bisect();
-            if ( it.energy_upper - it.energy_lower < err )
-                converged = true;
+            // if ( e[1] == 0 && e[0] > 0 ) it.lower_bound_bisect();
+            // if ( e[1] == 0 && e[0] < 0 ) it.upper_bound_bisect();
+            // if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] > 0 )
+            // it.lower_bound_bisect();
+            // if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] < 0)
+            // it.upper_bound_bisect();
+            if ( it.energy_upper - it.energy_lower < err ) converged = true;
         }
     }
     return converged;
 }
 
 template <typename scalar>
-basis<scalar>
-find_basis( const BasisID state,
-            const xgrid<scalar> grid,
-            const std::function<scalar( scalar, BasisID )>& pot,
-            scalar err )
+basis<scalar> find_basis( const BasisID state, const xgrid<scalar>        grid,
+                          const std::function<scalar( scalar, BasisID )>& pot,
+                          scalar err )
 {
     bool check = false;
     std::cout << "====================" << std::endl;
@@ -932,13 +874,12 @@ find_basis( const BasisID state,
     err_out << "state: " << state << std::endl;
 
     iteration<scalar> it;
-    scalar gserr = 1e-8;
+    scalar            gserr   = 1e-8;
     if ( state.n == 1 ) gserr = err;
 
     if ( state.e.real() < 0 )
         it.energy_lower = state.e.real();
-    else if ( !find_ground_state(
-                  {1, 0, 0, 1, 0.}, grid, pot, it, gserr ) ) {
+    else if ( !find_ground_state( {1, 0, 0, 1, 0.}, grid, pot, it, gserr ) ) {
         reduced_out << " couldn't converge ground state! " << std::endl;
         check = true;
     }
@@ -948,8 +889,8 @@ find_basis( const BasisID state,
     it.energy_upper =
         std::pow( state.n * math::PI / std::exp( grid.xmax ), 2 ) / 2.;
 
-    if ( !converge_on_nodes(
-             state, grid, pot, it, static_cast<scalar>( 1e-8 ) ) ) {
+    if ( !converge_on_nodes( state, grid, pot, it,
+                             static_cast<scalar>( 1e-8 ) ) ) {
         reduced_out << " couldn't find the node limits! " << std::endl;
     }
     it.it = 0;
@@ -963,7 +904,7 @@ find_basis( const BasisID state,
         it.it = 0;
         if ( !converge_excited( state, grid, pot, it, err ) ) {
             reduced_out << " couldn't converge the excited state! "
-                      << std::endl;
+                        << std::endl;
             check = it.excited;
         }
     }
@@ -971,7 +912,7 @@ find_basis( const BasisID state,
         it.it = 0;
         if ( !converge_bound( state, grid, pot, it, err ) ) {
             reduced_out << " couldn't converge bound state the second time! "
-                      << std::endl;
+                        << std::endl;
             check = true;
         }
     }
@@ -979,7 +920,7 @@ converged:
 
     err_out << " finished finding energy " << std::endl;
     err_out << it << std::endl;
-    auto rgrid = make_rgrid( grid );
+    auto                rgrid = make_rgrid( grid );
     std::vector<scalar> wf( grid.points,
                             std::numeric_limits<scalar>::quiet_NaN() );
     std::vector<scalar> f( grid.points,
@@ -998,25 +939,24 @@ converged:
             std::sqrt( rgrid[1] );
 
     // the last couple points:
-    wf.back() = 0;
+    wf.back()         = 0;
     wf[wf.size() - 2] = grid.dx();
-    wf[wf.size() - 3] = ( 12 - f[f.size() - 2] * 10 ) * wf[wf.size() - 2] /
-                        f[wf.size() - 2];
+    wf[wf.size() - 3] =
+        ( 12 - f[f.size() - 2] * 10 ) * wf[wf.size() - 2] / f[wf.size() - 2];
     bool converged = false;
     err_out << "FINAL CONVERGENCE: " << std::endl;
     while ( !converged && it.it < 1100 ) {
         err_out << it << std::endl;
 
     infty2:
-        try{
+        try {
             numerov_from_both_sides(
-                f,
-                wf,
-                ( std::max(
-                    it.turnover,
-                    ( ( turnover > f.size() - 2 ) ? 0 : turnover ) ) ) );
-        } catch (const std::out_of_range e) {
-            if (wf[0] == 0 or wf[1] == 0 or wf[wf.size() - 2] == 0 or wf[wf.size() - 3] == 0)
+                f, wf, ( std::max(
+                           it.turnover,
+                           ( ( turnover > f.size() - 2 ) ? 0 : turnover ) ) ) );
+        } catch ( const std::out_of_range e ) {
+            if ( wf[0] == 0 or wf[1] == 0 or wf[wf.size() - 2] == 0 or
+                 wf[wf.size() - 3] == 0 )
                 throw e;
             wf[wf.size() - 1] /= 1e8;
             wf[wf.size() - 2] /= 1e8;
@@ -1026,31 +966,30 @@ converged:
 
         normalize( wf, rgrid, grid.dx() );
         auto e = derivatives( wf, f, it.turnover );
-        err_out << " 1st deriv: " << e[0] << ": " << e[2] << "," << e[3] << std::endl
-                << " 2nd deriv: " << e[1] << ": " << e[4] << "," << e[5] << std::endl;
-        if (  math::signum( e[2] ) != math::signum( e[3] ) ||
-              std::abs( e[0] ) > 0.01 || std::abs( e[1] ) > 0.01) {
+        err_out << " 1st deriv: " << e[0] << ": " << e[2] << "," << e[3]
+                << std::endl
+                << " 2nd deriv: " << e[1] << ": " << e[4] << "," << e[5]
+                << std::endl;
+        if ( math::signum( e[2] ) != math::signum( e[3] ) ||
+             std::abs( e[0] ) > 0.01 || std::abs( e[1] ) > 0.01 ) {
 #ifdef DEBUGEND
-            std::cout << " 1st deriv: " << e[0] << ": " << e[2] << "," << e[3] << std::endl
-                << " 2nd deriv: " << e[1] << ": " << e[4] << "," << e[5] << std::endl;
-            display_function(
-                g,
-                rgrid,
-                wf,
-                it.turnover - 1,
-                true,
-                {static_cast<double>( rgrid[it.turnover] - 2 ),
-                 static_cast<double>( rgrid[it.turnover] + 2 )} );
-            check=true;
+            std::cout << " 1st deriv: " << e[0] << ": " << e[2] << "," << e[3]
+                      << std::endl
+                      << " 2nd deriv: " << e[1] << ": " << e[4] << "," << e[5]
+                      << std::endl;
+            display_function( g, rgrid, wf, it.turnover - 1, true,
+                              {static_cast<double>( rgrid[it.turnover] - 2 ),
+                               static_cast<double>( rgrid[it.turnover] + 2 )} );
+            check = true;
 #endif
-            if (it.turnover >= f.size() - 30)
-                it.turnover = it.it % 17 + it.turnover/8;
+            if ( it.turnover >= f.size() - 30 )
+                it.turnover = it.it % 17 + it.turnover / 8;
             else
                 it.turnover = ( it.turnover + f.size() - 2 ) / 2;
             it.it++;
         } else {
             converged = true;
-            check=true;
+            check     = true;
         }
     }
 
@@ -1059,26 +998,19 @@ converged:
          math::signum( e[2] ) != math::signum( e[3] ) ||
          math::signum( e[4] ) != math::signum( e[5] ) ) {
         e = derivatives( wf, f, it.turnover, true );
-        reduced_out << " 1st deriv: " << e[0] << ": " << e[2] << "," << e[3] << std::endl
-                << " 2nd deriv: " << e[1] << ": " << e[4] << "," << e[5] << std::endl;
+        reduced_out << " 1st deriv: " << e[0] << ": " << e[2] << "," << e[3]
+                    << std::endl
+                    << " 2nd deriv: " << e[1] << ": " << e[4] << "," << e[5]
+                    << std::endl;
         reduced_out << it << std::endl;
 #ifdef DEBUGFINAL
         Gnuplot g( "final wf" );
         Gnuplot g2( "zoomed" );
-        display_function( g,
-                          rgrid,
-                          wf,
-                          it.turnover - 1,
-                          false,
+        display_function( g, rgrid, wf, it.turnover - 1, false,
                           {0, static_cast<double>( rgrid.back() )} );
-        display_function(
-            g2,
-            rgrid,
-            wf,
-            it.turnover - 1,
-            true,
-            {static_cast<double>( rgrid[it.turnover] - 1 ),
-             static_cast<double>( rgrid[it.turnover] + 1 )} );
+        display_function( g2, rgrid, wf, it.turnover - 1, true,
+                          {static_cast<double>( rgrid[it.turnover] - 1 ),
+                           static_cast<double>( rgrid[it.turnover] + 1 )} );
 #endif
     }
 
@@ -1107,7 +1039,7 @@ converged:
 
 template <typename scalar, typename write_type>
 void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
-                     BasisParameters<scalar, write_type>& params,
+                     BasisParameters<scalar, write_type>&     params,
                      sae<scalar> atom )
 {
 #if defined( DEBUG )
@@ -1117,33 +1049,32 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
                                  std::log( params.rmax() ),
                                  static_cast<size_t>( params.points() )} );
 
-    auto rgrid = make_rgrid( desired_grid );
+    auto                 rgrid = make_rgrid( desired_grid );
     std::vector<BasisID> energies;
     energies.resize( 0 );
 
-            // params.save_parameters();
+    // params.save_parameters();
 
-    boost::mpi::environment env;
-    boost::mpi::communicator world( PETSC_COMM_WORLD,
-                                    boost::mpi::comm_attach );
+    boost::mpi::environment  env;
+    boost::mpi::communicator world( PETSC_COMM_WORLD, boost::mpi::comm_attach );
 
 
-    std::string fname(params.basis_folder() + "/err_log_" +
-                 std::to_string( world.rank() ) + ".txt");
-    err_out.open(fname , std::ios_base::out);
-    err_out.precision(20);
-    fname = std::string(params.basis_folder() + "/reduced_log_" +
-                 std::to_string( world.rank() ) + ".txt");
-    reduced_out.open(fname , std::ios_base::out);
+    std::string fname( params.basis_folder() + "/err_log_" +
+                       std::to_string( world.rank() ) + ".txt" );
+    err_out.open( fname, std::ios_base::out );
+    err_out.precision( 20 );
+    fname = std::string( params.basis_folder() + "/reduced_log_" +
+                         std::to_string( world.rank() ) + ".txt" );
+    reduced_out.open( fname, std::ios_base::out );
 
-    std::signal(SIGUSR1, signal_handler);
+    std::signal( SIGUSR1, signal_handler );
 
 
     basis<scalar> res;
-    BasisID tmp;
+    BasisID       tmp;
 
     iteration<scalar> it;
-    scalar err = 1e-15;
+    scalar            err = 1e-15;
 
     err_out << "Number of threads: " << world.size() << std::endl;
 
@@ -1151,7 +1082,7 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
     //
     tmp = {1, 0, 0, 0, 0};
 
-    auto ret = find_basis( tmp, desired_grid, pot, err );
+    auto ret      = find_basis( tmp, desired_grid, pot, err );
     auto gsenergy = ret.energy;
 
     err_out << "finished finding ground state! " << std::endl;
@@ -1159,23 +1090,25 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
     // energies.push_back(tmp);
     // std::vector< std::vector< write_type > > output_arrays( std::max(
     // params.lmax() + 1, params.nmax()) );
-    if (params.l_only() && params.nmax() - 1 < params.l() )
-    {
+    if ( params.l_only() && params.nmax() - 1 < params.l() ) {
         std::cerr << " l and nmax don't agree! " << std::endl;
-        throw (std::out_of_range(" l and nmax don't agree! "));
+        throw( std::out_of_range( " l and nmax don't agree! " ) );
     }
     for ( int l = params.l_only() ? params.l() : world.rank();
-          l <= (params.l_only()
-              ? params.l()
-              : std::min( params.lmax(), params.nmax() - 1 ));
+          l <= ( params.l_only() ? params.l() : std::min( params.lmax(),
+                                                          params.nmax() - 1 ) );
           l += world.size() ) {
-        err_out << "making output array of size: " << ( params.nmax() - l ) * rgrid.size() << std::endl;
+        err_out << "making output array of size: "
+                << ( params.nmax() - l ) * rgrid.size() << std::endl;
         std::vector<scalar> output_array;
-        if (params.resume && common::file_exists(params.l_block_filename(l) ))
-            output_array = common::import_vector_binary<scalar>( params.l_block_filename( l ) );
-        output_array.reserve(( params.nmax() - l ) * rgrid.size() );
+        if ( params.resume &&
+             common::file_exists( params.l_block_filename( l ) ) )
+            output_array = common::import_vector_binary<scalar>(
+                params.l_block_filename( l ) );
+        output_array.reserve( ( params.nmax() - l ) * rgrid.size() );
         std::future<void> block;
-        for ( int n = params.n_only() ? params.n() : l + 1; n <= (params.n_only() ? params.n() : params.nmax()); n++ ) {
+        for ( int n = params.n_only() ? params.n() : l + 1;
+              n <= ( params.n_only() ? params.n() : params.nmax() ); n++ ) {
             if ( output_array.size() / rgrid.size() > n + l + 1 )
                 n = output_array.size() / rgrid.size() + l + 1;
             err_out << "inner loop: " << n << ", " << l << std::endl;
@@ -1183,8 +1116,8 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
                 tmp = {n, l, 0, 0, gsenergy};
             else
                 tmp = {n, l, 0, 0, 0};
-            ret = find_basis( tmp, desired_grid, pot, err );
-            tmp.e = ret.energy;
+            ret     = find_basis( tmp, desired_grid, pot, err );
+            tmp.e   = ret.energy;
             // first time through: the future isn't valid.  Second time
             // through, the future is valid,
             // so the first term is false, then we wait, then the second
@@ -1192,27 +1125,26 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
             if ( !block.valid() || ( block.wait(), block.valid() ) ) {
                 block = std::async(
                     std::launch::async,
-                    [n, l, &rgrid, &output_array](
-                        std::vector<scalar>&& wf ) {
+                    [n, l, &rgrid, &output_array]( std::vector<scalar>&& wf ) {
                         math::Grahm_Schmidt_Orthogonalize(
                             wf,
                             Range<typename std::vector<scalar>::iterator>{
-                                output_array.begin(),
-                                output_array.end()},
-                                rgrid );
-                        std::copy( wf.begin(),
-                                   wf.end(),
-                                   std::back_inserter(output_array));
+                                output_array.begin(), output_array.end()},
+                            rgrid );
+                        std::copy( wf.begin(), wf.end(),
+                                   std::back_inserter( output_array ) );
                         return;
                     },
                     std::move( ret.wf ) );
             }
             energies.push_back( tmp );
-            if (sig > 0)
-            {
-                reduced_out << "Signal received! " << sig << " shutting down" << std::endl;
-                err_out << "Signal received! " << sig << " shutting down" << std::endl;
-                std::cerr << "Signal received! " << sig << " shutting down" << std::endl;
+            if ( sig > 0 ) {
+                reduced_out << "Signal received! " << sig << " shutting down"
+                            << std::endl;
+                err_out << "Signal received! " << sig << " shutting down"
+                        << std::endl;
+                std::cerr << "Signal received! " << sig << " shutting down"
+                          << std::endl;
                 block.wait();
                 break;
             }
@@ -1222,19 +1154,19 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
 
         reduced_out << "writing out vectors: " << std::endl;
         err_out << "writing out vectors: " << std::endl;
-        if (sig > 0)
-        {
-            reduced_out << "Signal received! finished writing out l vectors" << std::endl;
-            err_out << "Signal received! finished writing out l vectors" << std::endl;
-            std::cerr << "Signal received! finished writing out l vectors" << std::endl;
-            common::export_vector_binary(
-                params.l_block_filename( l ), 
-                    output_array );
+        if ( sig > 0 ) {
+            reduced_out << "Signal received! finished writing out l vectors"
+                        << std::endl;
+            err_out << "Signal received! finished writing out l vectors"
+                    << std::endl;
+            std::cerr << "Signal received! finished writing out l vectors"
+                      << std::endl;
+            common::export_vector_binary( params.l_block_filename( l ),
+                                          output_array );
             break;
         }
         common::export_vector_binary<scalar, write_type>(
-            params.l_block_filename( l ),
-                output_array );
+            params.l_block_filename( l ), output_array );
     }
 
     std::vector<std::vector<BasisID>> all_energies;
@@ -1247,14 +1179,12 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
 
     energies.clear();
 
-    if (params.resume) {
-        all_energies.push_back(params.basis_prototype());
+    if ( params.resume ) {
+        all_energies.push_back( params.basis_prototype() );
     }
     // auto ei = energies.begin();
     for ( auto i = all_energies.begin(); i < all_energies.end(); ++i ) {
-        std::copy_if( i->begin(),
-                      i->end(),
-                      std::back_inserter( energies ),
+        std::copy_if( i->begin(), i->end(), std::back_inserter( energies ),
                       []( BasisID a ) { return a.n != 0; } );
         // ei += i->size();
     }
@@ -1267,4 +1197,3 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
     // params.save_parameters();
 }
 }
-

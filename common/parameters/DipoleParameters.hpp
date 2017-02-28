@@ -49,11 +49,10 @@ class DipoleParameters : public Parameters
 
             for ( size_t a = 0; a <= decomp_splits.size(); a++ ) {
                 for ( size_t b = a; b <= decomp_splits.size(); b++ ) {
-                    out.push_back( df + "_" + labels[a] + labels[b] +
-                                   ".dat" );
+                    out.push_back( df + "_" + labels[a] + labels[b] + ".dat" );
                 }
             }
-            if (ponder) out.push_back( "ponder.dat" );
+            if ( ponder ) out.push_back( "ponder.dat" );
             out.push_back( "populations.dat" );
             return out;
         }();
@@ -66,9 +65,7 @@ class DipoleParameters : public Parameters
     PetscScalar find_dipole_moment( Mat& dipole, Vec& psi );
 
     void find_dipole_moment_decompositions(
-        Mat& dipole,
-        Vec& psi,
-        std::vector<std::ofstream*>& output_vector,
+        Mat& dipole, Vec& psi, std::vector<std::ofstream*>& output_vector,
         std::vector<BasisID>& prototype, double pondermotive_energy );
 
     virtual std::string print() const;
@@ -78,27 +75,24 @@ class DipoleParameters : public Parameters
     PetscReal dt() const
     {
         return dt_ / 0.0241888432652;
-    }; // change the fs to A.U.
-    PetscReal t_after() const
-    {
-        return t_after_ / 0.0241888432652;
-    }; // ditto
+    };  // change the fs to A.U.
+    PetscReal t_after() const { return t_after_ / 0.0241888432652; };  // ditto
 
     enum class split_type { Energy, Principal };
 
   protected:
-    split_type type_;
+    split_type          type_;
     std::vector<double> decomp_splits;
     // std::vector<double> decomp_energy_splits;
     ez::ezOptionParser opt;
-    void register_parameters();
-    bool findDipole;
-    std::string dipole_filename_;
-    std::string after_filename_;
-    PetscReal dt_;
-    PetscReal t_after_;
-    Vec tmp;
-	bool ponder;
+    void               register_parameters();
+    bool               findDipole;
+    std::string        dipole_filename_;
+    std::string        after_filename_;
+    PetscReal          dt_;
+    PetscReal          t_after_;
+    Vec                tmp;
+    bool               ponder;
 };
 
 PetscScalar DipoleParameters::find_dipole_moment( Mat& dipole, Vec& psi )
@@ -114,10 +108,8 @@ PetscScalar DipoleParameters::find_dipole_moment( Mat& dipole, Vec& psi )
 
 
 void DipoleParameters::find_dipole_moment_decompositions(
-    Mat& dipole,
-    Vec& psi,
-    std::vector<std::ofstream*>& output_vector,
-    std::vector<BasisID>& prototype, double pondermotive_energy)
+    Mat& dipole, Vec& psi, std::vector<std::ofstream*>& output_vector,
+    std::vector<BasisID>& prototype, double pondermotive_energy )
 {
     PetscScalar t = this->find_dipole_moment( dipole, psi );
     if ( rank() == 0 ) {
@@ -130,22 +122,20 @@ void DipoleParameters::find_dipole_moment_decompositions(
     VecDuplicate( psi, &vecb );
     PetscScalar aa, bb, ab;
 
-    static std::vector<std::array<double, 2>>
-    sections = [this, &prototype]() {
+    static std::vector<std::array<double, 2>> sections = [this, &prototype]() {
         std::vector<std::array<double, 2>> sections_vec;
         if ( decomp_splits.size() != 0 )
             for ( size_t i = 0; i <= decomp_splits.size(); i++ ) {
                 if ( i == decomp_splits.size() )
-                    sections_vec.push_back(
-                        {decomp_splits.back(),
-                         ( type_ == split_type::Energy )
-                             ? prototype.back().e.real()
-                             : prototype.back().n} );
+                    sections_vec.push_back( {decomp_splits.back(),
+                                             ( type_ == split_type::Energy ) ?
+                                                 prototype.back().e.real() :
+                                                 prototype.back().n} );
                 else if ( i == 0 )
                     sections_vec.push_back(
-                        {( type_ == split_type::Energy )
-                             ? prototype.front().e.real() - 1
-                             : prototype.front().n - 1,
+                        {( type_ == split_type::Energy ) ?
+                             prototype.front().e.real() - 1 :
+                             prototype.front().n - 1,
                          decomp_splits[i]} );
                 else
                     sections_vec.push_back(
@@ -153,17 +143,18 @@ void DipoleParameters::find_dipole_moment_decompositions(
             }
         if ( rank() == 0 ) {
             for ( auto& a : sections_vec ) {
-                std::cout << "(" << a[0] << "," << a[1] << ")"
-                          << std::endl;
+                std::cout << "(" << a[0] << "," << a[1] << ")" << std::endl;
             }
         }
         return sections_vec;
     }();
-    if (ponder)
-        {
-            sections = {{prototype.front().e.real() - 1, 0}, {0,pondermotive_energy},{pondermotive_energy, 2*pondermotive_energy},{2*pondermotive_energy, prototype.back().e.real() + 1}};
-            type_ = split_type::Energy;
-        }
+    if ( ponder ) {
+        sections = {{prototype.front().e.real() - 1, 0},
+                    {0, pondermotive_energy},
+                    {pondermotive_energy, 2 * pondermotive_energy},
+                    {2 * pondermotive_energy, prototype.back().e.real() + 1}};
+        type_ = split_type::Energy;
+    }
 
     int n = 1;
     for ( auto sectiona = sections.begin(); sectiona < sections.end();
@@ -181,9 +172,9 @@ void DipoleParameters::find_dipole_moment_decompositions(
                         return ( prototype[i].n >
                                      std::lround( ( *sectiona )[0] ) &&
                                  prototype[i].n <=
-                                     std::lround( ( *sectiona )[1] ) )
-                                   ? a
-                                   : 0;
+                                     std::lround( ( *sectiona )[1] ) ) ?
+                                   a :
+                                   0;
                     },
                     veca );
                 // b:
@@ -193,33 +184,29 @@ void DipoleParameters::find_dipole_moment_decompositions(
                         return ( prototype[i].n >
                                      std::lround( ( *sectionb )[0] ) &&
                                  prototype[i].n <=
-                                     std::lround( ( *sectionb )[1] ) )
-                                   ? a
-                                   : 0;
+                                     std::lround( ( *sectionb )[1] ) ) ?
+                                   a :
+                                   0;
                     },
                     vecb );
             } else {
                 common::map_function(
                     psi,
                     [&sectiona, &prototype]( PetscScalar a, PetscInt i ) {
-                        return ( prototype[i].e.real() >
-                                     ( *sectiona )[0] &&
-                                 prototype[i].e.real() <=
-                                     ( *sectiona )[1] )
-                                   ? a
-                                   : 0;
+                        return ( prototype[i].e.real() > ( *sectiona )[0] &&
+                                 prototype[i].e.real() <= ( *sectiona )[1] ) ?
+                                   a :
+                                   0;
                     },
                     veca );
                 // b:
                 common::map_function(
                     psi,
                     [&sectionb, &prototype]( PetscScalar a, PetscInt i ) {
-                        return ( prototype[i].e.real() >
-                                     ( *sectionb )[0] &&
-                                 prototype[i].e.real() <=
-                                     ( *sectionb )[1] )
-                                   ? a
-                                   : 0;
+                        return ( prototype[i].e.real() > ( *sectionb )[0] &&
+                                 prototype[i].e.real() <= ( *sectionb )[1] ) ?
+                                   a :
+                                   0;
                     },
                     vecb );
             }
@@ -232,16 +219,14 @@ void DipoleParameters::find_dipole_moment_decompositions(
             VecDot( vecb, tmp, &temp_scalar );
 
             PetscReal popa, popb;
-            if ( sectionb == sectiona + 1 )
-            {
-                aa = this->find_dipole_moment( dipole, veca );
-                popa = math::VecNorm(veca);
+            if ( sectionb == sectiona + 1 ) {
+                aa   = this->find_dipole_moment( dipole, veca );
+                popa = math::VecNorm( veca );
             }
             if ( sectionb == sections.end() - 1 &&
-                 sectiona == sections.end() - 2 )
-            {
-                bb = this->find_dipole_moment( dipole, vecb );
-                popb = math::VecNorm(vecb);
+                 sectiona == sections.end() - 2 ) {
+                bb   = this->find_dipole_moment( dipole, vecb );
+                popb = math::VecNorm( vecb );
             }
             ab = temp_scalar;
 
@@ -250,13 +235,11 @@ void DipoleParameters::find_dipole_moment_decompositions(
             if ( rank() == 0 ) {
                 if ( sectionb == sectiona + 1 ) {
                     // std::cout << "write first one" << std::endl;
-                    output_vector[n]->write(
-                        reinterpret_cast<char*>( &aa ),
-                        sizeof( PetscScalar ) );
+                    output_vector[n]->write( reinterpret_cast<char*>( &aa ),
+                                             sizeof( PetscScalar ) );
                     n++;
                     output_vector.back()->write(
-                        reinterpret_cast<char*>( &popa ),
-                        sizeof( PetscReal ) );
+                        reinterpret_cast<char*>( &popa ), sizeof( PetscReal ) );
                 }
                 // std::cout << "write cross one" << std::endl;
                 output_vector[n]->write( reinterpret_cast<char*>( &ab ),
@@ -265,12 +248,10 @@ void DipoleParameters::find_dipole_moment_decompositions(
                 if ( sectionb == sections.end() - 1 &&
                      sectiona == sections.end() - 2 ) {
                     // std::cout << "write second one" << std::endl;
-                    output_vector[n]->write(
-                        reinterpret_cast<char*>( &bb ),
-                        sizeof( PetscScalar ) );
+                    output_vector[n]->write( reinterpret_cast<char*>( &bb ),
+                                             sizeof( PetscScalar ) );
                     output_vector.back()->write(
-                        reinterpret_cast<char*>( &popb ),
-                        sizeof( PetscReal ) );
+                        reinterpret_cast<char*>( &popb ), sizeof( PetscReal ) );
                     n++;
                 }
             }
@@ -309,17 +290,16 @@ void DipoleParameters::get_parameters()
 
     if ( opt.isSet( "-dipole_decomposition" ) &&
          opt.isSet( "-dipole_decomposition_energy" ) )
-        throw std::runtime_error( std::string(
-            "both decompositions are selected... this is bad" ) );
+        throw std::runtime_error(
+            std::string( "both decompositions are selected... this is bad" ) );
     if ( opt.isSet( "-dipole_decomposition" ) ) {
         opt.get( "-dipole_decomposition" )->getDoubles( decomp_splits );
         type_ = split_type::Principal;
     } else if ( opt.isSet( "-dipole_decomposition_energy" ) ) {
-        opt.get( "-dipole_decomposition_energy" )
-            ->getDoubles( decomp_splits );
+        opt.get( "-dipole_decomposition_energy" )->getDoubles( decomp_splits );
         type_ = split_type::Energy;
     }
-	ponder = opt.isSet("-dipole_ponder");
+    ponder = opt.isSet( "-dipole_ponder" );
 
     opt.get( "-dipole_filename" )->getString( dipole_filename_ );
     dipole_filename_ = common::absolute_path( dipole_filename_ );
@@ -360,79 +340,46 @@ void DipoleParameters::save_parameters() const
 void DipoleParameters::register_parameters()
 {
     std::string prefix = "-dipole_";
-    opt.overview = "Dipole Parameters";
-    opt.add( "", // Default.
-             0,  // Required?
-             0,  // Number of args expected.
-             0,  // Delimiter if expecting multiple args.
-             "Display usage instructions.", // Help description.
-             "-h",                          // Flag token.
-             "-help",                       // Flag token.
-             "--help",                      // Flag token.
-             "--usage"                      // Flag token.
+    opt.overview       = "Dipole Parameters";
+    opt.add( "",  // Default.
+             0,   // Required?
+             0,   // Number of args expected.
+             0,   // Delimiter if expecting multiple args.
+             "Display usage instructions.",  // Help description.
+             "-h",                           // Flag token.
+             "-help",                        // Flag token.
+             "--help",                       // Flag token.
+             "--usage"                       // Flag token.
              );
-    opt.add( ".1",
-             1,
-             1,
-             0,
-             "dt after (in fs)",
+    opt.add( ".1", 1, 1, 0, "dt after (in fs)",
              std::string( prefix ).append( "dt\0" ).c_str() );
-    opt.add( "10000",
-             1,
-             1,
-             0,
-             "t after (in fs)",
+    opt.add( "10000", 1, 1, 0, "t after (in fs)",
              std::string( prefix ).append( "t_after\0" ).c_str() );
-    opt.add(
-        "50",
-        1,
-        1,
-        ',',
-        "Split the dipole moment into contributions greater than and less "
-        "than x, for each x (x is the principle quantum number)",
-        std::string( prefix ).append( "decomposition\0" ).c_str() );
-    opt.add(
-        "0",
-        1,
-        1,
-        ',',
-        "Split the dipole moment into contributions greater than and less "
-        "than x, for each x (x is the energy)",
-        std::string( prefix ).append( "decomposition_energy\0" ).c_str() );
-    opt.add(
-        "",
-        0,
-        0,
-        ',',
-        "Split the dipole moment into contributions greater than and less "
-        "than x, for each x (x is the energy)",
-        std::string( prefix ).append( "decomposition_ponder\0" ).c_str() );
-    opt.add( "Dipole.dat",
-             0,
-             1,
-             0,
-             "dipole filename",
+    opt.add( "50", 1, 1, ',',
+             "Split the dipole moment into contributions greater than and less "
+             "than x, for each x (x is the principle quantum number)",
+             std::string( prefix ).append( "decomposition\0" ).c_str() );
+    opt.add( "0", 1, 1, ',',
+             "Split the dipole moment into contributions greater than and less "
+             "than x, for each x (x is the energy)",
+             std::string( prefix ).append( "decomposition_energy\0" ).c_str() );
+    opt.add( "", 0, 0, ',',
+             "Split the dipole moment into contributions greater than and less "
+             "than x, for each x (x is the energy)",
+             std::string( prefix ).append( "decomposition_ponder\0" ).c_str() );
+    opt.add( "Dipole.dat", 0, 1, 0, "dipole filename",
              std::string( prefix ).append( "filename\0" ).c_str() );
-    opt.add( "after.dat",
-             0,
-             1,
-             0,
-             "after the pulses filename for the dipole",
+    opt.add( "after.dat", 0, 1, 0, "after the pulses filename for the dipole",
              std::string( prefix ).append( "after_filename\0" ).c_str() );
-    opt.add( "",
-             0,
-             1,
-             0,
-             "Config file to import",
+    opt.add( "", 0, 1, 0, "Config file to import",
              std::string( prefix ).append( "config\0" ).c_str() );
-    opt.add(
-        "", // Default.
-        0,  // Required?
-        0,  // Number of args expected.
-        0,  // Delimiter if expecting multiple args.
-        "Print all inputs and categories for debugging.", // Help
-                                                          // description.
-        "+d",
-        "--debug" // Flag token.
-        );
+    opt.add( "",  // Default.
+             0,   // Required?
+             0,   // Number of args expected.
+             0,   // Delimiter if expecting multiple args.
+             "Print all inputs and categories for debugging.",  // Help
+                                                                // description.
+             "+d",
+             "--debug"  // Flag token.
+             );
 }

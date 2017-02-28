@@ -62,13 +62,13 @@ class StateParameters : public Parameters
             notransitions = true;
         else
             notransitions = false;
-        
+
         if ( opt.isSet( "-state_no_bound_continuum_transitions" ) )
             noboundcontinuum = true;
         else
             noboundcontinuum = false;
 
-        opt.get( "-state_m")->getInt(m_);
+        opt.get( "-state_m" )->getInt( m_ );
 
         std::vector<std::vector<int>> init;
         opt.get( "-state_init" )->getMultiInts( init );
@@ -91,36 +91,36 @@ class StateParameters : public Parameters
 
         for ( size_t i = 0; i < removed_states.size(); i++ )
             empty_states_.push_back(
-                {removed_states[i][0], removed_states[i][1],     0,
+                {removed_states[i][0], removed_states[i][1], 0,
                  removed_states[i][2], std::complex<double>( 0 )} );
         for ( size_t i = 0; i < added_states.size(); i++ )
-            add_states.push_back( {added_states[i][0],       added_states[i][1],
-                                   0,                        added_states[i][2],
+            add_states.push_back( {added_states[i][0], added_states[i][1], 0,
+                                   added_states[i][2],
                                    std::complex<double>( 0 )} );
-    }
-    ;
+    };
 
     std::string print() const;
-    void save_parameters() const;
+    void        save_parameters() const;
 
     std::vector<int> empty_states_index( const std::vector<BasisID> prototype );
-    void disallowed_transitions( Mat& D, const std::vector<BasisID>& prototype );
+    void disallowed_transitions( Mat&                        D,
+                                 const std::vector<BasisID>& prototype );
     std::vector<BasisID> empty_states( const std::vector<BasisID> prototype );
     void initial_vector( Vec* v, const std::vector<BasisID> prototype );
 
   private:
-    bool nobound;
-    bool nocontinuum;
-    bool notransitions, noboundcontinuum;
-    ez::ezOptionParser opt;
-    void register_parameters();
-    BasisID init_;
-    int m_;
+    bool                 nobound;
+    bool                 nocontinuum;
+    bool                 notransitions, noboundcontinuum;
+    ez::ezOptionParser   opt;
+    void                 register_parameters();
+    BasisID              init_;
+    int                  m_;
     std::vector<BasisID> empty_states_;
     std::vector<BasisID> add_states;
-    std::string filename_;
-    std::string wavefunction_fname_;
-    std::vector< std::array<int, 2> > matrix_elements_;
+    std::string          filename_;
+    std::string          wavefunction_fname_;
+    std::vector<std::array<int, 2>> matrix_elements_;
 };
 
 std::vector<BasisID>
@@ -133,11 +133,11 @@ StateParameters::empty_states( const std::vector<BasisID> prototype )
              !( p.n == init_.n && p.l == init_.l && p.j == init_.j ) ) {
             empty_states_.push_back( p );
 
-        } else if (p.e.real() > 0 && nocontinuum) {
-            empty_states_.push_back(p);
-        } else if (p.l < std::abs(p.m)) {
+        } else if ( p.e.real() > 0 && nocontinuum ) {
+            empty_states_.push_back( p );
+        } else if ( p.l < std::abs( p.m ) ) {
             std::cout << "removing state: " << std::endl;
-            empty_states_.push_back(p);
+            empty_states_.push_back( p );
         }
     }
 
@@ -151,74 +151,67 @@ StateParameters::empty_states( const std::vector<BasisID> prototype )
                 empty_states_.erase( e );
         }
     }
-    nobound = false;
+    nobound     = false;
     nocontinuum = false;
     return empty_states_;
 }
 
-void StateParameters::disallowed_transitions( Mat& D, const std::vector<BasisID>& prototype )
+void StateParameters::disallowed_transitions(
+    Mat& D, const std::vector<BasisID>& prototype )
 {
-    if (!notransitions && !noboundcontinuum) return;
-    //std::vector<int> from_states;
-    //std::vector<int> to_states;
+    if ( !notransitions && !noboundcontinuum ) return;
+    // std::vector<int> from_states;
+    // std::vector<int> to_states;
 
-	auto zero = std::complex<double>(0.0, 0.0);
-	int total = 0;
-	
-    for (auto i = prototype.cbegin(); i < prototype.cend(); ++i)
-    {
-        for (auto j = prototype.cbegin(); j < prototype.cend(); ++j)
-        {
-            if (notransitions)
-                if (j->e.real() > 0.0 && i-> e.real() > 0.0 && (std::abs(j->l - i->l) == 1))
-                {
-                    std::vector<int> column;
+    auto zero  = std::complex<double>( 0.0, 0.0 );
+    int  total = 0;
+
+    for ( auto i = prototype.cbegin(); i < prototype.cend(); ++i ) {
+        for ( auto j = prototype.cbegin(); j < prototype.cend(); ++j ) {
+            if ( notransitions )
+                if ( j->e.real() > 0.0 && i->e.real() > 0.0 &&
+                     ( std::abs( j->l - i->l ) == 1 ) ) {
+                    std::vector<int>                  column;
                     std::vector<std::complex<double>> zeros;
-                    while( j->e.real() > 0.0 && (std::abs(j->l - i->l) == 1) && j < prototype.cend())
-                    {
-                        column.push_back(j - prototype.cbegin());
-                        zeros.push_back(zero);
+                    while ( j->e.real() > 0.0 &&
+                            ( std::abs( j->l - i->l ) == 1 ) &&
+                            j < prototype.cend() ) {
+                        column.push_back( j - prototype.cbegin() );
+                        zeros.push_back( zero );
                         j++;
                     }
-                    if (rank() == 0)
-                        std::cout << "(" << *i << "->" << *(j-1) << ") " << column.size() << std::endl;
-                    int a = (i - prototype.cbegin());
-                    MatSetValues( D,
-                                  1,
-                                  &(a),
-                                  column.size(),
-                                  column.data(),
-                                  zeros.data(),
-                                  INSERT_VALUES);
+                    if ( rank() == 0 )
+                        std::cout << "(" << *i << "->" << *( j - 1 ) << ") "
+                                  << column.size() << std::endl;
+                    int a = ( i - prototype.cbegin() );
+                    MatSetValues( D, 1, &( a ), column.size(), column.data(),
+                                  zeros.data(), INSERT_VALUES );
                 }
-            if (noboundcontinuum)
-                if (i->e.real() < 0.0 && j->e.real() > 0.0 && (std::abs(j->l - i->l) == 1))
-                {
-                    std::vector<int> column;
+            if ( noboundcontinuum )
+                if ( i->e.real() < 0.0 && j->e.real() > 0.0 &&
+                     ( std::abs( j->l - i->l ) == 1 ) ) {
+                    std::vector<int>                  column;
                     std::vector<std::complex<double>> zeros;
-                    while( j->e.real() > 0.0 && (std::abs(j->l - i->l) == 1) && j < prototype.cend())
-                    {
-                        column.push_back(j - prototype.cbegin());
-                        zeros.push_back(zero);
+                    while ( j->e.real() > 0.0 &&
+                            ( std::abs( j->l - i->l ) == 1 ) &&
+                            j < prototype.cend() ) {
+                        column.push_back( j - prototype.cbegin() );
+                        zeros.push_back( zero );
                         j++;
                     }
-                    if (rank() == 0)
-                        std::cout << "(" << *i << "->" << *(j-1) << ") " << column.size() << std::endl;
-                    int a = (i - prototype.cbegin());
-                    MatSetValues( D,
-                                  1,
-                                  &(a),
-                                  column.size(),
-                                  column.data(),
-                                  zeros.data(),
-                                  INSERT_VALUES);
+                    if ( rank() == 0 )
+                        std::cout << "(" << *i << "->" << *( j - 1 ) << ") "
+                                  << column.size() << std::endl;
+                    int a = ( i - prototype.cbegin() );
+                    MatSetValues( D, 1, &( a ), column.size(), column.data(),
+                                  zeros.data(), INSERT_VALUES );
                 }
         }
-		MatAssemblyBegin(D, MAT_FLUSH_ASSEMBLY);
-		MatAssemblyEnd(D, MAT_FLUSH_ASSEMBLY);
+        MatAssemblyBegin( D, MAT_FLUSH_ASSEMBLY );
+        MatAssemblyEnd( D, MAT_FLUSH_ASSEMBLY );
     }
 
-    //return std::array<std::vector<int>, 2>{{from_states, to_states}};
+    // return std::array<std::vector<int>, 2>{{from_states, to_states}};
 }
 
 std::vector<int>
@@ -228,7 +221,7 @@ StateParameters::empty_states_index( const std::vector<BasisID> prototype )
 
     std::vector<int> state_index;
     for ( auto a : empty_states_ ) {
-        int i;
+        int  i;
         auto it =
             std::find_if( prototype.begin(), prototype.end(), [a]( BasisID b ) {
                 return ( a.n == b.n && a.l == b.l && a.j == b.j );
@@ -244,7 +237,7 @@ StateParameters::empty_states_index( const std::vector<BasisID> prototype )
     return state_index;
 }
 
-void StateParameters::initial_vector( Vec* v,
+void StateParameters::initial_vector( Vec*                       v,
                                       const std::vector<BasisID> prototype )
 {
     if ( !wavefunction_fname_.empty() ) {
@@ -253,8 +246,8 @@ void StateParameters::initial_vector( Vec* v,
             throw( std::exception() );
         }
         PetscViewer view;
-        PetscViewerBinaryOpen(
-            this->comm_, wavefunction_fname_.c_str(), FILE_MODE_READ, &view );
+        PetscViewerBinaryOpen( this->comm_, wavefunction_fname_.c_str(),
+                               FILE_MODE_READ, &view );
         VecLoad( *v, view );
         PetscViewerDestroy( &view );
     } else {
@@ -306,112 +299,70 @@ void StateParameters::save_parameters() const
 void StateParameters::register_parameters()
 {
     std::string prefix = "-state_";
-    opt.overview = "State Parameters";
+    opt.overview       = "State Parameters";
 
-    opt.add( "", // Default.
-             0,  // Required?
-             0,  // Number of args expected.
-             0,  // Delimiter if expecting multiple args.
-             "Display usage instructions.", // Help description.
-             "-h",                          // Flag token.
-             "-help",                       // Flag token.
-             "--help",                      // Flag token.
-             "--usage"                      // Flag token.
+    opt.add( "",  // Default.
+             0,   // Required?
+             0,   // Number of args expected.
+             0,   // Delimiter if expecting multiple args.
+             "Display usage instructions.",  // Help description.
+             "-h",                           // Flag token.
+             "-help",                        // Flag token.
+             "--help",                       // Flag token.
+             "--usage"                       // Flag token.
              );
 
-    opt.add( "",
-             0,
-             3,
-             ',',
+    opt.add( "", 0, 3, ',',
              "add a specific state (n,l,j triplet), or set of states (if "
              "removed otherwise)",
              std::string( prefix ).append( "add\0" ).c_str() );
 
-    opt.add( "",
-             0,
-             3,
-             ',',
+    opt.add( "", 0, 3, ',',
              "remove a specific state, or set of states (n,l,j pair)",
              std::string( prefix ).append( "rem\0" ).c_str() );
 
-    opt.add( "",
-             0,
-             0,
-             0,
-             "remove continuum transitions",
-             std::string(prefix).append( "no_continuum_transitions\0").c_str() );
+    opt.add(
+        "", 0, 0, 0, "remove continuum transitions",
+        std::string( prefix ).append( "no_continuum_transitions\0" ).c_str() );
 
-    opt.add( "",
-             0,
-             0,
-             0,
-             "remove bound-continuum transitions",
-             std::string(prefix).append( "no_bound_continuum_transitions\0").c_str() );
+    opt.add( "", 0, 0, 0, "remove bound-continuum transitions",
+             std::string( prefix )
+                 .append( "no_bound_continuum_transitions\0" )
+                 .c_str() );
 
-    opt.add( "./empty_states.dat",
-             0,
-             0,
-             0,
-             "load from file",
+    opt.add( "./empty_states.dat", 0, 0, 0, "load from file",
              std::string( prefix ).append( "load\0" ).c_str() );
 
-    opt.add( "1,0,1",
-             0,
-             3,
-             ',',
-             "initial state: (n,l,j pair)",
+    opt.add( "1,0,1", 0, 3, ',', "initial state: (n,l,j pair)",
              std::string( prefix ).append( "init\0" ).c_str() );
 
-    opt.add( "",
-             0,
-             1,
-             ',',
-             "m state",
+    opt.add( "", 0, 1, ',', "m state",
              std::string( prefix ).append( "m\0" ).c_str() );
 
 
-    opt.add( "",
-             0,
-             1,
-             0,
+    opt.add( "", 0, 1, 0,
              "initial wavefunction filename (PetscVec binary file)",
              std::string( prefix ).append( "initial_wavefunction\0" ).c_str() );
 
-    opt.add( "",
-             0,
-             0,
-             0,
-             "remove the bound states (toggle)",
+    opt.add( "", 0, 0, 0, "remove the bound states (toggle)",
              std::string( prefix ).append( "no_bound\0" ).c_str() );
 
-    opt.add( "",
-             0,
-             0,
-             0,
-             "remove the continuum states (toggle)",
+    opt.add( "", 0, 0, 0, "remove the continuum states (toggle)",
              std::string( prefix ).append( "no_continuum\0" ).c_str() );
 
-    opt.add( "./empty_states.dat",
-             0,
-             1,
-             0,
-             "filename for states file",
+    opt.add( "./empty_states.dat", 0, 1, 0, "filename for states file",
              std::string( prefix ).append( "filename\0" ).c_str() );
 
-    opt.add( "",
-             0,
-             1,
-             0,
-             "Config file to import",
+    opt.add( "", 0, 1, 0, "Config file to import",
              std::string( prefix ).append( "config\0" ).c_str() );
 
     opt.add(
-        "", // Default.
-        0,  // Required?
-        0,  // Number of args expected.
-        0,  // Delimiter if expecting multiple args.
-        "Print all inputs and categories for debugging.", // Help description.
+        "",  // Default.
+        0,   // Required?
+        0,   // Number of args expected.
+        0,   // Delimiter if expecting multiple args.
+        "Print all inputs and categories for debugging.",  // Help description.
         "+d",
-        "--debug" // Flag token.
+        "--debug"  // Flag token.
         );
 }
