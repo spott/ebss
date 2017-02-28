@@ -5,3 +5,4 @@ bin/*
 tmp/*
 makefile.include
 */.#*
+testing/*
