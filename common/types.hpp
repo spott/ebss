@@ -15,7 +15,19 @@ template <typename iterator>
 struct Range {
     iterator begin;
     iterator end;
+
 };
+
+template< typename iter>
+Range<iter> make_range(iter a, iter b) {
+    return Range<iter>{a, b};
+}
+
+template< typename T>
+Range<decltype(std::vector<T>().begin())> vector_to_range(std::vector<T>& vec) {
+    using iterator = decltype(vec.begin());
+    return Range<iterator>{vec.begin(), vec.end()};
+}
 
 struct kBasisID {
     PetscReal k;
