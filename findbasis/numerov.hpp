@@ -51,9 +51,9 @@ void wait_for_key()
 }
 
 #if defined( DEBUG )
-template <typename scalar>
+template <typename scalar, typename ordinal>
 void display_function( Gnuplot& g, const std::vector<scalar>& grid,
-                       const std::vector<scalar>& wf, int point = -1,
+                       const std::vector<scalar>& wf, ordinal point = -1,
                        bool wait = false, std::array<double, 2> range = {0, 20},
                        std::string style = "lines" )
 {
@@ -62,9 +62,28 @@ void display_function( Gnuplot& g, const std::vector<scalar>& grid,
     g.set_style( style.c_str() )
         .plot_xy( common::vector_type_change<scalar, double>( grid ),
                   common::vector_type_change<scalar, double>( wf ), "wf" );
-    if ( point > 0 && point < grid.size() )
+    if ( point > 0 && point < wf.size() )
         g.set_style( "points" )
             .plot_xy( std::vector<double>{static_cast<double>( grid[point] )},
+                      std::vector<double>{static_cast<double>( wf[point] )},
+                      "turnover" );
+    if ( wait ) wait_for_key();
+    g.remove_tmpfiles();
+}
+
+template <typename scalar>
+void display_function( Gnuplot& g, const std::vector<scalar>& wf,
+                       size_t point = 0, bool wait  = false,
+                       std::array<size_t, 2>  range = {0, 100},
+                       std::string style = "lines" )
+{
+    g.reset_all();
+    g.set_xrange( range[0], range[1] );
+    g.set_style( style.c_str() )
+        .plot_x( common::vector_type_change<scalar, double>( wf ), "wf" );
+    if ( point > 0 && point < wf.size() )
+        g.set_style( "points" )
+            .plot_xy( std::vector<double>{static_cast<double>( point )},
                       std::vector<double>{static_cast<double>( wf[point] )},
                       "turnover" );
     if ( wait ) wait_for_key();
@@ -266,7 +285,8 @@ std::array<size_t, 2> numerov_from_both_sides( const std::vector<scalar>& f,
             max       = std::abs( *a );
             max_index = a - derivatives.begin();
         } else if ( direction >= 0 ) {
-            // derivative magnitude was initially increasing, thus we are no longer
+            // derivative magnitude was initially increasing, thus we are no
+            // longer
             // increasing and the local max has been reached
             break;
         }
@@ -274,7 +294,7 @@ std::array<size_t, 2> numerov_from_both_sides( const std::vector<scalar>& f,
         // The local max hasn't been reached, so we continue
     }
 
-    //max index was the distance from a reverse iterator
+    // max index was the distance from a reverse iterator
     turnover = turnover - max_index;
 
     scalar temp = wf[turnover - 1];
@@ -841,6 +861,7 @@ bool converge_bound( const BasisID state, const xgrid<scalar>       grid,
             it.nodes = n[0];
         } else
             it.nodes = numerov_from_one_side( f, wf );
+        err_out << "turnover (modified): " << it.turnover << std::endl;
         normalize( wf, rgrid, grid.dx() );
 
         auto correct_nodes = state.n - state.l - 1;
@@ -856,8 +877,8 @@ bool converge_bound( const BasisID state, const xgrid<scalar>       grid,
         err_out << it << std::endl;
 
 #ifdef DEBUGBOUND
-        display_function( g, rgrid, wf, it.turnover - 1, true,
-                          {0., static_cast<double>( rgrid.back() )} );
+        display_function( g, wf, it.turnover - 1, true, {0, wf.size()},
+                          "lines" );
 #endif
 
         if ( it.nodes < correct_nodes ) {
@@ -869,13 +890,18 @@ bool converge_bound( const BasisID state, const xgrid<scalar>       grid,
             continue;
         }
         if ( it.nodes == correct_nodes ) {
-            auto    a = ( e[2] + e[3] ) / 2;
-            auto    b = ( e[4] + e[5] ) / 2;
-            scalar& d =
-                std::abs( e[1] * a ) > std::abs( e[0] * b ) ? e[1] : e[0];
+            // we have the correct number of nodes.  We are at the maximum abs
+            // first derivative.
+            // auto    a = ( e[2] + e[3] ) / 2;
+            // auto    b = ( e[4] + e[5] ) / 2;
+            // scalar& d =
+            //     std::abs( e[1] * a ) > std::abs( e[0] * b ) ? e[1] : e[0];
+            //
 
-            if ( d > 0 ) it.lower_bound_bisect();
-            if ( d < 0 ) it.upper_bound_bisect();
+            if ( std::abs( e[2] ) > std::abs( e[3] ) ) it.upper_bound_bisect();
+            if ( std::abs( e[2] ) > std::abs( e[3] ) ) it.lower_bound_bisect();
+            // if ( d > 0 ) it.lower_bound_bisect();
+            // if ( d < 0 ) it.upper_bound_bisect();
             // if ( e[1] == 0 && e[0] > 0 ) it.lower_bound_bisect();
             // if ( e[1] == 0 && e[0] < 0 ) it.upper_bound_bisect();
             // if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] > 0 )

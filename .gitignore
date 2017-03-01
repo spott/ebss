@@ -6,3 +6,6 @@ tmp/*
 makefile.include
 */.#*
 testing/*
+GTAGS
+GRTAGS
+GPATH

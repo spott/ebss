@@ -25,6 +25,18 @@ ${TEXECUTABLE}: ${TOBJECTS}  chkopts style chk_git
 ${EXECUTABLE}: ${OBJECTS}  chkopts style chk_git
 	-${CLINKER}  -Wl,-keep_dwarf_unwind -o ${BINDIR}/${EXECUTABLE} ${OBJECTS} ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
 
-debug: CPP_FLAGS+=-DDEBUG -DDEBUGEND
-debug:  ${OBJECTS}  chkopts style chk_git
+debug-ground: CPP_FLAGS+=-DDEBUG -DDEBUGEND -DDEBUGFINAL -DDEBUGGROUND1 -DDEBUGGROUND
+debug-ground:  ${OBJECTS}  chkopts style chk_git
+	-${CLINKER}  -Wl,-keep_dwarf_unwind -o ${BINDIR}/${EXECUTABLE} ${OBJECTS} ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
+
+debug-bound: CPP_FLAGS+=-DDEBUG -DDEBUGEND -DDEBUGFINAL -DDEBUGBOUND
+debug-bound:  ${OBJECTS}  chkopts style chk_git
+	-${CLINKER}  -Wl,-keep_dwarf_unwind -o ${BINDIR}/${EXECUTABLE} ${OBJECTS} ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
+
+debug-nodes: CPP_FLAGS+=-DDEBUG -DDEBUGEND -DDEBUGFINAL -DDEBUGNODES
+debug-nodes:  ${OBJECTS}  chkopts style chk_git
+	-${CLINKER}  -Wl,-keep_dwarf_unwind -o ${BINDIR}/${EXECUTABLE} ${OBJECTS} ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
+
+debug-excited: CPP_FLAGS+=-DDEBUG -DDEBUGEND -DDEBUGFINAL -DDEBUGEXCITED
+debug-excited:  ${OBJECTS}  chkopts style chk_git
 	-${CLINKER}  -Wl,-keep_dwarf_unwind -o ${BINDIR}/${EXECUTABLE} ${OBJECTS} ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
