@@ -250,23 +250,32 @@ std::array<size_t, 2> numerov_from_both_sides( const std::vector<scalar>& f,
     nodes[0] = numerov( f.begin(), f.begin() + turnover, wf.begin(),
                         wf.begin() + turnover );
 
-    // does this cross zero? if so, find zero crossing point closest to
-    // turnover:
-    if ( nodes[0].size() > 0 ) {
-        // find maximum derivative between last node and turnover?
-        auto derivatives = math::first_difference(
-            make_range(wf.begin() + nodes[0].back(), wf.begin() + turnover) );
+    // find the local maximum of the derivative closest to the turnover point:
 
-        auto max       = derivatives.front();
-        auto max_index = 0;
-        for ( auto a = derivatives.begin(); a < derivatives.end(); ++a ) {
-            if ( max < *a ) {
-                max       = *a;
-                max_index = a - derivatives.begin();
-            }
+    auto derivatives =
+        math::first_difference( make_range( wf.rend() - turnover, wf.rend() ) );
+
+    auto max       = std::abs( derivatives.front() );
+    auto max_index = 0;
+    // direction:  is the magnitude of the derivative increasing or decreasing.
+    int direction =
+        math::signum( std::abs( derivatives[1] ) - std::abs( derivatives[0] ) );
+
+    for ( auto a = derivatives.begin(); a < derivatives.end(); ++a ) {
+        if ( max < std::abs( *a ) ) {
+            max       = std::abs( *a );
+            max_index = a - derivatives.begin();
+        } else if ( direction >= 0 ) {
+            // derivative magnitude was initially increasing, thus we are no longer
+            // increasing and the local max has been reached
+            break;
         }
-        turnover = nodes[0].back() + max_index;
+        // derivative was initially decreasing, and we are still decreasing.
+        // The local max hasn't been reached, so we continue
     }
+
+    //max index was the distance from a reverse iterator
+    turnover = turnover - max_index;
 
     scalar temp = wf[turnover - 1];
     nodes[1]    = numerov( f.rbegin() + 1, f.rend() - turnover + 1,
