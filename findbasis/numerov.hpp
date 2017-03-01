@@ -1043,7 +1043,7 @@ void find_basis_set( std::function<scalar( scalar, BasisID )> pot,
                      sae<scalar> atom )
 {
 #if defined( DEBUG )
-    Gnuplot::set_terminal_std( "qt" );
+    Gnuplot::set_terminal_std( "wxt" );
 #endif
     xgrid<scalar> desired_grid( {std::log( params.rmin() ),
                                  std::log( params.rmax() ),
