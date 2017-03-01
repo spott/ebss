@@ -295,7 +295,7 @@ std::array<size_t, 2> numerov_from_both_sides( const std::vector<scalar>& f,
     }
 
     // max index was the distance from a reverse iterator
-    turnover = turnover - max_index;
+    //turnover = turnover - max_index;
 
     scalar temp = wf[turnover - 1];
     nodes[1]    = numerov( f.rbegin() + 1, f.rend() - turnover + 1,
@@ -810,6 +810,7 @@ bool converge_bound( const BasisID state, const xgrid<scalar>       grid,
     err_out << "CONVERGE BOUND" << std::endl;
     err_out << "====================" << std::endl;
     err_out << "====================" << std::endl;
+    err_out << grid << std::endl;
 
     auto rgrid = make_rgrid( grid );
 
@@ -897,9 +898,20 @@ bool converge_bound( const BasisID state, const xgrid<scalar>       grid,
             // scalar& d =
             //     std::abs( e[1] * a ) > std::abs( e[0] * b ) ? e[1] : e[0];
             //
+            // energy guess is the classic turning point radius: if we are at
+            // the turnaround, then this is true.
+            auto en = -std::pow( static_cast<scalar>( state.l ) + .5, 2 ) /
+                          ( 2 * rgrid[it.turnover] * rgrid[it.turnover] ) +
+                      pot( rgrid[it.turnover], state );
+            err_out << "energy guess: " << en << " actual energy: " << it.energy
+                    << std::endl;
 
-            if ( std::abs( e[2] ) > std::abs( e[3] ) ) it.upper_bound_bisect();
-            if ( std::abs( e[2] ) > std::abs( e[3] ) ) it.lower_bound_bisect();
+            if ( en < it.energy ) it.lower_bound_bisect();
+            if ( en > it.energy ) it.upper_bound_bisect();
+            // if ( std::abs( e[2] ) > std::abs( e[3] ) )
+            // it.upper_bound_bisect();
+            // if ( std::abs( e[2] ) > std::abs( e[3] ) )
+            // it.lower_bound_bisect();
             // if ( d > 0 ) it.lower_bound_bisect();
             // if ( d < 0 ) it.upper_bound_bisect();
             // if ( e[1] == 0 && e[0] > 0 ) it.lower_bound_bisect();
