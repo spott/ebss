@@ -129,12 +129,21 @@ struct iteration {
     scalar energy;           // the energy of this iteration
     int    nodes;            // how many nodes for this iteration
     int    turnover = -1;    // where the turnover is...
+    scalar high_energy_compared_value;
+    std::function<scalar(scalar, scalar)> comparator = [](scalar left, scalar right) -> scalar { return left - right;};
 
     void upper_bound_bisect()
     {
         energy_upper = energy;
         energy       = ( energy_upper + energy_lower ) / 2.;
     }
+
+    void upper_bound_bisect(scalar compared)
+        {
+            high_energy_compared_value = compared;
+            energy_upper = energy;
+            energy       = ( energy_upper + energy_lower ) / 2.;
+        }
 
     void lower_bound_bisect()
     {
@@ -562,11 +571,13 @@ bool find_ground_state( const BasisID state, const xgrid<scalar>        grid,
             it.upper_bound_bisect();
             continue;
         }
-        scalar d = std::abs( e[1] ) > std::abs( e[0] ) ? e[1] : e[0];
+        auto d =  it.comparator(e[2], e[3]);
 
-        if ( d > 0 ) it.lower_bound_bisect();
-        if ( d < 0 ) it.upper_bound_bisect();
-        if ( d == 0 ) converged = true;
+        err_out << "comparator: " << d  << std::endl;
+
+        if ( d < 0 ) it.lower_bound_bisect();
+        if ( d > 0 ) it.upper_bound_bisect(d);
+        // if ( d == 0 ) converged = true;
         // if ( e[1] > 0 ) it.lower_bound_bisect();
         // if ( e[1] < 0 ) it.upper_bound_bisect();
         // if ( e[1] == 0 && e[0] > 0 ) it.lower_bound_bisect();
@@ -901,29 +912,39 @@ bool converge_bound( const BasisID state, const xgrid<scalar>       grid,
             // energy guess is the classic turning point radius: if we are at
             // the turnaround, then this is true.
 
-            auto dedwf = 1. / ( 2 * rgrid[it.turnover] * rgrid[it.turnover] *
-                                wf[it.turnover] );
+            // auto dedwf = 1. / ( 2 * rgrid[it.turnover] * rgrid[it.turnover] *
+            //                     wf[it.turnover] );
 
-            err_out << "de/dwf: " << dedwf << std::endl;
-            auto en_left = dedwf * e[4] / ( grid.dx() * grid.dx() ) -
-                           std::pow( static_cast<scalar>( state.l ) + .5, 2 ) /
-                               ( 2 * rgrid[it.turnover] * rgrid[it.turnover] ) +
-                           pot( rgrid[it.turnover], state );
-            auto en_right = dedwf * e[5] / ( grid.dx() * grid.dx() ) -
-                std::pow( static_cast<scalar>( state.l ) + .5, 2 ) /
-                ( 2 * rgrid[it.turnover] * rgrid[it.turnover] ) +
-                pot( rgrid[it.turnover], state );
+            // err_out << "de/dwf: " << dedwf << std::endl;
 
-            auto en = -std::pow( static_cast<scalar>( state.l ) + .5, 2 ) /
-                          ( 2 * rgrid[it.turnover] * rgrid[it.turnover] ) +
-                      pot( rgrid[it.turnover], state );
-            err_out << "energy guess: " << en << " actual energy: " << it.energy
-                    << std::endl;
-            err_out << "energy left: " << en_left << " energy right: " << en_right
-                    << std::endl;
+            // auto en_left = dedwf * e[4] / ( grid.dx() * grid.dx() ) -
+            //                std::pow( static_cast<scalar>( state.l ) + .5, 2 ) /
+            //                    ( 2 * rgrid[it.turnover] * rgrid[it.turnover] ) +
+            //                pot( rgrid[it.turnover], state );
 
-            if ( en < it.energy ) it.lower_bound_bisect();
-            if ( en > it.energy ) it.upper_bound_bisect();
+            // auto en_right =
+            //     dedwf * e[5] / ( grid.dx() * grid.dx() ) -
+            //     std::pow( static_cast<scalar>( state.l ) + .5, 2 ) /
+            //         ( 2 * rgrid[it.turnover] * rgrid[it.turnover] ) +
+            //     pot( rgrid[it.turnover], state );
+
+            // auto en = -std::pow( static_cast<scalar>( state.l ) + .5, 2 ) /
+            //               ( 2 * rgrid[it.turnover] * rgrid[it.turnover] ) +
+            //           pot( rgrid[it.turnover], state );
+
+            // err_out << "energy guess: " << en << " actual energy: " << it.energy
+            //         << std::endl;
+            // err_out << "energy left: " << en_left
+            //         << " energy right: " << en_right << std::endl;
+
+            auto comp =  it.comparator(e[2], e[3]);
+            scalar d = it.high_energy_compared_value * comp;
+
+            if ( d > 0 ) it.lower_bound_bisect();
+            if ( d < 0 ) it.upper_bound_bisect(comp);
+
+            // if ( en < it.energy ) it.lower_bound_bisect();
+            // if ( en > it.energy ) it.upper_bound_bisect();
             // if ( std::abs( e[2] ) > std::abs( e[3] ) )
             // it.upper_bound_bisect();
             // if ( std::abs( e[2] ) > std::abs( e[3] ) )
