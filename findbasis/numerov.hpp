@@ -295,7 +295,7 @@ std::array<size_t, 2> numerov_from_both_sides( const std::vector<scalar>& f,
     }
 
     // max index was the distance from a reverse iterator
-    //turnover = turnover - max_index;
+    // turnover = turnover - max_index;
 
     scalar temp = wf[turnover - 1];
     nodes[1]    = numerov( f.rbegin() + 1, f.rend() - turnover + 1,
@@ -900,10 +900,26 @@ bool converge_bound( const BasisID state, const xgrid<scalar>       grid,
             //
             // energy guess is the classic turning point radius: if we are at
             // the turnaround, then this is true.
+
+            auto dedwf = 1. / ( 2 * rgrid[it.turnover] * rgrid[it.turnover] *
+                                wf[it.turnover] );
+
+            err_out << "de/dwf: " << dedwf << std::endl;
+            auto en_left = dedwf * e[4] / ( grid.dx() * grid.dx() ) -
+                           std::pow( static_cast<scalar>( state.l ) + .5, 2 ) /
+                               ( 2 * rgrid[it.turnover] * rgrid[it.turnover] ) +
+                           pot( rgrid[it.turnover], state );
+            auto en_right = dedwf * e[5] / ( grid.dx() * grid.dx() ) -
+                std::pow( static_cast<scalar>( state.l ) + .5, 2 ) /
+                ( 2 * rgrid[it.turnover] * rgrid[it.turnover] ) +
+                pot( rgrid[it.turnover], state );
+
             auto en = -std::pow( static_cast<scalar>( state.l ) + .5, 2 ) /
                           ( 2 * rgrid[it.turnover] * rgrid[it.turnover] ) +
                       pot( rgrid[it.turnover], state );
             err_out << "energy guess: " << en << " actual energy: " << it.energy
+                    << std::endl;
+            err_out << "energy left: " << en_left << " energy right: " << en_right
                     << std::endl;
 
             if ( en < it.energy ) it.lower_bound_bisect();
