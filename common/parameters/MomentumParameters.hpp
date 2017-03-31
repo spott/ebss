@@ -33,7 +33,7 @@ class MomentumParameters : public Parameters
             opt.get( "-momentum_config" )->getString( fname );
             // init_from_file(fname);
             if ( !opt.importFile( fname.c_str(), '#' ) ) {
-                std::cout << "file must exist!" << std::endl;
+                std::cout << "momentum config file must exist!" << std::endl;
                 throw std::exception();
             }
             opt.get( "-momentum_folder" )->getString( folder_ );

@@ -279,7 +279,7 @@ void DipoleParameters::get_parameters()
         std::string fname;
         opt.get( "-dipole_config" )->getString( fname );
         if ( !opt.importFile( fname.c_str(), '#' ) ) {
-            std::cout << "file must exist!" << std::endl;
+            std::cout << "dipole config file must exist!" << std::endl;
             throw std::exception();
         }
     }
