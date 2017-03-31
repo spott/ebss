@@ -516,25 +516,25 @@ std::vector<double> gsl_coulomb_wave_function( const kBasisID&            a,
     return cv;
 }
 
-Matrix<double> gsl_spherical_harmonics( const int lmax, const int n_theta )
-{
-    assert( false );
-    Matrix<double> m( n_theta, lmax );
+// Matrix<double> gsl_spherical_harmonics( const int lmax, const int n_theta )
+// {
+//     assert( false );
+//     Matrix<double> m( n_theta, lmax );
 
-    std::vector<double> t( n_theta );
-    int                 i      = 0;
-    double              dtheta = math::PI / n_theta;
-    for ( auto a = m[0]; a < m[n_theta]; a += lmax ) {
-        // This is currently incorrect, and will fail.  GSL has changed and no
-        // longer *just* finds a single "m" value, but instead finds *all* "m"
-        // values.
-        gsl_sf_legendre_array( GSL_SF_LEGENDRE_SPHARM, lmax,
-                               std::cos( i * dtheta ), a );
-        i++;
-    }
+//     std::vector<double> t( n_theta );
+//     int                 i      = 0;
+//     double              dtheta = math::PI / n_theta;
+//     for ( auto a = m[0]; a < m[n_theta]; a += lmax ) {
+//         // This is currently incorrect, and will fail.  GSL has changed and no
+//         // longer *just* finds a single "m" value, but instead finds *all* "m"
+//         // values.
+//         // gsl_sf_legendre_array( GSL_SF_LEGENDRE_SPHARM, lmax,
+//         //                        std::cos( i * dtheta ), a );
+//         i++;
+//     }
 
-    return m;
-}
+//     return m;
+// }
 
 inline std::complex<double> Gamma_Lanczos( std::complex<double> z )
 {
