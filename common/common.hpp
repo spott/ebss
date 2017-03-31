@@ -447,12 +447,10 @@ std::vector<T> import_vector_binary( const std::string& filename )
             file.read( (char*)&vec[0], size );
             file.close();
         } else {
-            std::cerr << "file is empty!: " << filename << std::endl;
-            throw std::ios_base::failure("file is empty");
+            throw std::ios_base::failure("file " + filename + " is empty");
         }
     } else {
-        std::cerr << "error opening file: " << filename << std::endl;
-        throw std::ios_base::failure("couldn't open file");
+        throw std::ios_base::failure("couldn't open file" + filename);
     }
 
     return vec;

@@ -33,14 +33,18 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
     bool     restore = true;
     PetscInt zero    = 0;
     try {
-        std::cout << "looking for recovery file" << std::endl;
+        if ( cntx->hparams->rank() == 0 )
+            std::cout << "looking for recovery file" << std::endl;
+
         zero = common::import_vector_binary<int>( "./failed" ).back();
-        std::cout << "found recovery file, got: " << zero << " from it"
-                  << std::endl;
-    } catch ( const std::ios_base::failure& e ) {
-        std::cout
-            << "didn't find a recovery file.  proceeding as if from scratch: "
-            << std::endl;
+        if ( cntx->hparams->rank() == 0 )
+            std::cout << "found recovery file, got: " << zero << " from it"
+                    << std::endl;
+        } catch ( const std::ios_base::failure& e ) {
+        if ( cntx->hparams->rank() == 0 )
+            std::cout
+                << "didn't find a recovery file.  proceeding as if from scratch: "
+                << std::endl;
         restore = false;
         zero    = 0;
     }
