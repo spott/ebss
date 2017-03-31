@@ -118,36 +118,36 @@ Vec map_function( Vec& vector, Func f )
     return out;
 }
 
-Vec eigen_balls( Mat mat )
-{
-    Vec v;
-    MatCreateVecs( mat, &v, PETSC_NULL );
-    VecSet( v, 0.0 );
-    PetscInt     start = 0, end = 0, row;
-    PetscScalar* array;
-
-    // if (!mat->assembled)
-    // SETERRQ(((PetscObject)mat)->comm,PETSC_ERR_ARG_WRONGSTATE,"Not for
-    // unassembled matrix");
-    // MatCheckPreallocated(mat,1);
-    MatGetOwnershipRange( mat, &start, &end );
-    VecGetArray( v, &array );
-    for ( row = start; row < end; ++row ) {
-        PetscInt           ncols, col;
-        const PetscInt*    cols;
-        const PetscScalar* vals;
-
-        array[row - start] = 0.0;
-        MatGetRow( mat, row, &ncols, &cols, &vals );
-        for ( col = 0; col < ncols; col++ ) {
-            if ( col != row ) array[row - start] += std::abs( vals[col] );
-        }
-        MatRestoreRow( mat, row, &ncols, &cols, &vals );
-    }
-    VecRestoreArray( v, &array );
-    // PetscObjectStateIncrease((PetscObject) v);
-    return v;
-}
+//Vec eigen_balls( Mat mat )
+//{
+//    Vec v;
+//    MatCreateVecs( mat, &v, PETSC_NULL );
+//    VecSet( v, 0.0 );
+//    PetscInt     start = 0, end = 0, row;
+//    PetscScalar* array;
+//
+//    // if (!mat->assembled)
+//    // SETERRQ(((PetscObject)mat)->comm,PETSC_ERR_ARG_WRONGSTATE,"Not for
+//    // unassembled matrix");
+//    // MatCheckPreallocated(mat,1);
+//    MatGetOwnershipRange( mat, &start, &end );
+//    VecGetArray( v, &array );
+//    for ( row = start; row < end; ++row ) {
+//        PetscInt           ncols, col;
+//        const PetscInt*    cols;
+//        const PetscScalar* vals;
+//
+//        array[row - start] = 0.0;
+//        MatGetRow( mat, row, &ncols, &cols, &vals );
+//        for ( col = 0; col < ncols; col++ ) {
+//            if ( col != row ) array[row - start] += std::abs( vals[col] );
+//        }
+//        MatRestoreRow( mat, row, &ncols, &cols, &vals );
+//    }
+//    VecRestoreArray( v, &array );
+//    // PetscObjectStateIncrease((PetscObject) v);
+//    return v;
+//}
 
 std::string absolute_path( const std::string& rel_path )
 {
