@@ -192,7 +192,10 @@ Vec petsc_binary_read<Vec>( std::string filename, MPI_Comm comm )
     PetscViewerBinaryOpen( comm, filename.c_str(), FILE_MODE_READ, &view );
     VecLoad( v, view );
     PetscViewerDestroy( &view );
-    std::cerr << "done" << std::endl;
+
+    int rank;
+    MPI_Comm_rank( comm, &rank );
+    if ( rank == 0 ) std::cerr << "done reading in file " << filename << std::endl;
     return v;
 }
 
