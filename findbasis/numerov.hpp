@@ -51,9 +51,9 @@ void wait_for_key()
 }
 
 #if defined( DEBUG )
-template <typename scalar, typename ordinal>
+template <typename scalar>
 void display_function( Gnuplot& g, const std::vector<scalar>& grid,
-                       const std::vector<scalar>& wf, ordinal point = -1,
+                       const std::vector<scalar>& wf, int point = -1,
                        bool wait = false, std::array<double, 2> range = {0, 20},
                        std::string style = "lines" )
 {
@@ -62,28 +62,9 @@ void display_function( Gnuplot& g, const std::vector<scalar>& grid,
     g.set_style( style.c_str() )
         .plot_xy( common::vector_type_change<scalar, double>( grid ),
                   common::vector_type_change<scalar, double>( wf ), "wf" );
-    if ( point > 0 && point < wf.size() )
+    if ( point > 0 && point < grid.size() )
         g.set_style( "points" )
             .plot_xy( std::vector<double>{static_cast<double>( grid[point] )},
-                      std::vector<double>{static_cast<double>( wf[point] )},
-                      "turnover" );
-    if ( wait ) wait_for_key();
-    g.remove_tmpfiles();
-}
-
-template <typename scalar>
-void display_function( Gnuplot& g, const std::vector<scalar>& wf,
-                       size_t point = 0, bool wait  = false,
-                       std::array<size_t, 2>  range = {0, 100},
-                       std::string style = "lines" )
-{
-    g.reset_all();
-    g.set_xrange( range[0], range[1] );
-    g.set_style( style.c_str() )
-        .plot_x( common::vector_type_change<scalar, double>( wf ), "wf" );
-    if ( point > 0 && point < wf.size() )
-        g.set_style( "points" )
-            .plot_xy( std::vector<double>{static_cast<double>( point )},
                       std::vector<double>{static_cast<double>( wf[point] )},
                       "turnover" );
     if ( wait ) wait_for_key();
@@ -129,21 +110,12 @@ struct iteration {
     scalar energy;           // the energy of this iteration
     int    nodes;            // how many nodes for this iteration
     int    turnover = -1;    // where the turnover is...
-    scalar high_energy_compared_value;
-    std::function<scalar(scalar, scalar)> comparator = [](scalar left, scalar right) -> scalar { return left - right;};
 
     void upper_bound_bisect()
     {
         energy_upper = energy;
         energy       = ( energy_upper + energy_lower ) / 2.;
     }
-
-    void upper_bound_bisect(scalar compared)
-        {
-            high_energy_compared_value = compared;
-            energy_upper = energy;
-            energy       = ( energy_upper + energy_lower ) / 2.;
-        }
 
     void lower_bound_bisect()
     {
@@ -178,10 +150,10 @@ void normalize( std::vector<scalar>& wf, const std::vector<scalar>& rgrid,
 }
 
 template <typename iterator, typename citerator>
-std::vector<int> numerov( citerator fstart, citerator fend, iterator wfstart,
-                          iterator wfend )
+int numerov( citerator fstart, citerator fend, iterator wfstart,
+             iterator wfend )
 {
-    std::vector<int> nodes;
+    unsigned int nodes = 0;
 
     if ( wfend - wfstart != fend - fstart || wfend - wfstart == 0 )
         std::cerr << "wf and f don't have the same size or are zero."
@@ -196,8 +168,8 @@ std::vector<int> numerov( citerator fstart, citerator fend, iterator wfstart,
         else
             wfstart[i] = wfstart[i - 1];
 
-        if ( wfstart[i] < 0 && wfstart[i - 1] >= 0 ) nodes.push_back( i );
-        if ( wfstart[i] > 0 && wfstart[i - 1] <= 0 ) nodes.push_back( i );
+        if ( wfstart[i] < 0 && wfstart[i - 1] >= 0 ) nodes++;
+        if ( wfstart[i] > 0 && wfstart[i - 1] <= 0 ) nodes++;
         // check for inf & nan:
         if ( std::abs( *( wfstart + i ) ) ==
                  std::numeric_limits<
@@ -206,8 +178,7 @@ std::vector<int> numerov( citerator fstart, citerator fend, iterator wfstart,
             wfstart[i] = wfstart[i - 1];
             std::cerr << "infinity detected at " << i
                       << " last two values: " << *( wfstart + i - 1 ) << ", "
-                      << wfstart[i - 2] << " nodes: " << nodes.size()
-                      << std::endl;
+                      << wfstart[i - 2] << " nodes: " << nodes << std::endl;
             throw( std::out_of_range( "infinity detected" ) );
             inf = true;
         }
@@ -270,42 +241,13 @@ int make_f( const std::vector<scalar>& rgrid, const BasisID& state,
 // perform the numerov from both sides, doesn't normalize because that
 // needs rgrid
 template <typename scalar>
-std::array<size_t, 2> numerov_from_both_sides( const std::vector<scalar>& f,
-                                               std::vector<scalar>& wf,
-                                               int&                 turnover )
+std::array<int, 2> numerov_from_both_sides( const std::vector<scalar>& f,
+                                            std::vector<scalar>& wf,
+                                            int                  turnover )
 {
-    std::array<std::vector<int>, 2> nodes;
+    std::array<int, 2> nodes;
     nodes[0] = numerov( f.begin(), f.begin() + turnover, wf.begin(),
                         wf.begin() + turnover );
-
-    // find the local maximum of the derivative closest to the turnover point:
-
-    auto derivatives =
-        math::first_difference( make_range( wf.rend() - turnover, wf.rend() ) );
-
-    auto max       = std::abs( derivatives.front() );
-    auto max_index = 0;
-    // direction:  is the magnitude of the derivative increasing or decreasing.
-    int direction =
-        math::signum( std::abs( derivatives[1] ) - std::abs( derivatives[0] ) );
-
-    for ( auto a = derivatives.begin(); a < derivatives.end(); ++a ) {
-        if ( max < std::abs( *a ) ) {
-            max       = std::abs( *a );
-            max_index = a - derivatives.begin();
-        } else if ( direction >= 0 ) {
-            // derivative magnitude was initially increasing, thus we are no
-            // longer
-            // increasing and the local max has been reached
-            break;
-        }
-        // derivative was initially decreasing, and we are still decreasing.
-        // The local max hasn't been reached, so we continue
-    }
-
-    // max index was the distance from a reverse iterator
-    // turnover = turnover - max_index;
-
     scalar temp = wf[turnover - 1];
     nodes[1]    = numerov( f.rbegin() + 1, f.rend() - turnover + 1,
                         wf.rbegin() + 1, wf.rend() - turnover + 1 );
@@ -314,15 +256,16 @@ std::array<size_t, 2> numerov_from_both_sides( const std::vector<scalar>& f,
     // match:
     for ( auto i = wf.rbegin(); i < wf.rend() - turnover + 1; ++i ) *i *= temp;
 
-    return {nodes[0].size(), nodes[1].size()};
+    return nodes;
 }
 
 template <typename scalar>
 int numerov_from_one_side( const std::vector<scalar>& f,
                            std::vector<scalar>&       wf )
 {
-    auto nodes = numerov( f.begin(), f.end(), wf.begin(), wf.end() );
-    return nodes.size();
+    int nodes;
+    nodes = numerov( f.begin(), f.end(), wf.begin(), wf.end() );
+    return nodes;
 }
 
 template <typename scalar>
@@ -523,7 +466,7 @@ bool find_ground_state( const BasisID state, const xgrid<scalar>        grid,
         wf[wf.size() - 3] = ( 12 - f[f.size() - 2] * 10 ) * wf[wf.size() - 2] /
                             f[wf.size() - 2];
 
-        std::array<size_t, 2> nodes;
+        std::array<int, 2> nodes;
     infty:
         try {
             nodes = numerov_from_both_sides( f, wf, it.turnover );
@@ -571,13 +514,11 @@ bool find_ground_state( const BasisID state, const xgrid<scalar>        grid,
             it.upper_bound_bisect();
             continue;
         }
-        auto d =  it.comparator(e[2], e[3]);
+        scalar d = std::abs( e[1] ) > std::abs( e[0] ) ? e[1] : e[0];
 
-        err_out << "comparator: " << d  << std::endl;
-
-        if ( d < 0 ) it.lower_bound_bisect();
-        if ( d > 0 ) it.upper_bound_bisect(d);
-        // if ( d == 0 ) converged = true;
+        if ( d > 0 ) it.lower_bound_bisect();
+        if ( d < 0 ) it.upper_bound_bisect();
+        if ( d == 0 ) converged = true;
         // if ( e[1] > 0 ) it.lower_bound_bisect();
         // if ( e[1] < 0 ) it.upper_bound_bisect();
         // if ( e[1] == 0 && e[0] > 0 ) it.lower_bound_bisect();
@@ -821,7 +762,6 @@ bool converge_bound( const BasisID state, const xgrid<scalar>       grid,
     err_out << "CONVERGE BOUND" << std::endl;
     err_out << "====================" << std::endl;
     err_out << "====================" << std::endl;
-    err_out << grid << std::endl;
 
     auto rgrid = make_rgrid( grid );
 
@@ -873,7 +813,6 @@ bool converge_bound( const BasisID state, const xgrid<scalar>       grid,
             it.nodes = n[0];
         } else
             it.nodes = numerov_from_one_side( f, wf );
-        err_out << "turnover (modified): " << it.turnover << std::endl;
         normalize( wf, rgrid, grid.dx() );
 
         auto correct_nodes = state.n - state.l - 1;
@@ -889,8 +828,8 @@ bool converge_bound( const BasisID state, const xgrid<scalar>       grid,
         err_out << it << std::endl;
 
 #ifdef DEBUGBOUND
-        display_function( g, wf, it.turnover - 1, true, {0, wf.size()},
-                          "lines" );
+        display_function( g, rgrid, wf, it.turnover - 1, true,
+                          {0., static_cast<double>( rgrid.back() )} );
 #endif
 
         if ( it.nodes < correct_nodes ) {
@@ -902,55 +841,13 @@ bool converge_bound( const BasisID state, const xgrid<scalar>       grid,
             continue;
         }
         if ( it.nodes == correct_nodes ) {
-            // we have the correct number of nodes.  We are at the maximum abs
-            // first derivative.
-            // auto    a = ( e[2] + e[3] ) / 2;
-            // auto    b = ( e[4] + e[5] ) / 2;
-            // scalar& d =
-            //     std::abs( e[1] * a ) > std::abs( e[0] * b ) ? e[1] : e[0];
-            //
-            // energy guess is the classic turning point radius: if we are at
-            // the turnaround, then this is true.
-
-            // auto dedwf = 1. / ( 2 * rgrid[it.turnover] * rgrid[it.turnover] *
-            //                     wf[it.turnover] );
-
-            // err_out << "de/dwf: " << dedwf << std::endl;
-
-            // auto en_left = dedwf * e[4] / ( grid.dx() * grid.dx() ) -
-            //                std::pow( static_cast<scalar>( state.l ) + .5, 2 ) /
-            //                    ( 2 * rgrid[it.turnover] * rgrid[it.turnover] ) +
-            //                pot( rgrid[it.turnover], state );
-
-            // auto en_right =
-            //     dedwf * e[5] / ( grid.dx() * grid.dx() ) -
-            //     std::pow( static_cast<scalar>( state.l ) + .5, 2 ) /
-            //         ( 2 * rgrid[it.turnover] * rgrid[it.turnover] ) +
-            //     pot( rgrid[it.turnover], state );
-
-            // auto en = -std::pow( static_cast<scalar>( state.l ) + .5, 2 ) /
-            //               ( 2 * rgrid[it.turnover] * rgrid[it.turnover] ) +
-            //           pot( rgrid[it.turnover], state );
-
-            // err_out << "energy guess: " << en << " actual energy: " << it.energy
-            //         << std::endl;
-            // err_out << "energy left: " << en_left
-            //         << " energy right: " << en_right << std::endl;
-
-            auto comp =  it.comparator(e[2], e[3]);
-            scalar d = it.high_energy_compared_value * comp;
+            auto    a = ( e[2] + e[3] ) / 2;
+            auto    b = ( e[4] + e[5] ) / 2;
+            scalar& d =
+                std::abs( e[1] * a ) > std::abs( e[0] * b ) ? e[1] : e[0];
 
             if ( d > 0 ) it.lower_bound_bisect();
-            if ( d < 0 ) it.upper_bound_bisect(comp);
-
-            // if ( en < it.energy ) it.lower_bound_bisect();
-            // if ( en > it.energy ) it.upper_bound_bisect();
-            // if ( std::abs( e[2] ) > std::abs( e[3] ) )
-            // it.upper_bound_bisect();
-            // if ( std::abs( e[2] ) > std::abs( e[3] ) )
-            // it.lower_bound_bisect();
-            // if ( d > 0 ) it.lower_bound_bisect();
-            // if ( d < 0 ) it.upper_bound_bisect();
+            if ( d < 0 ) it.upper_bound_bisect();
             // if ( e[1] == 0 && e[0] > 0 ) it.lower_bound_bisect();
             // if ( e[1] == 0 && e[0] < 0 ) it.upper_bound_bisect();
             // if ( e[1] == 0 && e[0] == 0 && e[2] - e[3] > 0 )
@@ -969,6 +866,8 @@ basis<scalar> find_basis( const BasisID state, const xgrid<scalar>        grid,
                           scalar err )
 {
     bool check = false;
+    std::cout << "====================" << std::endl;
+    std::cout << "state: " << state << std::endl;
     reduced_out << "====================" << std::endl;
     reduced_out << "state: " << state << std::endl;
     err_out << "====================" << std::endl;
@@ -1051,10 +950,10 @@ converged:
 
     infty2:
         try {
-            // it.turnover = std::max(
-            //     it.turnover, ( ( turnover > f.size() - 2 ) ? 0 : turnover )
-            //     );
-            numerov_from_both_sides( f, wf, it.turnover );
+            numerov_from_both_sides(
+                f, wf, ( std::max(
+                           it.turnover,
+                           ( ( turnover > f.size() - 2 ) ? 0 : turnover ) ) ) );
         } catch ( const std::out_of_range e ) {
             if ( wf[0] == 0 or wf[1] == 0 or wf[wf.size() - 2] == 0 or
                  wf[wf.size() - 3] == 0 )
@@ -1114,19 +1013,10 @@ converged:
                            static_cast<double>( rgrid[it.turnover] + 1 )} );
 #endif
     }
-    reduced_out << " 1st deriv: " << e[0] << ": " << e[2] << "," << e[3]
-                << std::endl
-                << " 2nd deriv: " << e[1] << ": " << e[4] << "," << e[5]
-                << std::endl;
-    reduced_out << it << std::endl;
 
     for ( size_t i = 0; i < wf.size(); i++ ) {
         wf[i] *= std::sqrt( rgrid[i] );
     }
-    auto new_state = state;
-    new_state.e    = it.energy;
-    std::cout << "====================" << std::endl;
-    std::cout << "state: " << new_state << std::endl;
     return basis<scalar>{wf, it.energy, it.energy_upper - it.energy_lower,
                          it.it};
 }
