@@ -32,7 +32,7 @@ class AbsorberParameters : public Parameters
             std::string fname;
             opt.get( "-absorber_config" )->getString( fname );
             if ( !opt.importFile( fname.c_str(), '#' ) ) {
-                std::cout << "file must exist!" << std::endl;
+                std::cout << "absorber config file must exist!" << std::endl;
                 throw std::exception();
             }
         }

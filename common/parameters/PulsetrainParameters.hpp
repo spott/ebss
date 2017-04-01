@@ -187,7 +187,7 @@ void PulsetrainParameters::get_parameters()
         std::string fname;
         opt.get( "-pulsetrain_config" )->getString( fname );
         if ( !opt.importFile( fname.c_str(), '#' ) ) {
-            std::cout << "file must exist!" << std::endl;
+            std::cout << "pulsetrain config file must exist!" << std::endl;
             throw std::exception();
         }
     }

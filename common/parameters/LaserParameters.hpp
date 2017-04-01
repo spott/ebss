@@ -92,7 +92,7 @@ void LaserParameters::get_parameters()
         std::string fname;
         opt.get( "-laser_config" )->getString( fname );
         if ( !opt.importFile( fname.c_str(), '#' ) ) {
-            std::cout << "file must exist!" << std::endl;
+            std::cout << "laser config file must exist!" << std::endl;
             throw std::exception();
         }
     }

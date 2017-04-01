@@ -192,7 +192,10 @@ Vec petsc_binary_read<Vec>( std::string filename, MPI_Comm comm )
     PetscViewerBinaryOpen( comm, filename.c_str(), FILE_MODE_READ, &view );
     VecLoad( v, view );
     PetscViewerDestroy( &view );
-    std::cerr << "done" << std::endl;
+
+    int rank;
+    MPI_Comm_rank( comm, &rank );
+    if ( rank == 0 ) std::cerr << "done reading in file " << filename << std::endl;
     return v;
 }
 
@@ -444,12 +447,10 @@ std::vector<T> import_vector_binary( const std::string& filename )
             file.read( (char*)&vec[0], size );
             file.close();
         } else {
-            std::cerr << "file is empty!: " << filename << std::endl;
-            throw std::ios_base::failure("file is empty");
+            throw std::ios_base::failure("file " + filename + " is empty");
         }
     } else {
-        std::cerr << "error opening file: " << filename << std::endl;
-        throw std::ios_base::failure("couldn't open file");
+        throw std::ios_base::failure("couldn't open file" + filename);
     }
 
     return vec;

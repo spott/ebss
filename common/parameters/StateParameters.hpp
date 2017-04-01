@@ -37,7 +37,7 @@ class StateParameters : public Parameters
             std::string fname;
             opt.get( "-state_config" )->getString( fname );
             if ( !opt.importFile( fname.c_str(), '#' ) ) {
-                std::cout << "file must exist!" << std::endl;
+                std::cout << "state config file must exist!" << std::endl;
                 throw std::exception();
             }
         }

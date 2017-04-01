@@ -33,7 +33,7 @@ class HamiltonianParameters : public Parameters
             opt.get( "-hamiltonian_config" )->getString( fname );
             std::cout << fname << std::endl;
             if ( !opt.importFile( fname.c_str(), '#' ) ) {
-                std::cerr << "file must exist!" << std::endl;
+                std::cerr << "hamiltonian config file must exist!" << std::endl;
                 throw std::exception();
             }
         }

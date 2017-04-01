@@ -36,7 +36,7 @@ class BasisParameters : public Parameters
             std::string fname;
             opt.get( "-basis_config" )->getString( fname );
             if ( !opt.importFile( fname.c_str(), '#' ) ) {
-                std::cout << "file must exist!" << std::endl;
+                std::cout << "basis config file must exist!" << std::endl;
                 throw std::exception();
             }
         }

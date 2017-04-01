@@ -38,7 +38,7 @@ class NonlinearParameters : public Parameters
             std::string fname;
             opt.get( "-nonlinear_config" )->getString( fname );
             if ( !opt.importFile( fname.c_str(), '#' ) ) {
-                std::cout << "file must exist!" << std::endl;
+                std::cout << "nonlinear config file must exist!" << std::endl;
                 throw std::exception();
             }
         }
