@@ -17,6 +17,9 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <cstdlib>
+#include <thread>
+#include <chrono>
 
 
 PetscErrorCode Monitor( TS ts, PetscInt steps, PetscReal time, Vec x,
@@ -27,6 +30,7 @@ PetscErrorCode HamiltonianJ( TS ts, PetscReal t, Vec u, Mat* A, Mat* B,
 
 int main( int argc, const char** argv )
 {
+    using namespace std::literals;
     int    ac = argc;
     char** av = new char*[argc + 1];
     for ( int i = 0; i < argc; i++ ) {
@@ -48,6 +52,12 @@ int main( int argc, const char** argv )
         PetscFinalize();
         return 0;
     }
+
+    std::system("ls -l .");
+    std::system("ls -l ../");
+    std::system(("ls -l `dirname "s + bagname + "`"s).c_str());
+
+    std::this_thread::sleep_for(3s);
 
     HamiltonianParameters<PetscReal>* params =
         new HamiltonianParameters<PetscReal>( MPI_COMM_WORLD,
