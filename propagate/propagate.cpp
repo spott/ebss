@@ -53,9 +53,9 @@ int main( int argc, const char** argv )
         return 0;
     }
 
-    std::system("ls -l .");
-    std::system("ls -l ../");
-    std::system(("ls -l `dirname "s + bagname + "`"s).c_str());
+    std::system("ls -l . > /dev/null");
+    std::system("ls -l ../ > /dev/null");
+    std::system(("ls -l `dirname "s + bagname + "` > /dev/null"s).c_str());
 
     std::this_thread::sleep_for(3s);
 

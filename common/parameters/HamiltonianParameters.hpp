@@ -321,7 +321,7 @@ void HamiltonianParameters<write_type_>::init_from_file( std::string filename )
     analytic_ = opt.isSet( "-hamiltonian_analytical" );
     if ( !analytic_ ) {
         opt.get( "-hamiltonian_basis_config" )->getString( basis_config_ );
-        std::system(("ls -l `dirname "s + basis_config_ + "`"s).c_str());
+        std::system(("ls -l `dirname "s + basis_config_ + "` > /dev/null"s).c_str());
         std::this_thread::sleep_for(3.s);
         basis_ = new BasisParameters<write_type_, write_type_>( basis_config_,
                                                                 comm_ );
