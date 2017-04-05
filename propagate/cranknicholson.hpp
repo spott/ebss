@@ -375,7 +375,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
             // close dipole files
         }
     }
-    // MPI_Barrier(cntx->hparams->comm());
+    MPI_Barrier(cntx->hparams->comm());
     file_name                = std::string( "./wf_final.dat" );
     if ( sig > 0 ) file_name = std::string( "./wf_interupted.dat" );
     PetscViewerBinaryOpen( cntx->hparams->comm(), file_name.c_str(),
