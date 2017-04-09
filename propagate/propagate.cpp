@@ -43,7 +43,7 @@ int main( int argc, const char** argv )
     // PetscViewer view;
     PetscBool flg = PETSC_FALSE;
     char      bagname[PETSC_MAX_PATH_LEN];
-    PetscOptionsGetString( NULL, "-hamiltonian_config", bagname,
+    PetscOptionsGetString( NULL, NULL, "-hamiltonian_config", bagname,
                            PETSC_MAX_PATH_LEN, &flg );
 
     if ( !flg ) {
