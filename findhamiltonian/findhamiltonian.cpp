@@ -137,7 +137,8 @@ int main( int argc, const char** argv )
     // decltype( params.basis_parameters()->grid() ) grid;
     std::vector<double> grid;
     auto                prototype = params.prototype();
-    for ( auto a : prototype ) std::cout << a << "\n";
+    if ( params.rank() == 0 )
+        for ( auto a : prototype ) std::cout << a << "\n";
 
     grid = params.basis_parameters()->grid();
 

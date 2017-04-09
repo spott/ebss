@@ -890,12 +890,9 @@ std::vector<T> second_difference( const std::vector<T>& in, const T& h )
     return out;
 }
 
-template <typename iterator, typename T = typename std::iterator_traits<iterator>::value_type
-
->
-std::vector<T>
-first_difference( const Range<iterator> in,
-                  const T&                                          h = T( 1 ) )
+template <typename iterator,
+          typename T = typename std::iterator_traits<iterator>::value_type>
+std::vector<T> first_difference( const Range<iterator> in, const T& h = T( 1 ) )
 {
     std::vector<T> out;
     out.reserve( in.end - in.begin );
