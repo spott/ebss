@@ -24,6 +24,9 @@
 
 namespace common
 {
+
+using namespace std::literals;
+
 void wait_for_key()
 {
     std::cout << std::endl << "Press ENTER to continue..." << std::endl;
@@ -181,8 +184,7 @@ template <>
 Vec petsc_binary_read<Vec>( std::string filename, MPI_Comm comm )
 {
     if ( !file_exists( filename ) ) {
-        std::cerr << "file doesn't exist" << std::endl;
-        throw( std::exception() );
+        throw std::ios_base::failure("file " + filename + " doesn't exist" );
     }
     Vec v;
     VecCreate( comm, &v );
@@ -204,8 +206,7 @@ Mat petsc_binary_read<Mat>( std::string filename, MPI_Comm comm )
 {
     // look for gzipped file as well:
     if ( !file_exists( filename ) and !file_exists( filename + ".gz" )) {
-        std::cerr << "file doesn't exist" << std::endl;
-        throw( std::exception() );
+        throw std::ios_base::failure("file " + filename + " doesn't exist") ;
     }
     if ( !file_exists(filename) )
         filename = filename + ".gz";

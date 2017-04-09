@@ -43,9 +43,9 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
         zero = z[1];
         step = z[0];
         if ( cntx->hparams->rank() == 0 )
-            std::cout << "found recovery file, got: " << zero << " from it"
-                      << std::endl;
-    } catch ( const std::ios_base::failure& e ) {
+            std::cout << "found recovery file, got: " << zero << " and " << step
+                      << " from it" << std::endl;
+    } catch ( ... ) {
         if ( cntx->hparams->rank() == 0 )
             std::cout << "didn't find a recovery file.  proceeding as if from "
                          "scratch: "
@@ -79,54 +79,38 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
                 std::cout << "getting wf " << std::endl;
             std::string filename = std::string( "wf_interupted.dat" );
             VecDestroy( wf );
+            if ( cntx->hparams->rank() == 0 )
+                std::cout << "getting time and ef " << std::endl;
             *wf = common::petsc_binary_read<Vec>( filename,
                                                   cntx->hparams->comm() );
-            if ( cntx->hparams->rank() == 0 ) {
-                std::cout << "getting time and ef " << std::endl;
-                time  = common::import_vector_binary<PetscReal>( "time.dat" );
-                efvec = common::import_vector_binary<PetscReal>(
-                    cntx->laser->laser_filename() );
-                t    = time.back();
-                ef   = efvec.back();
-                step = time.size();
-            } else {
-                std::cout << "getting time and ef " << std::endl;
-                auto temp_time =
-                    common::import_vector_binary<PetscReal>( "time.dat" );
-                auto temp_efvec = common::import_vector_binary<PetscReal>(
-                    cntx->laser->laser_filename() );
-                time.resize( step );
-                efvec.resize( step );
-                t    = temp_time.back();
-                ef   = temp_efvec.back();
-                step = time.size();
-            }
+            time  = common::import_vector_binary<PetscReal>( "time.dat" );
+            efvec = common::import_vector_binary<PetscReal>(
+                cntx->laser->laser_filename() );
+            t    = time.back();
+            ef   = efvec.back();
+            step = time.size();
         } catch ( ... ) {
             std::string filename = "wf_"s + std::to_string( zero ) + ".dat"s;
             VecDestroy( wf );
             *wf = common::petsc_binary_read<Vec>( filename,
                                                   cntx->hparams->comm() );
-            if ( cntx->hparams->rank() == 0 ) {
+            if ( cntx->hparams->rank() == 0 )
                 std::cout << "getting time and ef " << std::endl;
-                time  = common::import_vector_binary<PetscReal>( "time.dat" );
-                efvec = common::import_vector_binary<PetscReal>(
-                    cntx->laser->laser_filename() );
-                time.resize( step );
-                efvec.resize( step );
-                t  = time.back();
-                ef = efvec.back();
-            } else {
-                std::cout << "getting time and ef " << std::endl;
-                auto temp_time =
-                    common::import_vector_binary<PetscReal>( "time.dat" );
-                auto temp_efvec = common::import_vector_binary<PetscReal>(
-                    cntx->laser->laser_filename() );
-                time.resize( step );
-                efvec.resize( step );
-                t  = temp_time.back();
-                ef = temp_efvec.back();
-            }
+            for (auto& a: time)
+                std::cout << a << ", ";
+            for (auto& a: efvec)
+                std::cout << a << ", ";
+            time.resize( step );
+            efvec.resize( step );
+            for (auto& a: time)
+                std::cout << a << ", ";
+            for (auto& a: efvec)
+                std::cout << a << ", ";
+            t  = time.back();
+            ef = efvec.back();
         }
+        std::cout << "rank: " << cntx->hparams->rank() << " gives t=" << t
+                  << ", and ef=" << ef << std::endl;
     }
 
     Vec       tmp;
@@ -347,8 +331,6 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
                 auto tvec = std::vector<std::array<int, 2>>();
                 tvec.push_back( {step, zero} );
                 common::export_vector_binary( "failed", tvec );
-            }
-            if ( cntx->hparams->rank() == 0 ) {
                 try {
                     common::export_vector_binary( "time.dat", time );
                 } catch ( ... ) {
