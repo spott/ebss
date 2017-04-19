@@ -47,9 +47,25 @@ class DipoleParameters : public Parameters
             const std::vector<char> labels{'a', 'b', 'c', 'd', 'e', 'f',
                                            'g', 'h', 'i', 'j', 'k'};
 
-            for ( size_t a = 0; a <= decomp_splits.size(); a++ ) {
-                for ( size_t b = a; b <= decomp_splits.size(); b++ ) {
-                    out.push_back( df + "_" + labels[a] + labels[b] + ".dat" );
+            if ( l_splits.size() == 0 )
+                for ( size_t a = 0; a <= decomp_splits.size(); a++ ) {
+                    for ( size_t b = a; b <= decomp_splits.size(); b++ ) {
+                        out.push_back( df + "_" + labels[a] + labels[b] +
+                                       ".dat" );
+                    }
+                }
+            else {
+                const std::vector<char> l_labels{'0', '1', '2', '3'};
+                for ( size_t a = 0; a <= decomp_splits.size(); a++ ) {
+                    for ( size_t b = a; b <= decomp_splits.size(); b++ ) {
+                        for ( size_t c = 0; c <= l_splits.size(); c++ ) {
+                            for ( size_t d = c; d <= l_splits.size(); d++ ) {
+                                out.push_back( df + "_" + labels[a] +
+                                               labels[b] + "_" + l_labels[c] +
+                                               l_labels[d] + ".dat" );
+                            }
+                        }
+                    }
                 }
             }
             if ( ponder ) out.push_back( "ponder.dat" );
@@ -83,6 +99,7 @@ class DipoleParameters : public Parameters
   protected:
     split_type          type_;
     std::vector<double> decomp_splits;
+    std::vector<int>    l_splits;
     // std::vector<double> decomp_energy_splits;
     ez::ezOptionParser opt;
     void               register_parameters();
@@ -117,20 +134,26 @@ void DipoleParameters::find_dipole_moment_decompositions(
                                  sizeof( PetscScalar ) );
     }
     MPI_Barrier( MPI_COMM_WORLD );
-    Vec veca, vecb;
+    Vec veca, vecb, vecc, vecd;
     VecDuplicate( psi, &veca );
     VecDuplicate( psi, &vecb );
+    if ( l_splits.size() > 0 ) {
+        VecDuplicate( psi, &vecc );
+        VecDuplicate( psi, &vecd );
+    }
     PetscScalar aa, bb, ab;
+
+    PetscScalar aaaa, aaab, aabb, abaa, abab, abbb, bbaa, bbab, bbbb;
 
     static std::vector<std::array<double, 2>> sections = [this, &prototype]() {
         std::vector<std::array<double, 2>> sections_vec;
         if ( decomp_splits.size() != 0 )
             for ( size_t i = 0; i <= decomp_splits.size(); i++ ) {
                 if ( i == decomp_splits.size() )
-                    sections_vec.push_back( {decomp_splits.back(),
-                                             ( type_ == split_type::Energy ) ?
-                                                 prototype.back().e.real() :
-                                                 prototype.back().n} );
+                    sections_vec.push_back(
+                        {decomp_splits.back(), ( type_ == split_type::Energy ) ?
+                                                   prototype.back().e.real() :
+                                                   prototype.back().n} );
                 else if ( i == 0 )
                     sections_vec.push_back(
                         {( type_ == split_type::Energy ) ?
@@ -142,12 +165,37 @@ void DipoleParameters::find_dipole_moment_decompositions(
                         {decomp_splits[i - 1], decomp_splits[i]} );
             }
         if ( rank() == 0 ) {
+            std::cout << "decomp splits: ";
             for ( auto& a : sections_vec ) {
-                std::cout << "(" << a[0] << "," << a[1] << ")" << std::endl;
+                std::cout << "(" << a[0] << "," << a[1] << ") ";
             }
+            std::cout << std::endl;
         }
         return sections_vec;
     }();
+
+    static std::vector<std::array<int, 2>> lsections = [this, &prototype]() {
+        std::vector<std::array<int, 2>> l_vec;
+        if ( l_splits.size() != 0 )
+            for ( size_t i = 0; i <= l_splits.size(); i++ ) {
+                if ( i == l_splits.size() )
+                    l_vec.push_back(
+                        {l_splits.back(), prototype.back().l + 1} );
+                else if ( i == 0 )
+                    l_vec.push_back( {0, l_splits.front()} );
+                else
+                    l_vec.push_back( {l_splits[i - 1], l_splits[i]} );
+            }
+        if ( rank() == 0 ) {
+            std::cout << "l splits: ";
+            for ( auto& a : l_vec ) {
+                std::cout << "(" << a[0] << "," << a[1] << ") ";
+            }
+            std::cout << std::endl;
+        }
+        return l_vec;
+    }();
+
     if ( ponder ) {
         sections = {{prototype.front().e.real() - 1, 0},
                     {0, pondermotive_energy},
@@ -165,94 +213,386 @@ void DipoleParameters::find_dipole_moment_decompositions(
             // sectiona->back() << ") (" << sectionb->front() << "," <<
             // sectionb->back() << ")" << std::endl;
             // a:
-            if ( type_ != split_type::Energy ) {
-                common::map_function(
-                    psi,
-                    [&sectiona, &prototype]( PetscScalar a, PetscInt i ) {
-                        return ( prototype[i].n >
-                                     std::lround( ( *sectiona )[0] ) &&
-                                 prototype[i].n <=
-                                     std::lround( ( *sectiona )[1] ) ) ?
-                                   a :
-                                   0;
-                    },
-                    veca );
-                // b:
-                common::map_function(
-                    psi,
-                    [&sectionb, &prototype]( PetscScalar a, PetscInt i ) {
-                        return ( prototype[i].n >
-                                     std::lround( ( *sectionb )[0] ) &&
-                                 prototype[i].n <=
-                                     std::lround( ( *sectionb )[1] ) ) ?
-                                   a :
-                                   0;
-                    },
-                    vecb );
-            } else {
-                common::map_function(
-                    psi,
-                    [&sectiona, &prototype]( PetscScalar a, PetscInt i ) {
-                        return ( prototype[i].e.real() > ( *sectiona )[0] &&
-                                 prototype[i].e.real() <= ( *sectiona )[1] ) ?
-                                   a :
-                                   0;
-                    },
-                    veca );
-                // b:
-                common::map_function(
-                    psi,
-                    [&sectionb, &prototype]( PetscScalar a, PetscInt i ) {
-                        return ( prototype[i].e.real() > ( *sectionb )[0] &&
-                                 prototype[i].e.real() <= ( *sectionb )[1] ) ?
-                                   a :
-                                   0;
-                    },
-                    vecb );
-            }
-
-            PetscScalar temp_scalar;
-
-            if ( tmp == PETSC_NULL ) VecDuplicate( psi, &tmp );
-            VecCopy( veca, tmp );
-            MatMult( dipole, veca, tmp );
-            VecDot( vecb, tmp, &temp_scalar );
-
-            PetscReal popa, popb;
-            if ( sectionb == sectiona + 1 ) {
-                aa   = this->find_dipole_moment( dipole, veca );
-                popa = math::VecNorm( veca );
-            }
-            if ( sectionb == sections.end() - 1 &&
-                 sectiona == sections.end() - 2 ) {
-                bb   = this->find_dipole_moment( dipole, vecb );
-                popb = math::VecNorm( vecb );
-            }
-            ab = temp_scalar;
-
-            // only push back if rank == 0 to preven memory requirement
-            // blowup
-            if ( rank() == 0 ) {
-                if ( sectionb == sectiona + 1 ) {
-                    // std::cout << "write first one" << std::endl;
-                    output_vector[n]->write( reinterpret_cast<char*>( &aa ),
-                                             sizeof( PetscScalar ) );
-                    n++;
-                    output_vector.back()->write(
-                        reinterpret_cast<char*>( &popa ), sizeof( PetscReal ) );
+            if ( lsections.size() == 0 ) {
+                if ( type_ != split_type::Energy ) {
+                    common::map_function(
+                        psi,
+                        [&sectiona, &prototype]( PetscScalar a, PetscInt i ) {
+                            return ( prototype[i].n >
+                                         std::lround( ( *sectiona )[0] ) &&
+                                     prototype[i].n <=
+                                         std::lround( ( *sectiona )[1] ) ) ?
+                                       a :
+                                       0;
+                        },
+                        veca );
+                    // b:
+                    common::map_function(
+                        psi,
+                        [&sectionb, &prototype]( PetscScalar a, PetscInt i ) {
+                            return ( prototype[i].n >
+                                         std::lround( ( *sectionb )[0] ) &&
+                                     prototype[i].n <=
+                                         std::lround( ( *sectionb )[1] ) ) ?
+                                       a :
+                                       0;
+                        },
+                        vecb );
+                } else {
+                    common::map_function(
+                        psi,
+                        [&sectiona, &prototype]( PetscScalar a, PetscInt i ) {
+                            return ( prototype[i].e.real() > ( *sectiona )[0] &&
+                                     prototype[i].e.real() <=
+                                         ( *sectiona )[1] ) ?
+                                       a :
+                                       0;
+                        },
+                        veca );
+                    // b:
+                    common::map_function(
+                        psi,
+                        [&sectionb, &prototype]( PetscScalar a, PetscInt i ) {
+                            return ( prototype[i].e.real() > ( *sectionb )[0] &&
+                                     prototype[i].e.real() <=
+                                         ( *sectionb )[1] ) ?
+                                       a :
+                                       0;
+                        },
+                        vecb );
                 }
-                // std::cout << "write cross one" << std::endl;
-                output_vector[n]->write( reinterpret_cast<char*>( &ab ),
-                                         sizeof( PetscScalar ) );
-                n++;
+
+                PetscScalar temp_scalar;
+
+                if ( tmp == PETSC_NULL ) VecDuplicate( psi, &tmp );
+                VecCopy( veca, tmp );
+                MatMult( dipole, veca, tmp );
+                VecDot( vecb, tmp, &temp_scalar );
+
+                PetscReal popa, popb;
+                if ( sectionb == sectiona + 1 ) {
+                    aa   = this->find_dipole_moment( dipole, veca );
+                    popa = math::VecNorm( veca );
+                }
                 if ( sectionb == sections.end() - 1 &&
                      sectiona == sections.end() - 2 ) {
-                    // std::cout << "write second one" << std::endl;
-                    output_vector[n]->write( reinterpret_cast<char*>( &bb ),
+                    bb   = this->find_dipole_moment( dipole, vecb );
+                    popb = math::VecNorm( vecb );
+                }
+                ab = temp_scalar;
+
+                // only push back if rank == 0 to preven memory requirement
+                // blowup
+                if ( rank() == 0 ) {
+                    if ( sectionb == sectiona + 1 ) {
+                        // std::cout << "write first one" << std::endl;
+                        output_vector[n]->write( reinterpret_cast<char*>( &aa ),
+                                                 sizeof( PetscScalar ) );
+                        n++;
+                        output_vector.back()->write(
+                            reinterpret_cast<char*>( &popa ),
+                            sizeof( PetscReal ) );
+                    }
+                    // std::cout << "write cross one" << std::endl;
+                    output_vector[n]->write( reinterpret_cast<char*>( &ab ),
                                              sizeof( PetscScalar ) );
-                    output_vector.back()->write(
-                        reinterpret_cast<char*>( &popb ), sizeof( PetscReal ) );
                     n++;
+                    if ( sectionb == sections.end() - 1 &&
+                         sectiona == sections.end() - 2 ) {
+                        // std::cout << "write second one" << std::endl;
+                        output_vector[n]->write( reinterpret_cast<char*>( &bb ),
+                                                 sizeof( PetscScalar ) );
+                        output_vector.back()->write(
+                            reinterpret_cast<char*>( &popb ),
+                            sizeof( PetscReal ) );
+                        n++;
+                    }
+                }
+            } else {
+                for ( auto la = lsections.begin(); la < lsections.end();
+                      la++ ) {
+                    for ( auto lb = la + 1; lb < lsections.end(); lb++ ) {
+                        // we need to do all combinations of la, lb, seca, secb
+                        // these are:
+                        // seca, la
+                        // seca, lb
+                        // secb, la
+                        // secb, lb
+
+                        std::cout << "section a " << ( *sectiona )[0] << "-"
+                                  << ( *sectiona )[1] << " section b "
+                                  << ( *sectionb )[0] << "-" << ( *sectionb )[1]
+                                  << " l a " << ( *la )[0] << "-" << ( *la )[1]
+                                  << " l b " << ( *lb )[0] << "-" << ( *lb )[1]
+                                  << std::endl;
+
+                        // a: seca, la
+                        if ( type_ != split_type::Energy ) {
+                            // a: seca, la
+                            common::map_function(
+                                psi,
+                                [&sectiona, &la, &prototype]( PetscScalar a,
+                                                              PetscInt i ) {
+                                    auto n_right =
+                                        prototype[i].n >
+                                            std::lround( ( *sectiona )[0] ) and
+                                        prototype[i].n <=
+                                            std::lround( ( *sectiona )[1] );
+                                    auto l_right =
+                                        prototype[i].l >= ( *la )[0] and
+                                        prototype[i].l < ( *la )[1];
+                                    return n_right and l_right ? a : 0;
+                                },
+                                veca );
+                            // b: seca, lb
+                            common::map_function(
+                                psi,
+                                [&sectiona, &lb, &prototype]( PetscScalar a,
+                                                              PetscInt i ) {
+                                    auto n_right =
+                                        prototype[i].n >
+                                            std::lround( ( *sectiona )[0] ) and
+                                        prototype[i].n <=
+                                            std::lround( ( *sectiona )[1] );
+                                    auto l_right =
+                                        prototype[i].l >= ( *lb )[0] and
+                                        prototype[i].l < ( *lb )[1];
+                                    return n_right and l_right ? a : 0;
+                                },
+                                vecb );
+                            // c: secb, la
+                            common::map_function(
+                                psi,
+                                [&sectionb, &la, &prototype]( PetscScalar a,
+                                                              PetscInt i ) {
+                                    auto n_right =
+                                        prototype[i].n >
+                                            std::lround( ( *sectionb )[0] ) and
+                                        prototype[i].n <=
+                                            std::lround( ( *sectionb )[1] );
+                                    auto l_right =
+                                        prototype[i].l >= ( *la )[0] and
+                                        prototype[i].l < ( *la )[1];
+                                    return n_right and l_right ? a : 0;
+                                },
+                                vecc );
+                            // d: secb, lb
+                            common::map_function(
+                                psi,
+                                [&sectionb, &lb, &prototype]( PetscScalar a,
+                                                              PetscInt i ) {
+                                    auto n_right =
+                                        prototype[i].n >
+                                            std::lround( ( *sectionb )[0] ) and
+                                        prototype[i].n <=
+                                            std::lround( ( *sectionb )[1] );
+                                    auto l_right =
+                                        prototype[i].l >= ( *lb )[0] and
+                                        prototype[i].l < ( *lb )[1];
+                                    return n_right and l_right ? a : 0;
+                                },
+                                vecd );
+
+                        } else {
+                            // a: seca, la
+                            common::map_function(
+                                psi,
+                                [&sectiona, &la, &prototype]( PetscScalar a,
+                                                              PetscInt i ) {
+                                    auto n_right = prototype[i].e.real() >
+                                                       ( ( *sectiona )[0] ) and
+                                                   prototype[i].e.real() <=
+                                                       ( ( *sectiona )[1] );
+                                    auto l_right =
+                                        prototype[i].l >= ( *la )[0] and
+                                        prototype[i].l < ( *la )[1];
+                                    return n_right and l_right ? a : 0;
+                                },
+                                veca );
+                            // b: seca, lb
+                            common::map_function(
+                                psi,
+                                [&sectiona, &lb, &prototype]( PetscScalar a,
+                                                              PetscInt i ) {
+                                    auto n_right = prototype[i].e.real() >
+                                                       ( ( *sectiona )[0] ) and
+                                                   prototype[i].e.real() <=
+                                                       ( ( *sectiona )[1] );
+                                    auto l_right =
+                                        prototype[i].l >= ( *lb )[0] and
+                                        prototype[i].l < ( *lb )[1];
+                                    return n_right and l_right ? a : 0;
+                                },
+                                vecb );
+                            // c: secb, la
+                            common::map_function(
+                                psi,
+                                [&sectionb, &la, &prototype]( PetscScalar a,
+                                                              PetscInt i ) {
+                                    auto n_right = prototype[i].e.real() >
+                                                       ( ( *sectionb )[0] ) and
+                                                   prototype[i].e.real() <=
+                                                       ( ( *sectionb )[1] );
+                                    auto l_right =
+                                        prototype[i].l >= ( *la )[0] and
+                                        prototype[i].l < ( *la )[1];
+                                    return n_right and l_right ? a : 0;
+                                },
+                                vecc );
+                            // d: secb, lb
+                            common::map_function(
+                                psi,
+                                [&sectionb, &lb, &prototype]( PetscScalar a,
+                                                              PetscInt i ) {
+                                    auto n_right = prototype[i].e.real() >
+                                                       ( *sectionb )[0] and
+                                                   prototype[i].e.real() <=
+                                                       ( *sectionb )[1];
+                                    auto l_right =
+                                        prototype[i].l >= ( *lb )[0] and
+                                        prototype[i].l < ( *lb )[1];
+                                    return n_right and l_right ? a : 0;
+                                },
+                                vecd );
+                        }
+
+                        PetscScalar temp_scalar;
+
+                        if ( tmp == PETSC_NULL ) VecDuplicate( psi, &tmp );
+
+                        PetscReal popa, popb;
+                        if ( sectionb == sectiona + 1 ) {
+                            if ( lb == la + 1 ) {
+                                // std::cout << " <seca, la | z | seca, la> ";
+                                aaaa = this->find_dipole_moment( dipole, veca );
+                                popa = math::VecNorm( veca );
+                                if ( rank() == 0 ) {
+                                    output_vector[n]->write(
+                                        reinterpret_cast<char*>( &aaaa ),
+                                        sizeof( PetscScalar ) );
+                                    n++;
+                                    output_vector.back()->write(
+                                        reinterpret_cast<char*>( &popa ),
+                                        sizeof( PetscReal ) );
+                                }
+                            }
+                            {
+                                // std::cout << " <seca, la | z | seca, lb> ";
+                                VecCopy( veca, tmp );
+                                MatMult( dipole, veca, tmp );
+                                VecDot( vecb, tmp, &temp_scalar );
+                                aaab = temp_scalar;
+                                if ( rank() == 0 ) {
+                                    output_vector[n]->write(
+                                        reinterpret_cast<char*>( &aaab ),
+                                        sizeof( PetscScalar ) );
+                                    n++;
+                                }
+                            }
+                            if ( lb == lsections.end() - 1 and
+                                 la == lsections.end() - 2 ) {
+                                // std::cout << " <seca, lb | z | seca, lb> ";
+                                aabb = this->find_dipole_moment( dipole, vecb );
+                                popa = math::VecNorm( vecb );
+                                if ( rank() == 0 ) {
+                                    output_vector[n]->write(
+                                        reinterpret_cast<char*>( &aabb ),
+                                        sizeof( PetscScalar ) );
+                                    n++;
+                                    output_vector.back()->write(
+                                        reinterpret_cast<char*>( &popa ),
+                                        sizeof( PetscReal ) );
+                                }
+                            }
+                        }
+                        {
+                            if ( lb == la + 1 ) {
+                                // std::cout << " <seca, la | z | secb, la> ";
+                                VecCopy( veca, tmp );
+                                MatMult( dipole, veca, tmp );
+                                VecDot( vecc, tmp, &temp_scalar );
+                                abaa = temp_scalar;
+                                if ( rank() == 0 ) {
+                                    output_vector[n]->write(
+                                        reinterpret_cast<char*>( &abaa ),
+                                        sizeof( PetscScalar ) );
+                                    n++;
+                                }
+                            }
+                            {
+                                // <seca, la | z | secb, lb>
+                                VecCopy( veca, tmp );
+                                MatMult( dipole, veca, tmp );
+                                VecDot( vecd, tmp, &temp_scalar );
+                                abab = temp_scalar;
+                                if ( rank() == 0 ) {
+                                    output_vector[n]->write(
+                                        reinterpret_cast<char*>( &abab ),
+                                        sizeof( PetscScalar ) );
+                                    n++;
+                                }
+                            }
+                            if ( lb == lsections.end() - 1 and
+                                 la == lsections.end() - 2 ) {
+                                // <seca, lb | z | secb, lb>
+                                VecCopy( vecb, tmp );
+                                MatMult( dipole, vecb, tmp );
+                                VecDot( vecd, tmp, &temp_scalar );
+                                abbb = temp_scalar;
+                                if ( rank() == 0 ) {
+                                    output_vector[n]->write(
+                                        reinterpret_cast<char*>( &abbb ),
+                                        sizeof( PetscScalar ) );
+                                    n++;
+                                }
+                            }
+                        }
+                        if ( sectionb == sections.end() - 1 &&
+                             sectiona == sections.end() - 2 ) {
+                            if ( lb == la + 1 ) {
+                                // <secb, la | z | secb, la>
+                                bbaa = this->find_dipole_moment( dipole, vecc );
+                                popa = math::VecNorm( vecc );
+                                if ( rank() == 0 ) {
+                                    output_vector[n]->write(
+                                        reinterpret_cast<char*>( &bbaa ),
+                                        sizeof( PetscScalar ) );
+                                    n++;
+                                    output_vector.back()->write(
+                                        reinterpret_cast<char*>( &popa ),
+                                        sizeof( PetscReal ) );
+                                }
+                            }
+                            {
+                                // <secb, la | z | secb, lb>
+                                VecCopy( vecc, tmp );
+                                MatMult( dipole, vecc, tmp );
+                                VecDot( vecd, tmp, &temp_scalar );
+                                bbab = temp_scalar;
+                                if ( rank() == 0 ) {
+                                    output_vector[n]->write(
+                                        reinterpret_cast<char*>( &bbab ),
+                                        sizeof( PetscScalar ) );
+                                    n++;
+                                }
+                            }
+                            if ( lb == lsections.end() - 1 and
+                                 la == lsections.end() - 2 ) {
+                                // <secb, lb | z | secb, lb>
+                                bbbb = this->find_dipole_moment( dipole, vecd );
+                                popa = math::VecNorm( vecd );
+                                if ( rank() == 0 ) {
+                                    output_vector[n]->write(
+                                        reinterpret_cast<char*>( &bbbb ),
+                                        sizeof( PetscScalar ) );
+                                    n++;
+                                    output_vector.back()->write(
+                                        reinterpret_cast<char*>( &popa ),
+                                        sizeof( PetscReal ) );
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -260,6 +600,10 @@ void DipoleParameters::find_dipole_moment_decompositions(
 
     VecDestroy( &veca );
     VecDestroy( &vecb );
+    if ( l_splits.size() > 0 ) {
+        VecDestroy( &vecc );
+        VecDestroy( &vecd );
+    }
 }
 
 void DipoleParameters::get_parameters()
@@ -299,6 +643,10 @@ void DipoleParameters::get_parameters()
         opt.get( "-dipole_decomposition_energy" )->getDoubles( decomp_splits );
         type_ = split_type::Energy;
     }
+
+    if ( opt.isSet( "-dipole_decomposition_l" ) )
+        opt.get( "-dipole_decomposition_l" )->getInts( l_splits );
+
     ponder = opt.isSet( "-dipole_ponder" );
 
     opt.get( "-dipole_filename" )->getString( dipole_filename_ );
@@ -320,6 +668,9 @@ std::string DipoleParameters::print() const
     out << "dipole_t_after " << t_after_ << std::endl;
     out << "dipole_decomposition ";
     for ( auto i : decomp_splits ) out << i << ",";
+    out << "dipole_decomposition_l ";
+    out << std::endl;
+    for ( auto i : l_splits ) out << i << ",";
     out << std::endl;
     return out.str();
 }
@@ -333,6 +684,9 @@ void DipoleParameters::save_parameters() const
     file << "-dipole_t_after " << t_after_ << std::endl;
     file << "-dipole_decomposition ";
     for ( auto i : decomp_splits ) file << i << ",";
+    file << std::endl;
+    file << "dipole_decomposition_l ";
+    for ( auto i : l_splits ) file << i << ",";
     file << std::endl;
     file.close();
 }
@@ -363,6 +717,10 @@ void DipoleParameters::register_parameters()
              "Split the dipole moment into contributions greater than and less "
              "than x, for each x (x is the energy)",
              std::string( prefix ).append( "decomposition_energy\0" ).c_str() );
+    opt.add( "0", 1, 1, ',',
+             "Split the dipole moment into contributions greater than and less "
+             "than l, for each l (l is the angular momentum quantum number)",
+             std::string( prefix ).append( "decomposition_l\0" ).c_str() );
     opt.add( "", 0, 0, ',',
              "Split the dipole moment into contributions greater than and less "
              "than x, for each x (x is the energy)",
