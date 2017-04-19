@@ -79,10 +79,10 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
                 std::cout << "getting wf " << std::endl;
             std::string filename = std::string( "wf_interupted.dat" );
             VecDestroy( wf );
-            if ( cntx->hparams->rank() == 0 )
-                std::cout << "getting time and ef " << std::endl;
             *wf = common::petsc_binary_read<Vec>( filename,
                                                   cntx->hparams->comm() );
+            if ( cntx->hparams->rank() == 0 )
+                std::cout << "getting time and ef " << std::endl;
             time  = common::import_vector_binary<PetscReal>( "time.dat" );
             efvec = common::import_vector_binary<PetscReal>(
                 cntx->laser->laser_filename() );
