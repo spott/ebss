@@ -260,7 +260,7 @@ PetscScalar LaserParameters::efield( PetscReal t, PetscReal phase ) const
         // std::pow( std::sin( this->frequency() * t / ( this->cycles() * 2
         // ) ),
         // 2 ) *
-        std::sin( this->frequency() * t + phase ) );
+        std::sin( this->frequency() * ( t - pulse_length()/2. ) + phase ) );
 }
 
 
