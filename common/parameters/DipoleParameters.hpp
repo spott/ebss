@@ -319,12 +319,12 @@ void DipoleParameters::find_dipole_moment_decompositions(
                         // secb, la
                         // secb, lb
 
-                        std::cout << "section a " << ( *sectiona )[0] << "-"
-                                  << ( *sectiona )[1] << " section b "
-                                  << ( *sectionb )[0] << "-" << ( *sectionb )[1]
-                                  << " l a " << ( *la )[0] << "-" << ( *la )[1]
-                                  << " l b " << ( *lb )[0] << "-" << ( *lb )[1]
-                                  << std::endl;
+                        // std::cout << "section a " << ( *sectiona )[0] << "-"
+                        //           << ( *sectiona )[1] << " section b "
+                        //           << ( *sectionb )[0] << "-" << ( *sectionb )[1]
+                        //           << " l a " << ( *la )[0] << "-" << ( *la )[1]
+                        //           << " l b " << ( *lb )[0] << "-" << ( *lb )[1]
+                        //           << std::endl;
 
                         // a: seca, la
                         if ( type_ != split_type::Energy ) {
