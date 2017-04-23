@@ -192,6 +192,12 @@ PetscReal LaserParameters::pulse_length() const
         PetscReal mean      = fwhm_time *
                          std::sqrt( std::log( 1. / this->start_height_ ) ) /
                          ( 2. * std::sqrt( std::log( 2. ) ) );
+
+        PetscInt  cycles_till_mean = int( mean / cycles() );
+        PetscReal remainder        = this->cep() / ( 2. * math::PI );
+        // the remainder must == the CEP contribution, or we don't start at zero
+        mean =
+            ( cycles_till_mean + remainder ) * ( math::PI * 2 / frequency() );
         return mean * 2.;
     }
 }
@@ -217,11 +223,18 @@ PetscScalar LaserParameters::envelope( PetscReal t, PetscReal t_start ) const
                                laser_back_shape_ );
         return efield;
     } else if ( this->shape() == "gaussian" ) {
+        // we *must* start at a zero of the field.
+
         PetscReal fwhm_time = ( math::PI * 2 * cycles() ) / frequency();
         PetscReal mean      = fwhm_time *
-                             std::sqrt( std::log( 1. / this->start_height_ ) ) /
-                             ( 2. * std::sqrt( std::log( 2. ) ) ) +
-                         t_start;
+                         std::sqrt( std::log( 1. / this->start_height_ ) ) /
+                         ( 2. * std::sqrt( std::log( 2. ) ) );
+
+        PetscInt  cycles_till_mean = int( mean / cycles() );
+        PetscReal remainder        = this->cep() / ( 2. * math::PI );
+        // the remainder must == the CEP contribution, or we don't start at zero
+        mean =
+            ( cycles_till_mean + remainder ) * ( math::PI * 2 / frequency() );
         PetscReal std_deviation = fwhm_time / std::sqrt( 8. * std::log( 2. ) );
 
         return std::exp( -( t - mean ) * ( t - mean ) /
@@ -240,9 +253,10 @@ std::pair<std::vector<double>, std::vector<double>>
     std::vector<double> e( 100 );
     PetscReal           efield = std::sqrt( this->intensity() );
     for ( size_t i = 0; i < 100; ++i ) {
-        e[i] = efield * std::pow( std::sin( this->frequency() * t[i] /
-                                            ( this->cycles() * 2 ) ),
-                                  2 ) *
+        e[i] = efield *
+               std::pow( std::sin( this->frequency() * t[i] /
+                                   ( this->cycles() * 2 ) ),
+                         2 ) *
                std::sin( this->frequency() * t[i] );
     }
 
@@ -257,10 +271,7 @@ PetscScalar LaserParameters::efield( PetscReal t, PetscReal phase ) const
     PetscReal efield = std::sqrt( this->intensity() );
     return std::complex<double>(
         efield * envelope( t, 0.0 ) *
-        // std::pow( std::sin( this->frequency() * t / ( this->cycles() * 2
-        // ) ),
-        // 2 ) *
-        std::sin( this->frequency() * ( t - pulse_length()/2. ) + phase ) );
+        std::sin( this->frequency() * ( t - pulse_length() / 2. ) + phase ) );
 }
 
 
