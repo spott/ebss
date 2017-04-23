@@ -685,7 +685,7 @@ void DipoleParameters::save_parameters() const
     file << "-dipole_decomposition ";
     for ( auto i : decomp_splits ) file << i << ",";
     file << std::endl;
-    file << "dipole_decomposition_l ";
+    file << "-dipole_decomposition_l ";
     for ( auto i : l_splits ) file << i << ",";
     file << std::endl;
     file.close();
