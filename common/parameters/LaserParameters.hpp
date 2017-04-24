@@ -198,7 +198,7 @@ PetscReal LaserParameters::pulse_length() const
         // the remainder must == the CEP contribution, or we don't start at zero
         mean =
             ( cycles_till_mean + remainder ) * ( math::PI * 2 / frequency() );
-        std::cout << "cycles_till_mean: " << cycles_till_mean << " remainder: " << remainder << " mean: " << mean << std::endl;
+        // std::cout << "cycles_till_mean: " << cycles_till_mean << " remainder: " << remainder << " mean: " << mean << std::endl;
         return mean * 2.;
     }
 }
@@ -237,7 +237,7 @@ PetscScalar LaserParameters::envelope( PetscReal t, PetscReal t_start ) const
         mean =
             ( cycles_till_mean + remainder ) * ( math::PI * 2 / frequency() );
         PetscReal std_deviation = fwhm_time / std::sqrt( 8. * std::log( 2. ) );
-        std::cout << "cycles_till_mean: " << cycles_till_mean << " remainder: " << remainder << " mean: " << mean << std::endl;
+        // std::cout << "cycles_till_mean: " << cycles_till_mean << " remainder: " << remainder << " mean: " << mean << std::endl;
         return std::exp( -( t - mean ) * ( t - mean ) /
                          ( 2. * std_deviation * std_deviation ) );
     }
