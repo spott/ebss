@@ -193,12 +193,17 @@ PetscReal LaserParameters::pulse_length() const
                          std::sqrt( std::log( 1. / this->start_height_ ) ) /
                          ( 2. * std::sqrt( std::log( 2. ) ) );
 
+        if ( this->cep() > math::PI * 2. or this->cep() < - math::PI * 2. )
+            return mean * 2;
         PetscInt  cycles_till_mean = int( mean * frequency() / (2. * math::PI) );
         PetscReal remainder        = this->cep() / ( 2. * math::PI );
-        // the remainder must == the CEP contribution, or we don't start at zero
+
+        if (mean < cycles_till_mean * (math::PI * 2 / frequency()))
+            cycles_till_mean += 1;
+            // the remainder must == the CEP contribution, or we don't start at zero
         mean =
             ( cycles_till_mean + remainder ) * ( math::PI * 2 / frequency() );
-        // std::cout << "cycles_till_mean: " << cycles_till_mean << " remainder: " << remainder << " mean: " << mean << std::endl;
+        std::cout << "cycles_till_mean: " << cycles_till_mean << " remainder: " << remainder << " mean: " << mean << std::endl;
         return mean * 2.;
     }
 }
@@ -231,13 +236,19 @@ PetscScalar LaserParameters::envelope( PetscReal t, PetscReal t_start ) const
                          std::sqrt( std::log( 1. / this->start_height_ ) ) /
                          ( 2. * std::sqrt( std::log( 2. ) ) );
 
-        PetscInt  cycles_till_mean = int( mean * frequency() / (2. * math::PI) );
-        PetscReal remainder        = this->cep() / ( 2. * math::PI );
-        // the remainder must == the CEP contribution, or we don't start at zero
-        mean =
-            ( cycles_till_mean + remainder ) * ( math::PI * 2 / frequency() );
+        if (not( this->cep() > math::PI * 2. or this->cep() < -math::PI * 2. ))
+        {
+            std::cout << "cep has not been bypassed" << std::endl;
+            PetscInt  cycles_till_mean = int( mean * frequency() / (2. * math::PI) );
+            PetscReal remainder        = this->cep() / ( 2. * math::PI );
+            // the remainder must == the CEP contribution, or we don't start at zero
+            if (mean < cycles_till_mean * (math::PI * 2 / frequency()))
+                cycles_till_mean += 1;
+            mean =
+                ( cycles_till_mean + remainder ) * ( math::PI * 2 / frequency() );
+        }
         PetscReal std_deviation = fwhm_time / std::sqrt( 8. * std::log( 2. ) );
-        // std::cout << "cycles_till_mean: " << cycles_till_mean << " remainder: " << remainder << " mean: " << mean << std::endl;
+        std::cout << " mean: " << mean << std::endl;
         return std::exp( -( t - mean ) * ( t - mean ) /
                          ( 2. * std_deviation * std_deviation ) );
     }
@@ -270,9 +281,17 @@ PetscScalar LaserParameters::efield( PetscReal t, PetscReal phase ) const
     // if ( t * this->frequency() / ( this->cycles() * 2 ) > math::PI || t
     // < 0 )
     PetscReal efield = std::sqrt( this->intensity() );
-    return std::complex<double>(
-        efield * envelope( t, 0.0 ) *
-        std::sin( this->frequency() * ( t - pulse_length() / 2. ) + phase ) );
+    if ( this->cep() > math::PI * 2. or this->cep() < - math::PI * 2. )
+        return std::complex<double>(
+            efield * envelope( t, 0.0 ) *
+            std::sin( this->frequency() * ( t - pulse_length() / 2. ) + phase ) );
+    else
+    {
+        std::cout << "cep has not been bypassed efield" << std::endl;
+        return std::complex<double>(
+            efield * envelope( t, 0.0 ) *
+            std::sin( this->frequency() * t) );
+    }
 }
 
 

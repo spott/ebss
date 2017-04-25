@@ -52,6 +52,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
                       << std::endl;
         restore = false;
         zero    = 0;
+        step    = 0;
     }
     PetscViewer view;
     KSP         ksp;
@@ -96,16 +97,12 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
                                                   cntx->hparams->comm() );
             if ( cntx->hparams->rank() == 0 )
                 std::cout << "getting time and ef " << std::endl;
-            for (auto& a: time)
-                std::cout << a << ", ";
-            for (auto& a: efvec)
-                std::cout << a << ", ";
+            for ( auto& a : time ) std::cout << a << ", ";
+            for ( auto& a : efvec ) std::cout << a << ", ";
             time.resize( step );
             efvec.resize( step );
-            for (auto& a: time)
-                std::cout << a << ", ";
-            for (auto& a: efvec)
-                std::cout << a << ", ";
+            for ( auto& a : time ) std::cout << a << ", ";
+            for ( auto& a : efvec ) std::cout << a << ", ";
             t  = time.back();
             ef = efvec.back();
         }
@@ -318,7 +315,7 @@ PetscErrorCode solve( Vec* wf, context* cntx, Mat* A )
         if ( math::signum( ef.real() ) != math::signum( eff.real() ) ) {
             if ( cntx->hparams->rank() == 0 ) {
                 std::cout << "time: " << t << " step: " << step
-                          << " efield: " << eff.real()
+                          << " efield: " << eff.real() << " last efield: " << ef.real()
                           << " norm-1: " << norm - 1 << " *" << zero
                           << std::endl;
             }
