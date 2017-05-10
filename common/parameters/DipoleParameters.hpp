@@ -320,7 +320,6 @@ void DipoleParameters::find_dipole_moment_decompositions(
                 PetscScalar temp_scalar;
 
                 if ( tmp == PETSC_NULL ) VecDuplicate( psi, &tmp );
-                VecCopy( veca, tmp );
                 MatMult( dipole, veca, tmp );
                 VecDot( vecb, tmp, &temp_scalar );
 
@@ -533,7 +532,6 @@ void DipoleParameters::find_dipole_moment_decompositions(
                             }
                             {
                                 // std::cout << " <seca, la | z | seca, lb> ";
-                                VecCopy( veca, tmp );
                                 MatMult( dipole, veca, tmp );
                                 VecDot( vecb, tmp, &temp_scalar );
                                 aaab = temp_scalar;
@@ -563,7 +561,6 @@ void DipoleParameters::find_dipole_moment_decompositions(
                         {
                             if ( lb == la + 1 ) {
                                 // std::cout << " <seca, la | z | secb, la> ";
-                                VecCopy( veca, tmp );
                                 MatMult( dipole, veca, tmp );
                                 VecDot( vecc, tmp, &temp_scalar );
                                 abaa = temp_scalar;
@@ -576,7 +573,6 @@ void DipoleParameters::find_dipole_moment_decompositions(
                             }
                             {
                                 // <seca, la | z | secb, lb>
-                                VecCopy( veca, tmp );
                                 MatMult( dipole, veca, tmp );
                                 VecDot( vecd, tmp, &temp_scalar );
                                 abab = temp_scalar;
@@ -587,7 +583,6 @@ void DipoleParameters::find_dipole_moment_decompositions(
                                     n++;
                                 }
                                 // <seca, lb | z | secb, la>
-                                VecCopy( vecb, tmp );
                                 MatMult( dipole, vecb, tmp );
                                 VecDot( vecc, tmp, &temp_scalar );
                                 abab = temp_scalar;
@@ -601,7 +596,6 @@ void DipoleParameters::find_dipole_moment_decompositions(
                             if ( lb == lsections.end() - 1 and
                                  la == lsections.end() - 2 ) {
                                 // <seca, lb | z | secb, lb>
-                                VecCopy( vecb, tmp );
                                 MatMult( dipole, vecb, tmp );
                                 VecDot( vecd, tmp, &temp_scalar );
                                 abbb = temp_scalar;
@@ -631,7 +625,6 @@ void DipoleParameters::find_dipole_moment_decompositions(
                             }
                             {
                                 // <secb, la | z | secb, lb>
-                                VecCopy( vecc, tmp );
                                 MatMult( dipole, vecc, tmp );
                                 VecDot( vecd, tmp, &temp_scalar );
                                 bbab = temp_scalar;
