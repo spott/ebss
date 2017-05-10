@@ -55,14 +55,69 @@ class DipoleParameters : public Parameters
                     }
                 }
             else {
-                const std::vector<char> l_labels{'0', '1', '2', '3'};
+                const std::vector<char> l_labels{'0', '1', '2', '3', '4', '5', '6'};
+
                 for ( size_t a = 0; a <= decomp_splits.size(); a++ ) {
-                    for ( size_t b = a; b <= decomp_splits.size(); b++ ) {
+                    for ( size_t b = a+1; b <= decomp_splits.size(); b++ ) {
                         for ( size_t c = 0; c <= l_splits.size(); c++ ) {
-                            for ( size_t d = c; d <= l_splits.size(); d++ ) {
-                                out.push_back( df + "_" + labels[a] +
-                                               labels[b] + "_" + l_labels[c] +
-                                               l_labels[d] + ".dat" );
+                            for ( size_t d = c+1; d <= l_splits.size(); d++ ) {
+                                if ( b == a + 1 )
+                                {
+                                    if (d == c + 1)
+                                    {
+                                        out.push_back( df + "_" + labels[a] +
+                                                       labels[a] + "_" + l_labels[c] +
+                                                       l_labels[c] + ".dat" );
+                                    }
+                                    {
+                                        out.push_back( df + "_" + labels[a] +
+                                                       labels[a] + "_" + l_labels[c] +
+                                                       l_labels[d] + ".dat" );
+                                    }
+                                    if (d == l_splits.size() and d == c + 1){
+                                        out.push_back( df + "_" + labels[a] +
+                                                       labels[a] + "_" + l_labels[d] +
+                                                       l_labels[d] + ".dat" );
+                                    }
+                                }
+                                if (d == c + 1)
+                                {
+                                    out.push_back( df + "_" + labels[a] +
+                                                    labels[b] + "_" + l_labels[c] +
+                                                    l_labels[c] + ".dat" );
+                                }
+                                {
+                                    out.push_back( df + "_" + labels[a] +
+                                                    labels[b] + "_" + l_labels[c] +
+                                                    l_labels[d] + ".dat" );
+                                    out.push_back( df + "_" + labels[a] +
+                                                   labels[b] + "_" + l_labels[d] +
+                                                   l_labels[c] + ".dat" );
+                                }
+                                if (d == l_splits.size() and d == c + 1){
+                                    out.push_back( df + "_" + labels[a] +
+                                                    labels[a] + "_" + l_labels[d] +
+                                                    l_labels[d] + ".dat" );
+                                }
+                                if ( b == decomp_splits.size() and b == a + 1 )
+                                {
+                                    if (d == c + 1)
+                                    {
+                                        out.push_back( df + "_" + labels[b] +
+                                                       labels[b] + "_" + l_labels[c] +
+                                                       l_labels[c] + ".dat" );
+                                    }
+                                    {
+                                        out.push_back( df + "_" + labels[b] +
+                                                       labels[b] + "_" + l_labels[c] +
+                                                       l_labels[d] + ".dat" );
+                                    }
+                                    if (d == l_splits.size() and d == c + 1){
+                                        out.push_back( df + "_" + labels[b] +
+                                                       labels[b] + "_" + l_labels[d] +
+                                                       l_labels[d] + ".dat" );
+                                    }
+                                }
                             }
                         }
                     }
@@ -314,10 +369,10 @@ void DipoleParameters::find_dipole_moment_decompositions(
                     for ( auto lb = la + 1; lb < lsections.end(); lb++ ) {
                         // we need to do all combinations of la, lb, seca, secb
                         // these are:
-                        // seca, la
-                        // seca, lb
-                        // secb, la
-                        // secb, lb
+                        // veca: seca, la
+                        // vecb: seca, lb
+                        // vecc: secb, la
+                        // vecd: secb, lb
 
                         // std::cout << "section a " << ( *sectiona )[0] << "-"
                         //           << ( *sectiona )[1] << " section b "
@@ -491,7 +546,7 @@ void DipoleParameters::find_dipole_moment_decompositions(
                             }
                             if ( lb == lsections.end() - 1 and
                                  la == lsections.end() - 2 ) {
-                                // std::cout << " <seca, lb | z | seca, lb> ";
+                                // std::cout << " <secb, lb | z | secb, lb> ";
                                 aabb = this->find_dipole_moment( dipole, vecb );
                                 popa = math::VecNorm( vecb );
                                 if ( rank() == 0 ) {
@@ -524,6 +579,17 @@ void DipoleParameters::find_dipole_moment_decompositions(
                                 VecCopy( veca, tmp );
                                 MatMult( dipole, veca, tmp );
                                 VecDot( vecd, tmp, &temp_scalar );
+                                abab = temp_scalar;
+                                if ( rank() == 0 ) {
+                                    output_vector[n]->write(
+                                        reinterpret_cast<char*>( &abab ),
+                                        sizeof( PetscScalar ) );
+                                    n++;
+                                }
+                                // <seca, lb | z | secb, la>
+                                VecCopy( vecb, tmp );
+                                MatMult( dipole, vecb, tmp );
+                                VecDot( vecc, tmp, &temp_scalar );
                                 abab = temp_scalar;
                                 if ( rank() == 0 ) {
                                     output_vector[n]->write(
