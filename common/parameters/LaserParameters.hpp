@@ -203,7 +203,7 @@ PetscReal LaserParameters::pulse_length() const
             // the remainder must == the CEP contribution, or we don't start at zero
         mean =
             ( cycles_till_mean + remainder ) * ( math::PI * 2 / frequency() );
-        std::cout << "cycles_till_mean: " << cycles_till_mean << " remainder: " << remainder << " mean: " << mean << std::endl;
+        //std::cout << "cycles_till_mean: " << cycles_till_mean << " remainder: " << remainder << " mean: " << mean << std::endl;
         return mean * 2.;
     }
 }
@@ -238,7 +238,7 @@ PetscScalar LaserParameters::envelope( PetscReal t, PetscReal t_start ) const
 
         if (not( this->cep() > math::PI * 2. or this->cep() < -math::PI * 2. ))
         {
-            std::cout << "cep has not been bypassed" << std::endl;
+            //std::cout << "cep has not been bypassed" << std::endl;
             PetscInt  cycles_till_mean = int( mean * frequency() / (2. * math::PI) );
             PetscReal remainder        = this->cep() / ( 2. * math::PI );
             // the remainder must == the CEP contribution, or we don't start at zero
@@ -248,7 +248,7 @@ PetscScalar LaserParameters::envelope( PetscReal t, PetscReal t_start ) const
                 ( cycles_till_mean + remainder ) * ( math::PI * 2 / frequency() );
         }
         PetscReal std_deviation = fwhm_time / std::sqrt( 8. * std::log( 2. ) );
-        std::cout << " mean: " << mean << std::endl;
+        //std::cout << " mean: " << mean << std::endl;
         return std::exp( -( t - mean ) * ( t - mean ) /
                          ( 2. * std_deviation * std_deviation ) );
     }
@@ -287,7 +287,7 @@ PetscScalar LaserParameters::efield( PetscReal t, PetscReal phase ) const
             std::sin( this->frequency() * ( t - pulse_length() / 2. ) + phase ) );
     else
     {
-        std::cout << "cep has not been bypassed efield" << std::endl;
+        //std::cout << "cep has not been bypassed efield" << std::endl;
         return std::complex<double>(
             efield * envelope( t, 0.0 ) *
             std::sin( this->frequency() * t) );
