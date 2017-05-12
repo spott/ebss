@@ -96,7 +96,7 @@ class DipoleParameters : public Parameters
                                 }
                                 if (d == l_splits.size() and d == c + 1){
                                     out.push_back( df + "_" + labels[a] +
-                                                    labels[a] + "_" + l_labels[d] +
+                                                    labels[b] + "_" + l_labels[d] +
                                                     l_labels[d] + ".dat" );
                                 }
                                 if ( b == decomp_splits.size() and b == a + 1 )
